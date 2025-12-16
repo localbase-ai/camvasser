@@ -814,10 +814,6 @@
         if (response.ok) {
           const data = await response.json();
 
-          // Set company logo from tenant config
-          const logoImg = document.getElementById('companyLogo');
-          logoImg.src = data.logo || '/company-cam-logo.png';
-
           // Set domain
           document.getElementById('settingsDomain').textContent = data.domain || 'Not set';
 
