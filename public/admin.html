@@ -609,7 +609,6 @@
           <option value="follow_up_email_sent">Follow-up email sent</option>
           <option value="follow_up_sms_sent">Follow-up SMS sent</option>
         </select>
-        <button id="showAllProspectsBtn" style="margin-left: 8px; padding: 6px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: 'Outfit', sans-serif; cursor: pointer;">Show all</button>
         <span id="prospectCount" style="margin-left: 8px; padding: 6px 12px; font-size: 12px; font-family: 'Outfit', sans-serif; color: #6C757D;"></span>
         <div id="projectFilter" style="display: none; margin-left: 15px; padding: 8px 16px; background: #FFF9E6; border-radius: 8px; color: #856404;">
           <span id="projectFilterText"></span>
@@ -787,13 +786,6 @@
         loadEndUserLeads(1, true); // true = show all on one page
       });
 
-      // Set up Show all button click handler for Contacts - now just clears filters
-      document.getElementById('showAllProspectsBtn').addEventListener('click', function() {
-        document.getElementById('prospectSearch').value = '';
-        document.getElementById('prospectTagFilter').value = '';
-        document.getElementById('prospectStatusFilter').value = '';
-        filterProspectsLocally(1);
-      });
     });
 
     async function loadSettings() {
@@ -1622,10 +1614,20 @@
 
     // Client-side filtering function
     function filterProspectsLocally(page = 1) {
-      const searchQuery = document.getElementById('prospectSearch')?.value?.trim() || '';
-      const tagFilter = document.getElementById('prospectTagFilter')?.value || '';
-      const statusFilter = document.getElementById('prospectStatusFilter')?.value || '';
+      let searchQuery = document.getElementById('prospectSearch')?.value?.trim() || '';
+      let tagFilter = document.getElementById('prospectTagFilter')?.value || '';
+      let statusFilter = document.getElementById('prospectStatusFilter')?.value || '';
       const { column, direction } = sortState.prospects;
+
+      // "all" or "show all" clears all filters
+      if (searchQuery.toLowerCase() === 'all' || searchQuery.toLowerCase() === 'show all') {
+        document.getElementById('prospectSearch').value = '';
+        document.getElementById('prospectTagFilter').value = '';
+        document.getElementById('prospectStatusFilter').value = '';
+        searchQuery = '';
+        tagFilter = '';
+        statusFilter = '';
+      }
 
       let filtered = [...allProspectsData];
 
