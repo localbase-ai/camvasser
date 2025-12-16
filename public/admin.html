@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/minisearch@6.3.0/dist/umd/index.min.js"></script>
 
   <style>
     * {
@@ -585,11 +586,11 @@
         <!-- Prospect stats will be populated here -->
       </div>
       <div class="filters">
-        <input type="text" id="prospectSearch" placeholder="name:john, status:interested, email:yes" oninput="debounceProspectSearch()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: 'Outfit', sans-serif; flex: 1;">
-        <select id="prospectTagFilter" onchange="loadProspects(1, this.value !== '')" style="padding: 6px 10px; border: 1px solid #E5E5E5; border-radius: 6px; font-family: 'Outfit', sans-serif; font-size: 12px;">
+        <input type="text" id="prospectSearch" placeholder="Search by name, phone, email, address..." oninput="debounceProspectSearch()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: 'Outfit', sans-serif; flex: 1;">
+        <select id="prospectTagFilter" onchange="filterProspectsLocally(1)" style="padding: 6px 10px; border: 1px solid #E5E5E5; border-radius: 6px; font-family: 'Outfit', sans-serif; font-size: 12px;">
           <option value="">All Tags</option>
         </select>
-        <select id="prospectStatusFilter" onchange="loadProspects(1)" style="padding: 6px 10px; border: 1px solid #E5E5E5; border-radius: 6px; font-family: 'Outfit', sans-serif; font-size: 12px;">
+        <select id="prospectStatusFilter" onchange="filterProspectsLocally(1)" style="padding: 6px 10px; border: 1px solid #E5E5E5; border-radius: 6px; font-family: 'Outfit', sans-serif; font-size: 12px;">
           <option value="">All Statuses</option>
           <option value="no_status">No Status</option>
           <option value="new_lead">New lead</option>
@@ -662,6 +663,8 @@
     let endUserLeadsData = [];
     let projectsData = [];
     let prospectsData = [];
+    let allProspectsData = []; // Full dataset for client-side search
+    let prospectSearchIndex = null; // MiniSearch index
     let authToken = null;
     let currentUser = null;
 
@@ -678,20 +681,13 @@
       prospects: { column: 'name', direction: 'asc' }
     };
 
-    // Search debounce for prospects
+    // Search debounce for prospects - now uses client-side filtering
     let prospectSearchTimeout = null;
     window.debounceProspectSearch = function() {
       clearTimeout(prospectSearchTimeout);
       prospectSearchTimeout = setTimeout(() => {
-        const searchValue = document.getElementById('prospectSearch')?.value?.trim().toLowerCase();
-        // "all" or "show all" triggers show all
-        if (searchValue === 'all' || searchValue === 'show all') {
-          document.getElementById('prospectSearch').value = '';
-          loadProspects(1, true);
-        } else {
-          loadProspects(1);
-        }
-      }, 300);
+        filterProspectsLocally();
+      }, 150); // Faster since it's local
     };
 
     window.clearProspectSearch = function() {
@@ -791,10 +787,12 @@
         loadEndUserLeads(1, true); // true = show all on one page
       });
 
-      // Set up Show all button click handler for Contacts
+      // Set up Show all button click handler for Contacts - now just clears filters
       document.getElementById('showAllProspectsBtn').addEventListener('click', function() {
         document.getElementById('prospectSearch').value = '';
-        loadProspects(1, true); // true = show all on one page
+        document.getElementById('prospectTagFilter').value = '';
+        document.getElementById('prospectStatusFilter').value = '';
+        filterProspectsLocally(1);
       });
     });
 
@@ -1556,71 +1554,164 @@
     }
 
     let showAllProspects = false; // Track if we're showing all prospects
+    let prospectsLoaded = false; // Track if initial load is complete
 
+    // Load all prospects once, then filter locally
     async function loadProspects(page = 1, showAll = false) {
-      showAllProspects = showAll;
-      const searchQuery = document.getElementById('prospectSearch')?.value?.trim() || '';
-      const tagFilter = document.getElementById('prospectTagFilter')?.value || '';
-      const statusFilter = document.getElementById('prospectStatusFilter')?.value || '';
-      const limit = showAll ? 1000 : PAGE_SIZE; // Use large limit when showing all
-      console.log('loadProspects called, page:', page, 'search:', searchQuery, 'tag:', tagFilter, 'status:', statusFilter, 'showAll:', showAll);
-      const { column, direction } = sortState.prospects;
-      let url = `/.netlify/functions/get-prospects?limit=${limit}&page=${page}&sortBy=${column}&sortDir=${direction}`;
-      if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
-      if (tagFilter) url += `&tag=${encodeURIComponent(tagFilter)}`;
-      if (statusFilter) url += `&statusFilter=${encodeURIComponent(statusFilter)}`;
-      console.log('Fetching URL:', url);
-
-      if (currentProjectFilter) {
-        url += `&projectId=${currentProjectFilter.id}`;
-      }
-
       // Load tags for dropdown if not already loaded
       if (!tagsLoaded) loadAllTags();
 
-      try {
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        });
+      // If we haven't loaded all data yet, fetch it
+      if (!prospectsLoaded) {
+        try {
+          const response = await fetch(`/.netlify/functions/get-prospects?limit=2000`, {
+            headers: {
+              'Authorization': `Bearer ${authToken}`
+            }
+          });
 
-        if (response.status === 401) {
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
-          window.location.href = '/login.html';
+          if (response.status === 401) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+            return;
+          }
+
+          const data = await response.json();
+          allProspectsData = data.prospects;
+          prospectsLoaded = true;
+
+          // Build MiniSearch index
+          prospectSearchIndex = new MiniSearch({
+            fields: ['name', 'searchablePhone', 'searchableEmail', 'projectAddress', 'projectCity', 'status'],
+            storeFields: ['id'],
+            searchOptions: {
+              boost: { name: 2 },
+              fuzzy: 0.2,
+              prefix: true
+            }
+          });
+
+          // Prepare data for indexing
+          const indexData = allProspectsData.map(p => ({
+            id: p.id,
+            name: p.name || '',
+            searchablePhone: (p.phones || []).map(ph => ph.number).join(' '),
+            searchableEmail: (p.emails || []).join(' '),
+            projectAddress: p.project?.address || '',
+            projectCity: p.project?.city || '',
+            status: p.status || ''
+          }));
+          prospectSearchIndex.addAll(indexData);
+
+        } catch (error) {
+          console.error('Error loading prospects:', error);
+          document.getElementById('prospectsList').innerHTML = `
+            <tr><td colspan="9" class="empty-state">
+              <div class="empty-state-icon">⚠️</div>
+              <div>Failed to load prospects</div>
+            </td></tr>
+          `;
           return;
         }
+      }
 
-        const data = await response.json();
-        console.log('Got data, total:', data.total, 'page:', data.page, 'totalPages:', data.totalPages);
-        prospectsData = data.prospects;
-        prospectsPagination = {
-          page: data.page,
-          total: data.total,
-          totalPages: data.totalPages,
-          homeowners: data.homeowners
-        };
-        renderProspects();
-        renderPagination('prospects', prospectsPagination, loadProspects);
-        updateProspectsStats();
+      // Now filter locally
+      filterProspectsLocally(page);
+    }
 
-        // Update count display
-        const countEl = document.getElementById('prospectCount');
-        if (countEl) {
-          const showing = prospectsData.length;
-          const total = data.total;
-          countEl.textContent = showing === total ? `${total} prospects` : `${showing} of ${total} prospects`;
+    // Client-side filtering function
+    function filterProspectsLocally(page = 1) {
+      const searchQuery = document.getElementById('prospectSearch')?.value?.trim() || '';
+      const tagFilter = document.getElementById('prospectTagFilter')?.value || '';
+      const statusFilter = document.getElementById('prospectStatusFilter')?.value || '';
+      const { column, direction } = sortState.prospects;
+
+      let filtered = [...allProspectsData];
+
+      // Apply project filter if set
+      if (currentProjectFilter) {
+        filtered = filtered.filter(p => p.projectId === currentProjectFilter.id);
+      }
+
+      // Apply search using MiniSearch
+      if (searchQuery && prospectSearchIndex) {
+        const results = prospectSearchIndex.search(searchQuery);
+        const matchedIds = new Set(results.map(r => r.id));
+        filtered = filtered.filter(p => matchedIds.has(p.id));
+      }
+
+      // Apply tag filter
+      if (tagFilter) {
+        filtered = filtered.filter(p => {
+          const tags = p.project?.tags || [];
+          return tags.some(t => t.value === tagFilter);
+        });
+      }
+
+      // Apply status filter
+      if (statusFilter) {
+        if (statusFilter === 'no_status') {
+          filtered = filtered.filter(p => !p.status || p.status === '');
+        } else {
+          filtered = filtered.filter(p => p.status === statusFilter);
+        }
+      }
+
+      // Sort
+      filtered.sort((a, b) => {
+        let aVal, bVal;
+        if (column === 'name') {
+          aVal = (a.name || '').toLowerCase();
+          bVal = (b.name || '').toLowerCase();
+        } else if (column === 'status') {
+          aVal = a.status || '';
+          bVal = b.status || '';
+          // Put empty status first
+          if (!aVal && bVal) return -1;
+          if (aVal && !bVal) return 1;
+        } else if (column === 'updatedAt' || column === 'createdAt') {
+          aVal = a[column] ? new Date(a[column]) : new Date(0);
+          bVal = b[column] ? new Date(b[column]) : new Date(0);
+        } else if (column === 'project') {
+          aVal = (a.project?.address || '').toLowerCase();
+          bVal = (b.project?.address || '').toLowerCase();
+        } else {
+          aVal = a[column] || '';
+          bVal = b[column] || '';
         }
 
-      } catch (error) {
-        console.error('Error loading prospects:', error);
-        document.getElementById('prospectsList').innerHTML = `
-          <tr><td colspan="6" class="empty-state">
-            <div class="empty-state-icon">⚠️</div>
-            <div>Failed to load prospects</div>
-          </td></tr>
-        `;
+        if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      // Calculate pagination
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / PAGE_SIZE);
+      const validPage = Math.min(Math.max(1, page), totalPages || 1);
+      const start = (validPage - 1) * PAGE_SIZE;
+      const end = start + PAGE_SIZE;
+
+      // Get page of data
+      prospectsData = filtered.slice(start, end);
+      const homeownerCount = filtered.filter(p => p.isHomeowner).length;
+
+      prospectsPagination = {
+        page: validPage,
+        total: total,
+        totalPages: totalPages,
+        homeowners: homeownerCount
+      };
+
+      renderProspects();
+      renderPagination('prospects', prospectsPagination, (p) => filterProspectsLocally(p));
+      updateProspectsStats();
+
+      // Update count display
+      const countEl = document.getElementById('prospectCount');
+      if (countEl) {
+        countEl.textContent = `${total} prospects`;
       }
     }
 
@@ -1949,13 +2040,13 @@
         }
       });
 
-      // Trigger server-side fetch with sort params (reset to page 1)
+      // Trigger fetch/filter with sort params (reset to page 1)
       if (tableType === 'leads') {
         loadEndUserLeads(1);
       } else if (tableType === 'projects') {
         loadProjects(1);
       } else {
-        loadProspects(1, showAllProspects); // Preserve showAll state when sorting
+        filterProspectsLocally(1); // Use local filtering for prospects
       }
     }
 
