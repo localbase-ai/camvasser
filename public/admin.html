@@ -885,14 +885,16 @@
     }
 
     // Client-side filtering for leads
+    let showAllLeadsOnOnePage = false;
     function filterLeadsLocally(page = 1) {
       let searchQuery = document.getElementById('leadSearch')?.value?.trim() || '';
       const { column, direction } = sortState.leads;
 
-      // "all" or "show all" clears all filters
+      // "all" or "show all" clears all filters and shows everything on one page
       if (searchQuery.toLowerCase() === 'all' || searchQuery.toLowerCase() === 'show all') {
         document.getElementById('leadSearch').value = '';
         searchQuery = '';
+        showAllLeadsOnOnePage = true;
       }
 
       let filtered = [...allLeadsData];
@@ -923,15 +925,19 @@
         return 0;
       });
 
-      // Calculate pagination
+      // Calculate pagination (or show all on one page)
       const total = filtered.length;
-      const totalPages = Math.ceil(total / PAGE_SIZE);
-      const validPage = Math.min(Math.max(1, page), totalPages || 1);
-      const start = (validPage - 1) * PAGE_SIZE;
-      const end = start + PAGE_SIZE;
+      const pageSize = showAllLeadsOnOnePage ? total : PAGE_SIZE;
+      const totalPages = showAllLeadsOnOnePage ? 1 : Math.ceil(total / PAGE_SIZE);
+      const validPage = showAllLeadsOnOnePage ? 1 : Math.min(Math.max(1, page), totalPages || 1);
+      const start = (validPage - 1) * pageSize;
+      const end = start + pageSize;
 
       // Get page of data
       endUserLeadsData = filtered.slice(start, end);
+
+      // Reset the flag after use
+      showAllLeadsOnOnePage = false;
 
       leadsPagination = {
         page: validPage,
@@ -1271,13 +1277,14 @@
     }
 
     // Client-side filtering for projects
+    let showAllProjectsOnOnePage = false;
     function filterProjectsLocally(page = 1) {
       let searchQuery = document.getElementById('projectSearch')?.value?.trim() || '';
       let tagFilter = document.getElementById('tagFilter')?.value || '';
       const hasProspects = document.getElementById('hasProspectsFilter')?.checked;
       const { column, direction } = sortState.projects;
 
-      // "all" or "show all" clears all filters
+      // "all" or "show all" clears all filters and shows everything on one page
       if (searchQuery.toLowerCase() === 'all' || searchQuery.toLowerCase() === 'show all') {
         document.getElementById('projectSearch').value = '';
         document.getElementById('tagFilter').value = '';
@@ -1286,6 +1293,7 @@
         }
         searchQuery = '';
         tagFilter = '';
+        showAllProjectsOnOnePage = true;
       }
 
       let filtered = [...allProjectsData];
@@ -1332,15 +1340,19 @@
         return 0;
       });
 
-      // Calculate pagination
+      // Calculate pagination (or show all on one page)
       const total = filtered.length;
-      const totalPages = Math.ceil(total / PAGE_SIZE);
-      const validPage = Math.min(Math.max(1, page), totalPages || 1);
-      const start = (validPage - 1) * PAGE_SIZE;
-      const end = start + PAGE_SIZE;
+      const pageSize = showAllProjectsOnOnePage ? total : PAGE_SIZE;
+      const totalPages = showAllProjectsOnOnePage ? 1 : Math.ceil(total / PAGE_SIZE);
+      const validPage = showAllProjectsOnOnePage ? 1 : Math.min(Math.max(1, page), totalPages || 1);
+      const start = (validPage - 1) * pageSize;
+      const end = start + pageSize;
 
       // Get page of data
       projectsData = filtered.slice(start, end);
+
+      // Reset the flag after use
+      showAllProjectsOnOnePage = false;
 
       projectsPagination = {
         page: validPage,
