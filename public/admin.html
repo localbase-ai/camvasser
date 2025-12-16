@@ -1794,13 +1794,14 @@
     }
 
     // Client-side filtering function
+    let showAllProspectsOnOnePage = false;
     function filterProspectsLocally(page = 1) {
       let searchQuery = document.getElementById('prospectSearch')?.value?.trim() || '';
       let tagFilter = document.getElementById('prospectTagFilter')?.value || '';
       let statusFilter = document.getElementById('prospectStatusFilter')?.value || '';
       const { column, direction } = sortState.prospects;
 
-      // "all" or "show all" clears all filters
+      // "all" or "show all" clears all filters and shows everything on one page
       if (searchQuery.toLowerCase() === 'all' || searchQuery.toLowerCase() === 'show all') {
         document.getElementById('prospectSearch').value = '';
         document.getElementById('prospectTagFilter').value = '';
@@ -1808,6 +1809,7 @@
         searchQuery = '';
         tagFilter = '';
         statusFilter = '';
+        showAllProspectsOnOnePage = true;
       }
 
       let filtered = [...allProspectsData];
@@ -1869,16 +1871,20 @@
         return 0;
       });
 
-      // Calculate pagination
+      // Calculate pagination (or show all on one page)
       const total = filtered.length;
-      const totalPages = Math.ceil(total / PAGE_SIZE);
-      const validPage = Math.min(Math.max(1, page), totalPages || 1);
-      const start = (validPage - 1) * PAGE_SIZE;
-      const end = start + PAGE_SIZE;
+      const pageSize = showAllProspectsOnOnePage ? total : PAGE_SIZE;
+      const totalPages = showAllProspectsOnOnePage ? 1 : Math.ceil(total / PAGE_SIZE);
+      const validPage = showAllProspectsOnOnePage ? 1 : Math.min(Math.max(1, page), totalPages || 1);
+      const start = (validPage - 1) * pageSize;
+      const end = start + pageSize;
 
       // Get page of data
       prospectsData = filtered.slice(start, end);
       const homeownerCount = filtered.filter(p => p.isHomeowner).length;
+
+      // Reset the flag after use
+      showAllProspectsOnOnePage = false;
 
       prospectsPagination = {
         page: validPage,
