@@ -467,13 +467,42 @@
       margin: 1px;
       white-space: nowrap;
     }
+
+    .stats-column {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 80px;
+    }
+
+    .stat-card-mini {
+      background: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      text-align: center;
+    }
+
+    .stat-card-mini .stat-label {
+      font-size: 16px;
+      font-weight: 700;
+      color: #FFC107;
+      margin-bottom: 0;
+    }
+
+    .stat-sublabel {
+      font-size: 9px;
+      color: #6C757D;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <div class="header-left">
-        <img id="companyLogo" class="company-logo" src="" alt="Company Logo">
+        <img id="companyLogo" class="company-logo" src="/company-cam-logo.png" alt="Camvasser Logo">
         <div class="header-text">
           <h1>Camvasser Admin</h1>
           <p class="subtitle">View and manage your leads</p>
@@ -483,7 +512,7 @@
     </div>
 
     <div class="tabs">
-      <button class="tab active" onclick="switchTab('prospects')">Contacts</button>
+      <button class="tab active" onclick="switchTab('prospects')">Prospects</button>
       <button class="tab" onclick="switchTab('projects')">Addresses</button>
       <button class="tab" onclick="switchTab('leads')">Leads</button>
       <button class="tab" onclick="switchTab('settings')">Settings</button>
@@ -567,6 +596,7 @@
         <select id="prospectStatusFilter" onchange="loadProspects(1)" style="padding: 6px 10px; border: 1px solid #E5E5E5; border-radius: 6px; font-family: 'Outfit', sans-serif; font-size: 12px;">
           <option value="">All Statuses</option>
           <option value="no_status">No Status</option>
+          <option value="new_lead">New lead</option>
           <option value="left_voicemail">Left voicemail</option>
           <option value="no_answer">No answer</option>
           <option value="callback">Callback</option>
@@ -575,12 +605,14 @@
           <option value="not_interested">Not interested</option>
           <option value="wrong_number">Wrong number</option>
           <option value="bad_number">Bad number</option>
+          <option value="bad_data">Bad data</option>
           <option value="hung_up">Hung up</option>
           <option value="no_need">No need</option>
           <option value="roof_replaced">Roof replaced</option>
           <option value="follow_up_email_sent">Follow-up email sent</option>
           <option value="follow_up_sms_sent">Follow-up SMS sent</option>
         </select>
+        <button id="showAllProspectsBtn" style="margin-left: 8px; padding: 6px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: 'Outfit', sans-serif; cursor: pointer;">Show all</button>
         <span id="prospectCount" style="margin-left: 8px; padding: 6px 12px; font-size: 12px; font-family: 'Outfit', sans-serif; color: #6C757D;"></span>
         <div id="projectFilter" style="display: none; margin-left: 15px; padding: 8px 16px; background: #FFF9E6; border-radius: 8px; color: #856404;">
           <span id="projectFilterText"></span>
@@ -762,6 +794,12 @@
         document.getElementById('leadSearch').value = '';
         loadEndUserLeads(1, true); // true = show all on one page
       });
+
+      // Set up Show all button click handler for Contacts
+      document.getElementById('showAllProspectsBtn').addEventListener('click', function() {
+        document.getElementById('prospectSearch').value = '';
+        loadProspects(1, true); // true = show all on one page
+      });
     });
 
     async function loadSettings() {
@@ -920,10 +958,8 @@
     }
 
     async function updateStats() {
-      // Load real stats from API
-      leadsStatsData = await loadStats('leads');
-
-      const total = leadsStatsData?.total || leadsPagination.total || 0;
+      // Render stats immediately with data we already have
+      const total = leadsPagination.total || 0;
       const statsHTML = `
         <div class="stats-row">
           <div class="stat-card">
@@ -938,8 +974,16 @@
       `;
       document.getElementById('leadsStats').innerHTML = statsHTML;
 
-      // Draw chart after DOM update
+      // Draw chart immediately with page data
       setTimeout(() => drawLeadsChart(), 0);
+
+      // Load full stats in background (for accurate chart)
+      loadStats('leads').then(data => {
+        if (data) {
+          leadsStatsData = data;
+          drawLeadsChart();
+        }
+      });
     }
 
     function drawLeadsChart() {
@@ -947,11 +991,15 @@
       if (!canvas) return;
 
       const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
       const width = canvas.offsetWidth;
       const height = 200;
 
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      ctx.scale(dpr, dpr);
 
       // Use API data if available, otherwise fall back to page data
       const last30Days = leadsStatsData?.data || getLast30DaysData();
@@ -1149,13 +1197,8 @@
     }
 
     async function updateProjectsStats() {
-      // Load real stats from API
-      projectsStatsData = await loadStats('projects');
-
-      const total = projectsStatsData?.total || projectsPagination.total || 0;
-      const withProspects = projectsStatsData?.withProspects || 0;
-      const withoutProspects = total - withProspects;
-      const thisWeek = projectsStatsData?.thisWeek || 0;
+      // Render stats immediately with data we already have
+      const total = projectsPagination.total || 0;
       const statsHTML = `
         <div class="stats-row">
           <div class="stat-card">
@@ -1164,15 +1207,15 @@
           </div>
           <div class="stat-card">
             <div class="stat-label">This Week</div>
-            <div class="stat-value">${thisWeek}</div>
+            <div class="stat-value" id="projectsThisWeek">-</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">With Contacts</div>
-            <div class="stat-value" style="color: #28a745;">${withProspects}</div>
+            <div class="stat-label">With Prospects</div>
+            <div class="stat-value" style="color: #28a745;" id="projectsWithContacts">-</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">No Contacts</div>
-            <div class="stat-value" style="color: #6c757d;">${withoutProspects}</div>
+            <div class="stat-label">No Prospects</div>
+            <div class="stat-value" style="color: #6c757d;" id="projectsNoContacts">-</div>
           </div>
         </div>
         <div class="chart-card">
@@ -1181,7 +1224,21 @@
         </div>
       `;
       document.getElementById('projectsStats').innerHTML = statsHTML;
+
+      // Draw chart immediately with page data
       setTimeout(() => drawProjectsChart(), 0);
+
+      // Load full stats in background
+      loadStats('projects').then(data => {
+        if (data) {
+          projectsStatsData = data;
+          // Update the stats that need API data
+          document.getElementById('projectsThisWeek').textContent = data.thisWeek || 0;
+          document.getElementById('projectsWithContacts').textContent = data.withProspects || 0;
+          document.getElementById('projectsNoContacts').textContent = (data.total || 0) - (data.withProspects || 0);
+          drawProjectsChart();
+        }
+      });
     }
 
     function drawProjectsChart() {
@@ -1189,11 +1246,15 @@
       if (!canvas) return;
 
       const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
       const width = canvas.offsetWidth;
       const height = 80;
 
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      ctx.scale(dpr, dpr);
 
       // Use API data if available
       const last30Days = projectsStatsData?.data || getProjectsLast30DaysData();
@@ -1557,7 +1618,7 @@
         if (countEl) {
           const showing = prospectsData.length;
           const total = data.total;
-          countEl.textContent = showing === total ? `${total} contacts` : `${showing} of ${total} contacts`;
+          countEl.textContent = showing === total ? `${total} prospects` : `${showing} of ${total} prospects`;
         }
 
       } catch (error) {
@@ -1572,20 +1633,18 @@
     }
 
     async function updateProspectsStats() {
-      // Load real stats from API
-      prospectsStatsData = await loadStats('prospects');
-
-      const total = prospectsStatsData?.total || prospectsPagination.total || 0;
-      const homeowners = prospectsStatsData?.homeowners || prospectsPagination.homeowners || 0;
+      // Render stats immediately with data we already have
+      const total = prospectsPagination.total || 0;
+      const homeowners = prospectsPagination.homeowners || 0;
       const statsHTML = `
-        <div class="stats-row">
-          <div class="stat-card">
-            <div class="stat-label">Total Contacts</div>
-            <div class="stat-value">${total}</div>
+        <div class="stats-column">
+          <div class="stat-card-mini">
+            <div class="stat-label">${total}</div>
+            <div class="stat-sublabel">Prospects</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">Homeowners</div>
-            <div class="stat-value">${homeowners}</div>
+          <div class="stat-card-mini">
+            <div class="stat-label">${homeowners}</div>
+            <div class="stat-sublabel">Homeowners</div>
           </div>
         </div>
         <div class="chart-card">
@@ -1594,7 +1653,17 @@
         </div>
       `;
       document.getElementById('prospectsStats').innerHTML = statsHTML;
+
+      // Draw chart immediately with page data, then update with full data
       setTimeout(() => drawProspectsChart(), 0);
+
+      // Load full stats in background (for accurate chart)
+      loadStats('prospects').then(data => {
+        if (data) {
+          prospectsStatsData = data;
+          drawProspectsChart();
+        }
+      });
     }
 
     function drawProspectsChart() {
@@ -1602,11 +1671,15 @@
       if (!canvas) return;
 
       const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
       const width = canvas.offsetWidth;
       const height = 200;
 
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      ctx.scale(dpr, dpr);
 
       // Use API data if available
       const last30Days = prospectsStatsData?.data || getProspectsLast30DaysData();
@@ -1712,12 +1785,14 @@
     // Status options with colors
     const STATUS_OPTIONS = [
       { value: '', label: 'Select status...', bg: '#f8f9fa', text: '#6c757d' },
+      { value: 'new_lead', label: 'New lead', bg: '#cce5ff', text: '#004085' },
       { value: 'left_voicemail', label: 'Left voicemail', bg: '#fff3cd', text: '#856404' },
       { value: 'hung_up', label: 'Hung up', bg: '#f8d7da', text: '#721c24' },
       { value: 'wrong_number', label: 'Wrong number', bg: '#e2e3e5', text: '#383d41' },
-      { value: 'callback', label: 'Callback', bg: '#e2e3e5', text: '#383d41' },
+      { value: 'callback', label: 'Callback', bg: '#fff3cd', text: '#856404' },
       { value: 'appointment_set', label: 'Appointment set', bg: '#d4edda', text: '#155724' },
       { value: 'bad_number', label: 'Bad number', bg: '#e2e3e5', text: '#383d41' },
+      { value: 'bad_data', label: 'Bad data', bg: '#e2e3e5', text: '#383d41' },
       { value: 'follow_up_email_sent', label: 'Follow-up email sent', bg: '#d4edda', text: '#155724' },
       { value: 'roof_replaced', label: 'Roof replaced', bg: '#e2e3e5', text: '#383d41' },
       { value: 'not_interested', label: 'Not interested', bg: '#f8d7da', text: '#721c24' },
@@ -1774,7 +1849,7 @@
         tbody.innerHTML = `
           <tr><td colspan="9" class="empty-state">
             <div class="empty-state-icon">📭</div>
-            <div>No contacts found</div>
+            <div>No prospects found</div>
           </td></tr>
         `;
         return;

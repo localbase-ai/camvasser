@@ -56,10 +56,14 @@ export async function handler(event) {
     // Filter by status dropdown
     if (statusFilter) {
       if (statusFilter === 'no_status') {
-        where.OR = [
-          { status: null },
-          { status: '' }
-        ];
+        // Use AND to not conflict with search OR clauses
+        where.AND = where.AND || [];
+        where.AND.push({
+          OR: [
+            { status: null },
+            { status: '' }
+          ]
+        });
       } else {
         where.status = statusFilter;
       }
