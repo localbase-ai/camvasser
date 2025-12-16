@@ -524,7 +524,7 @@
         <!-- Leads stats will be populated here -->
       </div>
       <div class="filters">
-        <input type="text" id="leadSearch" placeholder="name:john, email:gmail, phone:816" oninput="debounceLeadSearch()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: 'Outfit', sans-serif; flex: 1;">
+        <input type="text" id="leadSearch" placeholder="Search by name, email, phone, address..." oninput="debounceLeadSearch()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: 'Outfit', sans-serif; flex: 1;">
         <button id="showAllLeadsBtn" style="margin-left: 8px; padding: 6px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: 'Outfit', sans-serif; cursor: pointer;">Show all</button>
       </div>
       <div class="leads-table">
@@ -555,7 +555,7 @@
         <!-- Project stats will be populated here -->
       </div>
       <div class="filters">
-        <input type="text" id="projectSearch" placeholder="address:main, city:sedalia, tag:residential, contacts:yes" oninput="debounceProjectSearch()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: 'Outfit', sans-serif; flex: 1;">
+        <input type="text" id="projectSearch" placeholder="Search by address, city, state, tag..." oninput="debounceProjectSearch()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: 'Outfit', sans-serif; flex: 1;">
         <button id="showAllProjectsBtn" style="margin-left: 8px; padding: 6px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: 'Outfit', sans-serif; cursor: pointer;">Show all</button>
       </div>
       <div class="leads-table">
@@ -666,7 +666,13 @@
     let projectsData = [];
     let prospectsData = [];
     let allProspectsData = []; // Full dataset for client-side search
+    let allProjectsData = []; // Full dataset for client-side search
+    let allLeadsData = []; // Full dataset for client-side search
     let prospectSearchIndex = null; // MiniSearch index
+    let projectSearchIndex = null; // MiniSearch index
+    let leadSearchIndex = null; // MiniSearch index
+    let projectsLoaded = false;
+    let leadsLoaded = false;
     let authToken = null;
     let currentUser = null;
 
@@ -708,7 +714,7 @@
     let showAllProjects = false;
     window.debounceProjectSearch = function() {
       clearTimeout(projectSearchTimeout);
-      projectSearchTimeout = setTimeout(() => loadProjects(1), 300);
+      projectSearchTimeout = setTimeout(() => filterProjectsLocally(1), 150);
     };
 
     // Search debounce for leads
@@ -716,7 +722,7 @@
     let showAllLeads = false;
     window.debounceLeadSearch = function() {
       clearTimeout(leadSearchTimeout);
-      leadSearchTimeout = setTimeout(() => loadEndUserLeads(1), 300);
+      leadSearchTimeout = setTimeout(() => filterLeadsLocally(1), 150);
     };
 
     // Tag color palette - vibrant, distinguishable colors
@@ -777,16 +783,20 @@
       loadProspects(1);
 
 
-      // Set up Show all button click handler for Addresses
+      // Set up Show all button click handler for Addresses - clears filters
       document.getElementById('showAllProjectsBtn').addEventListener('click', function() {
         document.getElementById('projectSearch').value = '';
-        loadProjects(1, true); // true = show all on one page
+        document.getElementById('tagFilter').value = '';
+        if (document.getElementById('hasProspectsFilter')) {
+          document.getElementById('hasProspectsFilter').checked = false;
+        }
+        filterProjectsLocally(1);
       });
 
-      // Set up Show all button click handler for Leads
+      // Set up Show all button click handler for Leads - clears filters
       document.getElementById('showAllLeadsBtn').addEventListener('click', function() {
         document.getElementById('leadSearch').value = '';
-        loadEndUserLeads(1, true); // true = show all on one page
+        filterLeadsLocally(1);
       });
 
     });
@@ -816,49 +826,122 @@
     }
 
     async function loadEndUserLeads(page = 1, showAll = false) {
-      showAllLeads = showAll;
-      const search = document.getElementById('leadSearch')?.value || '';
-      const { column, direction } = sortState.leads;
-      const limit = showAll ? 1000 : PAGE_SIZE;
-      let url = `/.netlify/functions/get-leads?limit=${limit}&page=${page}&sortBy=${column}&sortDir=${direction}`;
-      if (search) url += `&search=${encodeURIComponent(search)}`;
+      // If we haven't loaded all data yet, fetch it
+      if (!leadsLoaded) {
+        try {
+          const response = await fetch(`/.netlify/functions/get-leads?limit=2000`, {
+            headers: {
+              'Authorization': `Bearer ${authToken}`
+            }
+          });
 
-      try {
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
+          if (response.status === 401) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+            return;
           }
-        });
 
-        if (response.status === 401) {
-          // Token expired or invalid, redirect to login
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
-          window.location.href = '/login.html';
+          const data = await response.json();
+          allLeadsData = data.leads;
+          leadsLoaded = true;
+
+          // Build MiniSearch index
+          leadSearchIndex = new MiniSearch({
+            fields: ['firstName', 'lastName', 'email', 'phone', 'address'],
+            storeFields: ['id'],
+            searchOptions: {
+              boost: { firstName: 2, lastName: 2 },
+              fuzzy: 0.2,
+              prefix: true
+            }
+          });
+
+          // Prepare data for indexing
+          const indexData = allLeadsData.map(l => ({
+            id: l.id,
+            firstName: l.firstName || '',
+            lastName: l.lastName || '',
+            email: l.email || '',
+            phone: l.phone || '',
+            address: l.address || ''
+          }));
+          leadSearchIndex.addAll(indexData);
+
+        } catch (error) {
+          console.error('Error loading leads:', error);
+          document.getElementById('endUserLeads').innerHTML = `
+            <tr><td colspan="6" class="empty-state">
+              <div class="empty-state-icon">⚠️</div>
+              <div>Failed to load leads</div>
+            </td></tr>
+          `;
           return;
         }
-
-        const data = await response.json();
-
-        endUserLeadsData = data.leads;
-        leadsPagination = {
-          page: data.page,
-          total: data.total,
-          totalPages: data.totalPages
-        };
-        renderEndUserLeads();
-        renderPagination('leads', leadsPagination, loadEndUserLeads);
-        updateStats();
-
-      } catch (error) {
-        console.error('Error loading end-user leads:', error);
-        document.getElementById('endUserLeads').innerHTML = `
-          <tr><td colspan="6" class="empty-state">
-            <div class="empty-state-icon">⚠️</div>
-            <div>Failed to load leads</div>
-          </td></tr>
-        `;
       }
+
+      // Now filter locally
+      filterLeadsLocally(page);
+    }
+
+    // Client-side filtering for leads
+    function filterLeadsLocally(page = 1) {
+      let searchQuery = document.getElementById('leadSearch')?.value?.trim() || '';
+      const { column, direction } = sortState.leads;
+
+      // "all" or "show all" clears all filters
+      if (searchQuery.toLowerCase() === 'all' || searchQuery.toLowerCase() === 'show all') {
+        document.getElementById('leadSearch').value = '';
+        searchQuery = '';
+      }
+
+      let filtered = [...allLeadsData];
+
+      // Apply search using MiniSearch
+      if (searchQuery && leadSearchIndex) {
+        const results = leadSearchIndex.search(searchQuery);
+        const matchedIds = new Set(results.map(r => r.id));
+        filtered = filtered.filter(l => matchedIds.has(l.id));
+      }
+
+      // Sort
+      filtered.sort((a, b) => {
+        let aVal, bVal;
+        if (column === 'firstName' || column === 'lastName' || column === 'email' || column === 'phone' || column === 'address') {
+          aVal = (a[column] || '').toLowerCase();
+          bVal = (b[column] || '').toLowerCase();
+        } else if (column === 'createdAt') {
+          aVal = a[column] ? new Date(a[column]) : new Date(0);
+          bVal = b[column] ? new Date(b[column]) : new Date(0);
+        } else {
+          aVal = a[column] || '';
+          bVal = b[column] || '';
+        }
+
+        if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      // Calculate pagination
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / PAGE_SIZE);
+      const validPage = Math.min(Math.max(1, page), totalPages || 1);
+      const start = (validPage - 1) * PAGE_SIZE;
+      const end = start + PAGE_SIZE;
+
+      // Get page of data
+      endUserLeadsData = filtered.slice(start, end);
+
+      leadsPagination = {
+        page: validPage,
+        total: total,
+        totalPages: totalPages
+      };
+
+      renderEndUserLeads();
+      renderPagination('leads', leadsPagination, (p) => filterLeadsLocally(p));
+      updateStats();
     }
 
 
@@ -1126,58 +1209,153 @@
     }
 
     async function loadProjects(page = 1, showAll = false) {
-      showAllProjects = showAll;
-      const search = document.getElementById('projectSearch')?.value || '';
-      const tagFilter = document.getElementById('tagFilter')?.value || '';
-      const hasProspects = document.getElementById('hasProspectsFilter')?.checked;
-      const { column, direction } = sortState.projects;
-      const limit = showAll ? 1000 : PAGE_SIZE;
-      let url = `/.netlify/functions/get-projects?limit=${limit}&page=${page}&sortBy=${column}&sortDir=${direction}`;
-      if (search) url += `&search=${encodeURIComponent(search)}`;
-      if (tagFilter) url += `&tag=${encodeURIComponent(tagFilter)}`;
-      if (hasProspects) url += `&hasProspects=true`;
+      // Load tags for dropdown if not already loaded
+      if (!tagsLoaded) loadAllTags();
 
-      try {
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
+      // If we haven't loaded all data yet, fetch it
+      if (!projectsLoaded) {
+        try {
+          const response = await fetch(`/.netlify/functions/get-projects?limit=2000`, {
+            headers: {
+              'Authorization': `Bearer ${authToken}`
+            }
+          });
+
+          if (response.status === 401) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+            return;
           }
-        });
 
-        if (response.status === 401) {
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
-          window.location.href = '/login.html';
+          const data = await response.json();
+          allProjectsData = data.projects;
+          projectsLoaded = true;
+
+          // Build MiniSearch index
+          projectSearchIndex = new MiniSearch({
+            fields: ['address', 'city', 'state', 'postalCode', 'searchableTags'],
+            storeFields: ['id'],
+            searchOptions: {
+              boost: { address: 2 },
+              fuzzy: 0.2,
+              prefix: true
+            }
+          });
+
+          // Prepare data for indexing
+          const indexData = allProjectsData.map(p => ({
+            id: p.id,
+            address: p.address || '',
+            city: p.city || '',
+            state: p.state || '',
+            postalCode: p.postalCode || '',
+            searchableTags: (p.tags || []).map(t => t.value || t.displayValue).join(' ')
+          }));
+          projectSearchIndex.addAll(indexData);
+
+        } catch (error) {
+          console.error('Error loading projects:', error);
+          document.getElementById('projectsList').innerHTML = `
+            <tr><td colspan="7" class="empty-state">
+              <div class="empty-state-icon">⚠️</div>
+              <div>Failed to load projects</div>
+            </td></tr>
+          `;
           return;
         }
+      }
 
-        const data = await response.json();
-        projectsData = data.projects;
-        projectsPagination = {
-          page: data.page,
-          total: data.total,
-          totalPages: data.totalPages
-        };
-        renderProjects();
-        renderPagination('projects', projectsPagination, loadProjects);
-        loadAllTags();
-        updateProjectsStats();
+      // Now filter locally
+      filterProjectsLocally(page);
+    }
 
-        // Update filter count
-        const filterCountEl = document.getElementById('projectsFilterCount');
-        const hasFilters = search || tagFilter || hasProspects;
-        if (filterCountEl) {
-          filterCountEl.textContent = hasFilters ? `${data.total} results` : '';
+    // Client-side filtering for projects
+    function filterProjectsLocally(page = 1) {
+      let searchQuery = document.getElementById('projectSearch')?.value?.trim() || '';
+      let tagFilter = document.getElementById('tagFilter')?.value || '';
+      const hasProspects = document.getElementById('hasProspectsFilter')?.checked;
+      const { column, direction } = sortState.projects;
+
+      // "all" or "show all" clears all filters
+      if (searchQuery.toLowerCase() === 'all' || searchQuery.toLowerCase() === 'show all') {
+        document.getElementById('projectSearch').value = '';
+        document.getElementById('tagFilter').value = '';
+        if (document.getElementById('hasProspectsFilter')) {
+          document.getElementById('hasProspectsFilter').checked = false;
+        }
+        searchQuery = '';
+        tagFilter = '';
+      }
+
+      let filtered = [...allProjectsData];
+
+      // Apply search using MiniSearch
+      if (searchQuery && projectSearchIndex) {
+        const results = projectSearchIndex.search(searchQuery);
+        const matchedIds = new Set(results.map(r => r.id));
+        filtered = filtered.filter(p => matchedIds.has(p.id));
+      }
+
+      // Apply tag filter
+      if (tagFilter) {
+        filtered = filtered.filter(p => {
+          const tags = p.tags || [];
+          return tags.some(t => t.value === tagFilter);
+        });
+      }
+
+      // Apply hasProspects filter
+      if (hasProspects) {
+        filtered = filtered.filter(p => p.prospectCount > 0);
+      }
+
+      // Sort
+      filtered.sort((a, b) => {
+        let aVal, bVal;
+        if (column === 'address' || column === 'city' || column === 'state') {
+          aVal = (a[column] || '').toLowerCase();
+          bVal = (b[column] || '').toLowerCase();
+        } else if (column === 'prospectCount') {
+          aVal = a.prospectCount || 0;
+          bVal = b.prospectCount || 0;
+        } else if (column === 'ccCreatedAt' || column === 'lastSyncedAt') {
+          aVal = a[column] ? new Date(a[column]) : new Date(0);
+          bVal = b[column] ? new Date(b[column]) : new Date(0);
+        } else {
+          aVal = a[column] || '';
+          bVal = b[column] || '';
         }
 
-      } catch (error) {
-        console.error('Error loading projects:', error);
-        document.getElementById('projectsList').innerHTML = `
-          <tr><td colspan="7" class="empty-state">
-            <div class="empty-state-icon">⚠️</div>
-            <div>Failed to load projects</div>
-          </td></tr>
-        `;
+        if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      // Calculate pagination
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / PAGE_SIZE);
+      const validPage = Math.min(Math.max(1, page), totalPages || 1);
+      const start = (validPage - 1) * PAGE_SIZE;
+      const end = start + PAGE_SIZE;
+
+      // Get page of data
+      projectsData = filtered.slice(start, end);
+
+      projectsPagination = {
+        page: validPage,
+        total: total,
+        totalPages: totalPages
+      };
+
+      renderProjects();
+      renderPagination('projects', projectsPagination, (p) => filterProjectsLocally(p));
+      updateProjectsStats();
+
+      // Update filter count
+      const filterCountEl = document.getElementById('projectsFilterCount');
+      if (filterCountEl) {
+        filterCountEl.textContent = `${total} addresses`;
       }
     }
 
@@ -2047,9 +2225,9 @@
 
       // Trigger fetch/filter with sort params (reset to page 1)
       if (tableType === 'leads') {
-        loadEndUserLeads(1);
+        filterLeadsLocally(1); // Use local filtering for leads
       } else if (tableType === 'projects') {
-        loadProjects(1);
+        filterProjectsLocally(1); // Use local filtering for projects
       } else {
         filterProspectsLocally(1); // Use local filtering for prospects
       }
