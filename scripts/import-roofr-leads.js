@@ -10,14 +10,15 @@ async function importLeads() {
   const csvContent = fs.readFileSync(csvPath, 'utf-8');
   const lines = csvContent.split('\n').filter(line => line.trim());
 
-  // Load localbase for created_at dates
-  const localbasePath = path.join(process.env.HOME, 'Work/renu/data/localbase.db');
-  const localbaseDb = new Database(localbasePath, { readonly: true });
-
-  // Build lookup maps from localbase
+  // Build lookup maps for created_at dates
   const dateByEmail = new Map();
   const dateByPhone = new Map();
   const dateByName = new Map();
+  const dateByAddress = new Map();
+
+  // Load from localbase
+  const localbasePath = path.join(process.env.HOME, 'Work/renu/data/localbase.db');
+  const localbaseDb = new Database(localbasePath, { readonly: true });
 
   const customers = localbaseDb.prepare(`
     SELECT email, phone, first_name, last_name, created_at
@@ -38,8 +39,52 @@ async function importLeads() {
   }
 
   console.log(`Loaded ${customers.length} customers from localbase`);
-  console.log(`  - ${dateByEmail.size} emails, ${dateByPhone.size} phones, ${dateByName.size} names`);
   localbaseDb.close();
+
+  // Load from roofmaxx_deals
+  const roofmaxxPath = path.join(process.env.HOME, 'Work/renu/data/roofmaxx_deals/roofmaxx_deals.db');
+  const roofmaxxDb = new Database(roofmaxxPath, { readonly: true });
+
+  const deals = roofmaxxDb.prepare(`
+    SELECT customer_email, customer_phone, customer_name, property_address, created_at
+    FROM deals
+    WHERE created_at IS NOT NULL
+  `).all();
+
+  for (const d of deals) {
+    // Only add if not already in map (localbase takes priority)
+    if (d.customer_email && !dateByEmail.has(d.customer_email.toLowerCase().trim())) {
+      dateByEmail.set(d.customer_email.toLowerCase().trim(), d.created_at);
+    }
+    if (d.customer_phone) {
+      const digits = d.customer_phone.replace(/\D/g, '');
+      if (digits.length >= 10 && !dateByPhone.has(digits.slice(-10))) {
+        dateByPhone.set(digits.slice(-10), d.created_at);
+      }
+    }
+    if (d.customer_name && !dateByName.has(d.customer_name.toLowerCase().trim())) {
+      dateByName.set(d.customer_name.toLowerCase().trim(), d.created_at);
+    }
+    if (d.property_address) {
+      // Normalize address for matching - extract street number + first word of street name
+      const addr = d.property_address.toLowerCase().trim().replace(/[.,#]/g, '');
+      if (!dateByAddress.has(addr)) {
+        dateByAddress.set(addr, d.created_at);
+      }
+      // Also extract just "1234 Main" pattern for looser matching
+      const match = d.property_address.match(/^(\d+)\s+(\w+)/i);
+      if (match) {
+        const shortAddr = `${match[1]} ${match[2]}`.toLowerCase();
+        if (!dateByAddress.has(shortAddr)) {
+          dateByAddress.set(shortAddr, d.created_at);
+        }
+      }
+    }
+  }
+
+  console.log(`Loaded ${deals.length} deals from roofmaxx`);
+  console.log(`  - ${dateByEmail.size} emails, ${dateByPhone.size} phones, ${dateByName.size} names, ${dateByAddress.size} addresses`);
+  roofmaxxDb.close();
 
   // Skip header
   const dataLines = lines.slice(1);
@@ -121,8 +166,8 @@ async function importLeads() {
     return phone;
   }
 
-  // Find created_at from localbase
-  function findCreatedAt(email, phone, name) {
+  // Find created_at from localbase + roofmaxx
+  function findCreatedAt(email, phone, name, address) {
     // Try email first (most reliable)
     if (email) {
       const date = dateByEmail.get(email.toLowerCase().trim());
@@ -141,6 +186,20 @@ async function importLeads() {
       const date = dateByName.get(name.toLowerCase().trim());
       if (date) return { date, method: 'name' };
     }
+    // Try address - full match first, then short match
+    if (address) {
+      const addr = address.toLowerCase().trim().replace(/[.,#]/g, '');
+      let date = dateByAddress.get(addr);
+      if (date) return { date, method: 'address' };
+
+      // Try short address match (just "1234 Main")
+      const match = address.match(/^(\d+)\s+(\w+)/i);
+      if (match) {
+        const shortAddr = `${match[1]} ${match[2]}`.toLowerCase();
+        date = dateByAddress.get(shortAddr);
+        if (date) return { date, method: 'address' };
+      }
+    }
     return null;
   }
 
@@ -149,6 +208,7 @@ async function importLeads() {
   let matchedByEmail = 0;
   let matchedByPhone = 0;
   let matchedByName = 0;
+  let matchedByAddress = 0;
   let unmatched = 0;
 
   for (const line of dataLines) {
@@ -166,7 +226,7 @@ async function importLeads() {
     const { firstName, lastName } = splitName(name);
 
     // Find created_at
-    const match = findCreatedAt(email, phone, name);
+    const match = findCreatedAt(email, phone, name, address);
     let createdAt = new Date(); // Default to now
 
     if (match) {
@@ -174,6 +234,7 @@ async function importLeads() {
       if (match.method === 'email') matchedByEmail++;
       else if (match.method === 'phone') matchedByPhone++;
       else if (match.method === 'name') matchedByName++;
+      else if (match.method === 'address') matchedByAddress++;
     } else {
       unmatched++;
     }
@@ -197,6 +258,7 @@ async function importLeads() {
   console.log(`  - By email: ${matchedByEmail}`);
   console.log(`  - By phone: ${matchedByPhone}`);
   console.log(`  - By name: ${matchedByName}`);
+  console.log(`  - By address: ${matchedByAddress}`);
   console.log(`  - Unmatched (using today): ${unmatched}`);
 
   // Preview first 5
