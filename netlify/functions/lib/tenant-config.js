@@ -5,7 +5,7 @@ const TENANT_CONFIG = {
       name: "Bud Roofing",
       slug: "budroofing",
       domain: "budroofing.com",
-      logo: "https://www.budroofing.com/images/bud-vector.png",
+      logo: "/logos/bud-roofing.png",
       phone: "855-661-7663",
       colors: {
         primary: "#FFC107",

@@ -49,239 +49,320 @@ function generateHTML(tenant) {
       box-sizing: border-box;
     }
 
+    :root {
+      --primary: ${tenant.colors.primary};
+      --primary-hover: ${tenant.colors.primaryHover};
+      --background: #fafafa;
+      --foreground: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --card: #ffffff;
+      --card-hover: #f9fafb;
+      --radius: 0.75rem;
+    }
+
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: ${tenant.colors.background};
+      background: var(--background);
       min-height: 100vh;
-      color: #fff;
+      color: var(--foreground);
+      line-height: 1.5;
     }
 
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
+    /* Header */
     .header {
-      text-align: center;
-      padding: 20px 0 30px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+    }
+
+    .header-inner {
+      max-width: 56rem;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .logo {
-      height: 60px;
-      margin-bottom: 10px;
+      height: 48px;
+      border-radius: 8px;
+    }
+
+    .progress-container {
+      flex: 1;
+      max-width: 20rem;
+      margin: 0 2rem;
     }
 
     .progress-bar {
-      background: rgba(255,255,255,0.2);
-      border-radius: 10px;
-      height: 8px;
-      margin-bottom: 30px;
+      height: 6px;
+      background: var(--border);
+      border-radius: 100px;
       overflow: hidden;
     }
 
     .progress-fill {
-      background: ${tenant.colors.primary};
       height: 100%;
-      border-radius: 10px;
-      transition: width 0.3s ease;
+      background: var(--primary);
+      border-radius: 100px;
+      transition: width 0.5s ease-out;
     }
 
+    .header-spacer {
+      width: 48px;
+    }
+
+    /* Main Content */
+    .main {
+      max-width: 56rem;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 4rem;
+    }
+
+    /* Steps */
     .step {
       display: none;
-      flex: 1;
-      animation: fadeIn 0.3s ease;
+      animation: fadeSlideIn 0.5s ease-out;
     }
 
     .step.active {
-      display: flex;
-      flex-direction: column;
+      display: block;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Typography */
+    .step-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
     }
 
     .step-title {
-      font-size: 24px;
+      font-size: clamp(1.75rem, 5vw, 2.5rem);
       font-weight: 700;
-      margin-bottom: 10px;
-      line-height: 1.3;
+      color: var(--foreground);
+      margin-bottom: 0.75rem;
+      line-height: 1.2;
+      text-wrap: balance;
     }
 
     .step-subtitle {
-      font-size: 16px;
-      color: rgba(255,255,255,0.7);
-      margin-bottom: 25px;
-      line-height: 1.5;
+      font-size: 1.125rem;
+      color: var(--muted);
+      max-width: 32rem;
+      margin: 0 auto;
     }
 
-    .options {
+    /* Option List - Vertical list style */
+    .options-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      margin-bottom: 20px;
+      gap: 0.75rem;
+      max-width: 32rem;
+      margin: 0 auto 2rem;
     }
 
-    .option {
-      background: rgba(255,255,255,0.1);
-      border: 2px solid rgba(255,255,255,0.2);
-      border-radius: 12px;
-      padding: 16px 20px;
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
       cursor: pointer;
       transition: all 0.2s ease;
-      font-size: 16px;
       text-align: left;
     }
 
-    .option:hover {
-      background: rgba(255,255,255,0.15);
-      border-color: rgba(255,255,255,0.3);
+    .option-row:hover {
+      border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+      background: var(--card-hover);
     }
 
-    .option.selected {
-      background: ${tenant.colors.primary}22;
-      border-color: ${tenant.colors.primary};
+    .option-row.selected {
+      border-color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 5%, white);
     }
 
-    .option.multi {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    .option-label {
+      flex: 1;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--foreground);
     }
 
+    /* Checkbox for multi-select */
     .checkbox {
-      width: 22px;
-      height: 22px;
-      border: 2px solid rgba(255,255,255,0.4);
+      width: 1.5rem;
+      height: 1.5rem;
+      border: 2px solid var(--border);
       border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
       transition: all 0.2s ease;
+      background: var(--card);
     }
 
-    .option.selected .checkbox {
-      background: ${tenant.colors.primary};
-      border-color: ${tenant.colors.primary};
+    .option-row.selected .checkbox {
+      background: var(--primary);
+      border-color: var(--primary);
     }
 
     .checkbox svg {
       width: 14px;
       height: 14px;
+      stroke: white;
+      stroke-width: 3;
       opacity: 0;
       transition: opacity 0.2s ease;
     }
 
-    .option.selected .checkbox svg {
+    .option-row.selected .checkbox svg {
       opacity: 1;
     }
 
+    /* Form Section */
+    .form-section {
+      max-width: 32rem;
+      margin: 0 auto 2rem;
+    }
+
+    .form-section-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Form inputs */
+    .form-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      max-width: 28rem;
+      margin: 0 auto;
+    }
+
     .input-group {
-      margin-bottom: 16px;
+      margin-bottom: 1.25rem;
+    }
+
+    .input-group:last-of-type {
+      margin-bottom: 1.5rem;
     }
 
     .input-group label {
       display: block;
-      font-size: 14px;
+      font-size: 0.875rem;
       font-weight: 500;
-      margin-bottom: 8px;
-      color: rgba(255,255,255,0.9);
+      margin-bottom: 0.5rem;
+      color: var(--foreground);
     }
 
     .input-group input,
     .input-group select {
       width: 100%;
-      padding: 14px 16px;
-      border: 2px solid rgba(255,255,255,0.2);
-      border-radius: 10px;
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-      font-size: 16px;
-      transition: border-color 0.2s ease;
+      padding: 0.875rem 1rem;
+      border: 2px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--background);
+      color: var(--foreground);
+      font-size: 1rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .input-group select {
       cursor: pointer;
       appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
       background-size: 20px;
       padding-right: 44px;
     }
 
-    .input-group select option {
-      background: ${tenant.colors.background};
-      color: #fff;
-    }
-
     .input-group input::placeholder {
-      color: rgba(255,255,255,0.4);
+      color: var(--muted);
     }
 
     .input-group input:focus,
     .input-group select:focus {
       outline: none;
-      border-color: ${tenant.colors.primary};
-    }
-
-    .form-section {
-      margin-bottom: 24px;
-    }
-
-    .form-section-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.7);
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
     }
 
     .conditional-field {
       display: none;
-      margin-top: 12px;
+      margin-top: 1rem;
     }
 
     .conditional-field.visible {
       display: block;
     }
 
+    /* Buttons */
+    .btn-container {
+      max-width: 32rem;
+      margin: 0 auto;
+    }
+
     .btn {
-      background: ${tenant.colors.primary};
-      color: #000;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--primary);
+      color: white;
       border: none;
-      border-radius: 10px;
-      padding: 16px 32px;
-      font-size: 16px;
+      border-radius: 0.5rem;
+      padding: 1rem 2rem;
+      font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
       width: 100%;
-      margin-top: auto;
     }
 
     .btn:hover {
-      background: ${tenant.colors.primaryHover};
-      transform: translateY(-1px);
+      background: var(--primary-hover);
     }
 
     .btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
-      transform: none;
     }
 
+    .btn svg {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    /* Loading */
     .loading {
       display: none;
       text-align: center;
-      padding: 40px 20px;
+      padding: 4rem 2rem;
     }
 
     .loading.active {
@@ -289,22 +370,28 @@ function generateHTML(tenant) {
     }
 
     .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(255,255,255,0.2);
-      border-top-color: ${tenant.colors.primary};
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
+      margin: 0 auto 1.5rem;
     }
 
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
 
+    .loading p {
+      color: var(--muted);
+      font-size: 1.125rem;
+    }
+
+    /* Results */
     .results {
       display: none;
-      animation: fadeIn 0.3s ease;
+      animation: fadeSlideIn 0.5s ease-out;
     }
 
     .results.active {
@@ -312,253 +399,299 @@ function generateHTML(tenant) {
     }
 
     .results-card {
-      background: rgba(255,255,255,0.1);
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      max-width: 32rem;
+      margin: 0 auto 2rem;
     }
 
     .results-headline {
-      font-size: 22px;
+      font-size: 1.25rem;
       font-weight: 700;
-      margin-bottom: 16px;
-      color: ${tenant.colors.primary};
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      line-height: 1.4;
     }
 
     .results-item {
       display: flex;
       justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      font-size: 14px;
+      padding: 0.875rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9375rem;
     }
 
-    .results-item:last-child {
+    .results-item:last-of-type {
       border-bottom: none;
     }
 
     .results-label {
-      color: rgba(255,255,255,0.6);
+      color: var(--muted);
     }
 
     .results-value {
       font-weight: 500;
       text-align: right;
       max-width: 60%;
+      color: var(--foreground);
     }
 
     .assessment {
-      background: ${tenant.colors.primary}22;
-      border: 1px solid ${tenant.colors.primary}44;
-      border-radius: 12px;
-      padding: 16px;
-      margin-top: 16px;
+      background: color-mix(in srgb, var(--primary) 8%, white);
+      border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      margin-top: 1.5rem;
     }
 
     .assessment-title {
       font-weight: 600;
-      margin-bottom: 8px;
-      color: ${tenant.colors.primary};
+      margin-bottom: 0.5rem;
+      color: var(--primary);
     }
 
     .assessment-text {
-      font-size: 14px;
+      font-size: 0.9375rem;
       line-height: 1.6;
-      color: rgba(255,255,255,0.9);
+      color: var(--foreground);
     }
 
+    .next-steps {
+      max-width: 32rem;
+      margin: 0 auto;
+    }
+
+    .next-steps p {
+      text-align: center;
+      font-size: 1rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    /* Footer */
     .powered-by {
       text-align: center;
-      padding: 20px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      padding: 2rem;
+      font-size: 0.75rem;
+      color: var(--muted);
     }
 
-    .powered-by img {
-      height: 16px;
-      opacity: 0.6;
-    }
-
-    @media (max-width: 480px) {
-      .step-title {
-        font-size: 20px;
+    /* Responsive */
+    @media (max-width: 640px) {
+      .progress-container {
+        display: none;
       }
-      .option {
-        padding: 14px 16px;
-        font-size: 15px;
+
+      .main {
+        padding: 2rem 1rem 3rem;
+      }
+
+      .form-card {
+        padding: 1.5rem;
       }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
+  <header class="header">
+    <div class="header-inner">
       <img src="${tenant.logo}" alt="${tenant.name}" class="logo">
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 25%"></div>
+        </div>
+      </div>
+      <div class="header-spacer"></div>
     </div>
+  </header>
 
-    <div class="progress-bar">
-      <div class="progress-fill" id="progressFill" style="width: 20%"></div>
-    </div>
-
+  <main class="main">
     <!-- Step 1: Address -->
     <div class="step active" id="step1">
-      <h1 class="step-title">Where is the roof you're considering spray or sealant treatment for?</h1>
-      <p class="step-subtitle">We'll use this to check roof age averages and weather patterns for your area.</p>
-
-      <div class="input-group">
-        <label for="address">Property Address</label>
-        <input type="text" id="address" placeholder="Enter your address" autocomplete="street-address">
+      <div class="step-header">
+        <h1 class="step-title">Where is the roof you're considering treatment for?</h1>
+        <p class="step-subtitle">We'll use this to check roof age averages and weather patterns for your area.</p>
       </div>
 
-      <button class="btn" onclick="nextStep(1)" id="btn1">Continue</button>
+      <div class="form-card">
+        <div class="input-group">
+          <label for="address">Property Address</label>
+          <input type="text" id="address" placeholder="123 Main St, City, State" autocomplete="street-address">
+        </div>
+        <button class="btn" onclick="nextStep(1)" id="btn1">
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Step 2: Roof Type & Age -->
     <div class="step" id="step2">
-      <h1 class="step-title">Tell us about your roof.</h1>
-      <p class="step-subtitle">This helps us determine which treatment options might work best.</p>
-
-      <div class="input-group">
-        <label for="roofMaterial">What type of roof do you have?</label>
-        <select id="roofMaterial">
-          <option value="">Select roof type...</option>
-          <option value="asphalt_shingles">Asphalt shingles</option>
-          <option value="architectural_shingles">Architectural / laminate shingles</option>
-          <option value="metal">Metal</option>
-          <option value="tile">Tile</option>
-          <option value="flat_low_slope">Flat / low-slope (TPO, EPDM, etc.)</option>
-          <option value="not_sure">Not sure</option>
-        </select>
+      <div class="step-header">
+        <h1 class="step-title">Tell us about your roof</h1>
+        <p class="step-subtitle">This helps us determine which treatment options might work best.</p>
       </div>
 
-      <div class="input-group">
-        <label for="roofAge">About how old is your roof?</label>
-        <select id="roofAge">
-          <option value="">Select age...</option>
-          <option value="under_5">Less than 5 years</option>
-          <option value="5_10">5-10 years</option>
-          <option value="11_15">11-15 years</option>
-          <option value="16_20">16-20 years</option>
-          <option value="21_25">21-25 years</option>
-          <option value="26_plus_or_unknown">26+ years / not sure</option>
-        </select>
-      </div>
+      <div class="form-card">
+        <div class="input-group">
+          <label for="roofMaterial">What type of roof do you have?</label>
+          <select id="roofMaterial">
+            <option value="">Select roof type...</option>
+            <option value="asphalt_shingles">Asphalt shingles</option>
+            <option value="architectural_shingles">Architectural / laminate shingles</option>
+            <option value="metal">Metal</option>
+            <option value="tile">Tile</option>
+            <option value="flat_low_slope">Flat / low-slope (TPO, EPDM, etc.)</option>
+            <option value="not_sure">Not sure</option>
+          </select>
+        </div>
 
-      <button class="btn" onclick="nextStep(2)" id="btn2" disabled>Continue</button>
+        <div class="input-group">
+          <label for="roofAge">About how old is your roof?</label>
+          <select id="roofAge">
+            <option value="">Select age...</option>
+            <option value="under_5">Less than 5 years</option>
+            <option value="5_10">5-10 years</option>
+            <option value="11_15">11-15 years</option>
+            <option value="16_20">16-20 years</option>
+            <option value="21_25">21-25 years</option>
+            <option value="26_plus_or_unknown">26+ years / not sure</option>
+          </select>
+        </div>
+
+        <button class="btn" onclick="nextStep(2)" id="btn2" disabled>
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Step 3: Condition & Goals -->
     <div class="step" id="step3">
-      <h1 class="step-title">How is your roof doing, and what are your goals?</h1>
-      <p class="step-subtitle">Select all that apply in each section.</p>
+      <div class="step-header">
+        <h1 class="step-title">Roof condition and your goals</h1>
+        <p class="step-subtitle">Select all that apply in each section.</p>
+      </div>
 
       <div class="form-section">
         <div class="form-section-title">Current Condition</div>
-        <div class="options" id="conditionOptions">
-          <div class="option multi" data-value="worn_faded">
-            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <span>Some shingles look worn or faded</span>
+        <div class="options-list" id="conditionOptions">
+          <div class="option-row" data-value="worn_faded">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">Some shingles look worn or faded</span>
           </div>
-          <div class="option multi" data-value="curling_brittle">
-            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <span>Curling or brittle shingles</span>
+          <div class="option-row" data-value="curling_brittle">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">Curling or brittle shingles</span>
           </div>
-          <div class="option multi" data-value="granules_in_gutters">
-            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <span>Granules in gutters or at downspouts</span>
+          <div class="option-row" data-value="granules_in_gutters">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">Granules in gutters or at downspouts</span>
           </div>
-          <div class="option multi" data-value="active_leaks">
-            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <span>Active leaks or water stains inside</span>
+          <div class="option-row" data-value="active_leaks">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">Active leaks or water stains inside</span>
           </div>
-          <div class="option multi" data-value="just_older">
-            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <span>No obvious issues, just getting older</span>
+          <div class="option-row" data-value="just_older">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">No obvious issues, just getting older</span>
           </div>
-          <div class="option multi" data-value="not_sure_condition">
-            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <span>Not sure / I haven't looked closely</span>
+          <div class="option-row" data-value="not_sure_condition">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">Not sure / I haven't looked closely</span>
           </div>
         </div>
       </div>
 
       <div class="form-section">
         <div class="form-section-title">Your Goals</div>
-        <div class="options" id="goalsOptions">
-          <div class="option multi" data-value="avoid_replacement">
-            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <span>Avoid or delay a full roof replacement</span>
+        <div class="options-list" id="goalsOptions">
+          <div class="option-row" data-value="avoid_replacement">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">Avoid or delay a full roof replacement</span>
           </div>
-          <div class="option multi" data-value="extend_life">
-            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <span>Extend the life of my roof a few more years</span>
+          <div class="option-row" data-value="extend_life">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">Extend the life of my roof a few more years</span>
           </div>
-          <div class="option multi" data-value="fix_small_issues">
-            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <span>Help with small issues before they become big problems</span>
+          <div class="option-row" data-value="fix_small_issues">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">Help with small issues before they become big</span>
           </div>
-          <div class="option multi" data-value="improve_curb_appeal">
-            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <span>Improve curb appeal / refresh the look</span>
+          <div class="option-row" data-value="improve_curb_appeal">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">Improve curb appeal / refresh the look</span>
           </div>
-          <div class="option multi" data-value="greener_option">
-            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <span>Explore a greener / less wasteful option</span>
+          <div class="option-row" data-value="greener_option">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">Explore a greener / less wasteful option</span>
           </div>
-          <div class="option multi" data-value="compare_sprays_sealants">
-            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <span>Compare spray rejuvenation vs sealant options</span>
-          </div>
-          <div class="option multi" data-value="just_researching">
-            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-            <span>Just researching options right now</span>
+          <div class="option-row" data-value="just_researching">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">Just researching options right now</span>
           </div>
         </div>
       </div>
 
       <div class="form-section">
-        <div class="form-section-title">Competitor Research</div>
-        <div class="options" id="otherBrandOptions">
-          <div class="option" data-value="yes">Yes, I've looked into another spray or sealant product</div>
-          <div class="option" data-value="no">No, I haven't</div>
+        <div class="form-section-title">Have you looked at other brands?</div>
+        <div class="options-list" id="otherBrandOptions">
+          <div class="option-row" data-value="yes">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">Yes, I've looked into another spray or sealant</span>
+          </div>
+          <div class="option-row" data-value="no">
+            <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="option-label">No, I haven't</span>
+          </div>
         </div>
 
         <div class="conditional-field" id="otherBrandField">
-          <div class="input-group">
+          <div class="input-group" style="margin-bottom: 0;">
             <label for="otherBrandName">Which brand or product? (Optional)</label>
             <input type="text" id="otherBrandName" placeholder="e.g., Roof Maxx, SealantX">
           </div>
         </div>
       </div>
 
-      <button class="btn" onclick="nextStep(3)" id="btn3" disabled>Continue</button>
+      <div class="btn-container">
+        <button class="btn" onclick="nextStep(3)" id="btn3" disabled>
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Step 4: Lead Capture -->
     <div class="step" id="step4">
-      <h1 class="step-title">Where should we send your results?</h1>
-      <p class="step-subtitle">We can now give you a quick comparison of whether spray or sealant treatment is the best fit for your roof.</p>
-
-      <div class="input-group">
-        <label for="name">Full Name</label>
-        <input type="text" id="name" placeholder="John Smith">
+      <div class="step-header">
+        <h1 class="step-title">Where should we send your results?</h1>
+        <p class="step-subtitle">We'll give you a quick comparison of spray vs sealant options for your roof.</p>
       </div>
 
-      <div class="input-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" placeholder="john@example.com">
-      </div>
+      <div class="form-card">
+        <div class="input-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" placeholder="John Smith">
+        </div>
 
-      <div class="input-group">
-        <label for="phone">Phone</label>
-        <input type="tel" id="phone" placeholder="(555) 123-4567">
-      </div>
+        <div class="input-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="john@example.com">
+        </div>
 
-      <button class="btn" onclick="submitLead()" id="btnSubmit">See My Results</button>
+        <div class="input-group">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" placeholder="(555) 123-4567">
+        </div>
+
+        <button class="btn" onclick="submitLead()" id="btnSubmit">
+          See My Results
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -569,10 +702,12 @@ function generateHTML(tenant) {
 
     <!-- Results -->
     <div class="results" id="results">
-      <h1 class="step-title">Your Roof Treatment Fit Check</h1>
+      <div class="step-header">
+        <h1 class="step-title">Your Roof Treatment Fit Check</h1>
+      </div>
 
       <div class="results-card">
-        <div class="results-headline" id="resultsHeadline">Here's how roof spray vs sealant options fit your roof.</div>
+        <div class="results-headline" id="resultsHeadline">Here's how spray vs sealant options fit your roof.</div>
 
         <div class="results-item">
           <span class="results-label">Address</span>
@@ -602,18 +737,18 @@ function generateHTML(tenant) {
       </div>
 
       <div class="next-steps">
-        <p style="text-align: center; font-size: 16px; line-height: 1.6; color: rgba(255,255,255,0.9); margin-bottom: 20px;">
-          One of our roof treatment specialists will reach out to discuss your options and schedule a free assessment.
-        </p>
-        <button class="btn" onclick="callNow()">Call Us Now: ${tenant.phone}</button>
+        <p>One of our roof treatment specialists will reach out to discuss your options.</p>
+        <button class="btn" onclick="callNow()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Call Us Now: ${tenant.phone}
+        </button>
       </div>
     </div>
+  </main>
 
-    <div class="powered-by">
-      <img src="/favicon.png" alt="Camvasser">
-      <span>Powered by Camvasser</span>
-    </div>
-  </div>
+  <footer class="powered-by">
+    <span>Powered by Camvasser</span>
+  </footer>
 
   <script>
     const TENANT = '${tenant.slug}';
@@ -636,7 +771,7 @@ function generateHTML(tenant) {
     // Labels for display
     const materialLabels = {
       'asphalt_shingles': 'Asphalt shingles',
-      'architectural_shingles': 'Architectural / laminate shingles',
+      'architectural_shingles': 'Architectural shingles',
       'metal': 'Metal',
       'tile': 'Tile',
       'flat_low_slope': 'Flat / low-slope',
@@ -653,8 +788,8 @@ function generateHTML(tenant) {
     };
 
     const conditionLabels = {
-      'worn_faded': 'Worn or faded shingles',
-      'curling_brittle': 'Curling or brittle shingles',
+      'worn_faded': 'Worn or faded',
+      'curling_brittle': 'Curling or brittle',
       'granules_in_gutters': 'Granules in gutters',
       'active_leaks': 'Active leaks',
       'just_older': 'Just getting older',
@@ -667,19 +802,16 @@ function generateHTML(tenant) {
       'fix_small_issues': 'Fix small issues',
       'improve_curb_appeal': 'Improve curb appeal',
       'greener_option': 'Greener option',
-      'compare_sprays_sealants': 'Compare options',
       'just_researching': 'Researching'
     };
 
     // Single select for other brand
-    document.querySelectorAll('#otherBrandOptions .option').forEach(opt => {
+    document.querySelectorAll('#otherBrandOptions .option-row').forEach(opt => {
       opt.addEventListener('click', function() {
-        const parent = this.parentElement;
-        parent.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+        document.querySelectorAll('#otherBrandOptions .option-row').forEach(o => o.classList.remove('selected'));
         this.classList.add('selected');
         formData.otherBrandContact = this.dataset.value;
 
-        // Show/hide conditional field
         const conditionalField = document.getElementById('otherBrandField');
         if (this.dataset.value === 'yes') {
           conditionalField.classList.add('visible');
@@ -692,12 +824,11 @@ function generateHTML(tenant) {
     });
 
     // Multi select for condition
-    document.querySelectorAll('#conditionOptions .option').forEach(opt => {
+    document.querySelectorAll('#conditionOptions .option-row').forEach(opt => {
       opt.addEventListener('click', function() {
         this.classList.toggle('selected');
-
         const selected = [];
-        document.querySelectorAll('#conditionOptions .option.selected').forEach(o => {
+        document.querySelectorAll('#conditionOptions .option-row.selected').forEach(o => {
           selected.push(o.dataset.value);
         });
         formData.roofCondition = selected;
@@ -706,12 +837,11 @@ function generateHTML(tenant) {
     });
 
     // Multi select for goals
-    document.querySelectorAll('#goalsOptions .option').forEach(opt => {
+    document.querySelectorAll('#goalsOptions .option-row').forEach(opt => {
       opt.addEventListener('click', function() {
         this.classList.toggle('selected');
-
         const selected = [];
-        document.querySelectorAll('#goalsOptions .option.selected').forEach(o => {
+        document.querySelectorAll('#goalsOptions .option-row.selected').forEach(o => {
           selected.push(o.dataset.value);
         });
         formData.roofGoals = selected;
@@ -719,7 +849,6 @@ function generateHTML(tenant) {
       });
     });
 
-    // Validate step 2 (roof type and age)
     function validateStep2() {
       const material = document.getElementById('roofMaterial').value;
       const age = document.getElementById('roofAge').value;
@@ -736,7 +865,6 @@ function generateHTML(tenant) {
       validateStep2();
     });
 
-    // Validate step 3 (condition, goals, other brand)
     function validateStep3() {
       const hasCondition = formData.roofCondition.length > 0;
       const hasGoals = formData.roofGoals.length > 0;
@@ -744,11 +872,9 @@ function generateHTML(tenant) {
       document.getElementById('btn3').disabled = !(hasCondition && hasGoals && hasBrandAnswer);
     }
 
-    // Progress percentages (4 steps now, no photos)
     const progressSteps = [25, 50, 75, 90, 100];
 
     function nextStep(current) {
-      // Validate current step
       if (current === 1) {
         const address = document.getElementById('address').value.trim();
         if (!address) {
@@ -762,7 +888,6 @@ function generateHTML(tenant) {
         formData.otherBrandName = document.getElementById('otherBrandName').value.trim();
       }
 
-      // Hide current, show next
       document.getElementById('step' + current).classList.remove('active');
       document.getElementById('step' + (current + 1)).classList.add('active');
       document.getElementById('progressFill').style.width = progressSteps[current] + '%';
@@ -770,16 +895,9 @@ function generateHTML(tenant) {
 
     function computeUrgency() {
       const condition = formData.roofCondition;
-      if (condition.includes('active_leaks')) {
-        return 'high';
-      }
-      if (condition.includes('curling_brittle') || condition.includes('granules_in_gutters') || condition.includes('worn_faded')) {
-        return 'medium';
-      }
-      if (condition.includes('just_older') || condition.includes('not_sure_condition')) {
-        return 'low';
-      }
-      return 'medium';
+      if (condition.includes('active_leaks')) return 'high';
+      if (condition.includes('curling_brittle') || condition.includes('granules_in_gutters') || condition.includes('worn_faded')) return 'medium';
+      return 'low';
     }
 
     function computeFitLikelihood() {
@@ -787,25 +905,20 @@ function generateHTML(tenant) {
       const age = formData.roofAge;
       const condition = formData.roofCondition;
 
-      // Strong fit: shingle roof, 5-20 years old, no active leaks
       if (['asphalt_shingles', 'architectural_shingles'].includes(material) &&
           ['5_10', '11_15', '16_20'].includes(age) &&
           !condition.includes('active_leaks')) {
         return 'strong_fit';
       }
 
-      // Possible fit: shingle roof, 21-25 years
-      if (['asphalt_shingles', 'architectural_shingles'].includes(material) &&
-          age === '21_25') {
+      if (['asphalt_shingles', 'architectural_shingles'].includes(material) && age === '21_25') {
         return 'possible_fit';
       }
 
-      // Needs inspection: very old or has leaks
       if (age === '26_plus_or_unknown' || condition.includes('active_leaks')) {
         return 'needs_inspection';
       }
 
-      // Unknown: non-shingle materials
       if (['metal', 'tile', 'flat_low_slope', 'not_sure'].includes(material)) {
         return 'unknown';
       }
@@ -815,16 +928,15 @@ function generateHTML(tenant) {
 
     function getFitLikelihoodText(fit) {
       const texts = {
-        'strong_fit': 'Your roof type and age fall into the range where spray rejuvenation usually performs the best, often improving flexibility and lifespan.',
-        'possible_fit': 'Your roof may still be a candidate for spray or sealant treatment, but we\\'d need a closer look to compare the benefits of each option.',
-        'needs_inspection': 'Because of the age or current signs of leaks, we\\'d want to inspect the roof before recommending spray vs sealant. Repairs or replacement may be more appropriate.',
-        'unknown': 'Your roof could still be a candidate, but we\\'ll need a few more details or photos to determine whether spray or sealant is the better option.'
+        'strong_fit': 'Your roof type and age fall into the range where spray rejuvenation usually performs best, often improving flexibility and lifespan.',
+        'possible_fit': 'Your roof may still be a candidate for spray or sealant treatment, but we\\'d need a closer look to compare the benefits.',
+        'needs_inspection': 'Because of the age or current signs of leaks, we\\'d want to inspect the roof before recommending spray vs sealant.',
+        'unknown': 'Your roof could still be a candidate, but we\\'ll need more details to determine the best option.'
       };
       return texts[fit] || texts['possible_fit'];
     }
 
     async function submitLead() {
-      // Get form values
       formData.name = document.getElementById('name').value.trim();
       formData.email = document.getElementById('email').value.trim();
       formData.phone = document.getElementById('phone').value.trim();
@@ -834,16 +946,13 @@ function generateHTML(tenant) {
         return;
       }
 
-      // Show loading
       document.getElementById('step4').classList.remove('active');
       document.getElementById('loading').classList.add('active');
       document.getElementById('progressFill').style.width = '95%';
 
-      // Compute scores
       const urgency = computeUrgency();
       const fitLikelihood = computeFitLikelihood();
 
-      // Get UTM params
       const urlParams = new URLSearchParams(window.location.search);
 
       try {
@@ -876,13 +985,11 @@ function generateHTML(tenant) {
 
         const result = await response.json();
 
-        // Show results
         setTimeout(() => {
           document.getElementById('loading').classList.remove('active');
           document.getElementById('results').classList.add('active');
           document.getElementById('progressFill').style.width = '100%';
 
-          // Populate results
           document.getElementById('resultAddress').textContent = formData.address;
           document.getElementById('resultMaterial').textContent = materialLabels[formData.roofMaterial] || formData.roofMaterial;
           document.getElementById('resultAge').textContent = ageLabels[formData.roofAge] || formData.roofAge;
@@ -903,7 +1010,6 @@ function generateHTML(tenant) {
       window.location.href = 'tel:' + PHONE.replace(/[^0-9]/g, '');
     }
 
-    // Enable first button when address has content
     document.getElementById('address').addEventListener('input', function() {
       document.getElementById('btn1').disabled = !this.value.trim();
     });

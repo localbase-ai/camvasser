@@ -21,8 +21,20 @@ function generateHTML(tenant) {
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --primary: ${tenant.colors.primary};
+      --primary-hover: ${tenant.colors.primaryHover};
+      --background: #fafafa;
+      --foreground: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --card: #ffffff;
+      --card-hover: #f9fafb;
+      --radius: 0.75rem;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -30,9 +42,9 @@ function generateHTML(tenant) {
     }
 
     body {
-      font-family: 'Outfit', -apple-system, system-ui, sans-serif;
-      background: ${tenant.colors.background};
-      color: #212529;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--background);
+      color: var(--foreground);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -41,42 +53,45 @@ function generateHTML(tenant) {
     }
 
     .container {
-      background: #FFFFFF;
-      max-width: 600px;
+      background: var(--card);
+      max-width: 480px;
       width: 100%;
-      padding: 0;
+      border-radius: var(--radius);
       text-align: center;
       overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--border);
     }
 
     .logo-container {
-      padding: 20px 40px 10px;
-      background: linear-gradient(135deg, ${tenant.colors.logoBackground} 0%, ${tenant.colors.background} 100%);
+      padding: 32px 40px 24px;
+      background: var(--background);
+      border-bottom: 1px solid var(--border);
     }
 
     .logo-placeholder img {
-      max-width: 133px;
+      max-width: 120px;
       height: auto;
       margin: 0 auto;
       display: block;
     }
 
     .content {
-      padding: 15px 40px 40px;
+      padding: 32px 40px 40px;
     }
 
     h1 {
-      font-size: 32px;
+      font-size: 26px;
       font-weight: 700;
-      color: #212529;
-      margin-bottom: 6px;
+      color: var(--foreground);
+      margin-bottom: 8px;
+      line-height: 1.2;
     }
 
     .subtitle {
-      color: #6C757D;
-      font-size: 18px;
-      margin-bottom: 25px;
+      color: var(--muted);
+      font-size: 15px;
+      margin-bottom: 28px;
       line-height: 1.5;
     }
 
@@ -87,121 +102,134 @@ function generateHTML(tenant) {
 
     label {
       display: block;
-      color: #212529;
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 10px;
+      color: var(--foreground);
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
     }
 
     input[type="text"] {
       width: 100%;
-      padding: 16px;
-      background: #FFFFFF;
-      border: 2px solid #E5E5E5;
-      border-radius: 0;
-      color: #212529;
-      font-size: 16px;
-      font-family: 'Outfit', sans-serif;
+      padding: 14px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--foreground);
+      font-size: 15px;
+      font-family: 'Inter', sans-serif;
       transition: all 0.2s;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 
     input[type="text"]:focus {
       outline: none;
-      border-color: ${tenant.colors.primary};
-      background: #FFFFFF;
-      box-shadow: 0 0 0 4px ${tenant.colors.primary}1A;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
     }
 
     input[type="text"]::placeholder {
-      color: #ADB5BD;
+      color: #9ca3af;
+    }
+
+    .hint {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
     }
 
     .btn {
       width: 100%;
-      padding: 18px;
+      padding: 14px 24px;
       border: none;
-      border-radius: 0;
-      font-size: 18px;
+      border-radius: var(--radius);
+      font-size: 15px;
       font-weight: 600;
-      font-family: 'Outfit', sans-serif;
+      font-family: 'Inter', sans-serif;
       cursor: pointer;
       transition: all 0.2s;
       margin-top: 10px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .btn-primary {
-      background: ${tenant.colors.primary};
-      color: #212529;
+      background: var(--primary);
+      color: #fff;
       border: none;
     }
 
     .btn-primary:hover:not(:disabled) {
-      background: ${tenant.colors.primaryHover};
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px ${tenant.colors.primary}66;
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     .btn-primary:disabled {
-      opacity: 0.6;
+      
       cursor: not-allowed;
     }
 
     .btn-success {
-      background: ${tenant.colors.primary};
-      color: #212529;
+      background: var(--primary);
+      color: #fff;
       border: none;
-      font-size: 18px;
-      margin-bottom: 20px;
+      font-size: 15px;
+      margin-bottom: 16px;
     }
 
     .btn-success:hover {
-      background: ${tenant.colors.primaryHover};
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px ${tenant.colors.primary}66;
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     .btn-call {
-      background: #28A745;
+      background: #059669;
       color: white;
       border: none;
       text-decoration: none;
       display: block;
-      font-size: 18px;
+      font-size: 15px;
     }
 
     .btn-call:hover {
-      background: #218838;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+      background: #047857;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
     }
 
     .result {
       display: none;
-      margin-top: 30px;
-      padding: 30px;
-      border-radius: 0;
-      background: #F8F9FA;
-      border: 2px solid #E5E5E5;
+      margin-top: 24px;
+      padding: 24px;
+      border-radius: var(--radius);
+      background: var(--card);
+      border: 1px solid var(--border);
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .result.success {
-      border-color: ${tenant.colors.primary};
-      background: ${tenant.colors.primary}1A;
+      border-color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 5%, white);
     }
 
     .result.lead-capture {
-      border-color: ${tenant.colors.primary};
-      background: #FFFFFF;
+      border-color: var(--primary);
+      background: var(--card);
     }
 
     .result.error {
-      border-color: #DC3545;
-      background: #FFE5E8;
+      border-color: #ef4444;
+      background: #fef2f2;
     }
 
     .result.not-found {
-      border-color: #FF9800;
-      background: #FFF3E0;
+      border-color: #f59e0b;
+      background: #fffbeb;
     }
 
     .lead-form {
@@ -209,23 +237,25 @@ function generateHTML(tenant) {
     }
 
     .lead-form .input-group {
-      margin-bottom: 15px;
+      margin-bottom: 16px;
     }
 
     .lead-form input[type="text"],
     .lead-form input[type="email"],
     .lead-form input[type="tel"] {
       width: 100%;
-      padding: 14px;
-      border: 2px solid #E5E5E5;
-      border-radius: 4px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       font-size: 15px;
-      font-family: 'Outfit', sans-serif;
+      font-family: 'Inter', sans-serif;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 
     .lead-form input:focus {
-      border-color: ${tenant.colors.primary};
+      border-color: var(--primary);
       outline: none;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
     }
 
     .lead-form label {
@@ -234,37 +264,37 @@ function generateHTML(tenant) {
     }
 
     .result-title {
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 700;
-      margin-bottom: 25px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid #E5E5E5;
-      color: #212529;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--foreground);
     }
 
     .result-message {
-      color: #6C757D;
-      margin-bottom: 30px;
-      line-height: 1.8;
-      font-size: 17px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      line-height: 1.6;
+      font-size: 15px;
     }
 
     .result-message strong {
-      color: #212529;
+      color: var(--foreground);
       display: block;
-      margin-bottom: 8px;
-      font-size: 19px;
+      margin-bottom: 6px;
+      font-size: 16px;
       line-height: 1.4;
     }
 
     .loader {
       display: none;
-      margin: 25px auto;
-      border: 4px solid #F8F9FA;
-      border-top: 4px solid ${tenant.colors.primary};
+      margin: 32px auto;
+      border: 3px solid var(--border);
+      border-top: 3px solid var(--primary);
       border-radius: 50%;
-      width: 50px;
-      height: 50px;
+      width: 40px;
+      height: 40px;
       animation: spin 1s linear infinite;
     }
 
@@ -274,54 +304,54 @@ function generateHTML(tenant) {
     }
 
     .photo-count {
-      color: #6C757D;
-      margin-top: 20px;
-      margin-bottom: 20px;
-      font-size: 16px;
-      font-weight: 600;
+      color: var(--muted);
+      margin-top: 16px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      font-weight: 500;
     }
 
     .photo-thumbnails {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
-      margin: 20px 0;
+      gap: 8px;
+      margin: 16px 0;
     }
 
     .photo-thumbnails img {
       width: 100%;
-      height: 80px;
+      height: 60px;
       object-fit: cover;
-      border-radius: 4px;
-      border: 2px solid #E5E5E5;
+      border-radius: 6px;
+      border: 1px solid var(--border);
     }
 
     .reset-link {
       display: inline-block;
-      margin-top: 20px;
-      color: #6C757D;
+      margin-top: 16px;
+      color: var(--muted);
       text-decoration: none;
-      font-size: 16px;
+      font-size: 14px;
       cursor: pointer;
       transition: color 0.2s;
     }
 
     .reset-link:hover {
-      color: #212529;
+      color: var(--foreground);
       text-decoration: underline;
     }
 
     #resultAction {
-      margin-top: 20px;
+      margin-top: 16px;
     }
 
     #resultAction .btn {
       margin-top: 0;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
 
     #resultAction .btn:first-child {
-      margin-top: 35px;
+      margin-top: 20px;
     }
 
     #resultAction .btn:last-child {
@@ -329,23 +359,38 @@ function generateHTML(tenant) {
     }
 
     .powered-by {
-      margin-top: 40px;
-      margin-bottom: -40px;
-      padding-top: 25px;
-      border-top: 1px solid #E5E5E5;
-      color: #ADB5BD;
-      font-size: 13px;
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 0;
+      gap: 8px;
     }
 
     .powered-by img {
-      width: 120px;
-      height: auto;
-      opacity: 1;
+      height: 16px;
+      width: auto;
+      
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+      }
+      .content {
+        padding: 24px 20px 32px;
+      }
+      .logo-container {
+        padding: 24px 20px 20px;
+      }
+      h1 {
+        font-size: 22px;
+      }
     }
   </style>
 </head>
@@ -370,7 +415,7 @@ function generateHTML(tenant) {
             placeholder="e.g., 123 Main Street"
             autofocus
           >
-          <div style="margin-top: 8px; font-size: 14px; color: #6C757D;">Press Enter to search</div>
+          <div class="hint">Press Enter to search</div>
         </div>
       </div>
 
@@ -383,7 +428,7 @@ function generateHTML(tenant) {
       </div>
 
       <div class="powered-by">
-        <img src="/favicon.png" alt="Camvasser" style="height: 20px; width: auto;">
+        <img src="/favicon.png" alt="Camvasser">
         <span>Powered by Camvasser</span>
       </div>
     </div>

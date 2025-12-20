@@ -33,8 +33,8 @@ export async function handler(event) {
 }
 
 function generateHTML(tenant) {
-  // Google Maps API key for Street View (needs to be set in Netlify env vars)
-  const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY || '';
+  // Mapbox token (needs to be set in Netlify env vars)
+  const mapboxToken = process.env.MAPBOX_TOKEN || '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -45,7 +45,23 @@ function generateHTML(tenant) {
   <meta name="description" content="Find out how a dirty roof may be costing you money in energy, lifespan, and curb appeal.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
   <style>
+    :root {
+      --primary: ${tenant.colors.primary};
+      --primary-hover: ${tenant.colors.primaryHover};
+      --background: #fafafa;
+      --foreground: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --card: #ffffff;
+      --card-hover: #f9fafb;
+      --radius: 0.75rem;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -54,9 +70,9 @@ function generateHTML(tenant) {
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: ${tenant.colors.background};
+      background: var(--background);
       min-height: 100vh;
-      color: #fff;
+      color: var(--foreground);
     }
 
     .container {
@@ -69,25 +85,31 @@ function generateHTML(tenant) {
     }
 
     .header {
-      text-align: center;
-      padding: 20px 0 30px;
+      position: sticky;
+      top: 0;
+      background: var(--background);
+      padding: 12px 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
     }
 
     .logo {
-      height: 60px;
-      margin-bottom: 10px;
+      height: 52px;
     }
 
     .progress-bar {
-      background: rgba(255,255,255,0.2);
+      background: var(--border);
       border-radius: 10px;
-      height: 8px;
-      margin-bottom: 30px;
+      height: 6px;
+      width: 200px;
       overflow: hidden;
     }
 
     .progress-fill {
-      background: ${tenant.colors.primary};
+      background: var(--primary);
       height: 100%;
       border-radius: 10px;
       transition: width 0.3s ease;
@@ -96,7 +118,8 @@ function generateHTML(tenant) {
     .step {
       display: none;
       flex: 1;
-      animation: fadeIn 0.3s ease;
+      animation: slideIn 0.4s ease;
+      padding-top: 12px;
     }
 
     .step.active {
@@ -104,51 +127,56 @@ function generateHTML(tenant) {
       flex-direction: column;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
     }
 
     .step-title {
       font-size: 24px;
       font-weight: 700;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       line-height: 1.3;
+      color: var(--foreground);
     }
 
     .step-subtitle {
-      font-size: 16px;
-      color: rgba(255,255,255,0.7);
-      margin-bottom: 25px;
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 24px;
       line-height: 1.5;
     }
 
     .options {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      margin-bottom: 20px;
+      gap: 10px;
+      margin-bottom: 24px;
     }
 
     .option {
-      background: rgba(255,255,255,0.1);
-      border: 2px solid rgba(255,255,255,0.2);
-      border-radius: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       padding: 16px 20px;
       cursor: pointer;
       transition: all 0.2s ease;
-      font-size: 16px;
+      font-size: 15px;
       text-align: left;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 
     .option:hover {
-      background: rgba(255,255,255,0.15);
-      border-color: rgba(255,255,255,0.3);
+      background: var(--card-hover);
+      border-color: #d1d5db;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
     }
 
     .option.selected {
-      background: ${tenant.colors.primary}22;
-      border-color: ${tenant.colors.primary};
+      background: color-mix(in srgb, var(--primary) 8%, white);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
     }
 
     .option.multi {
@@ -158,27 +186,29 @@ function generateHTML(tenant) {
     }
 
     .checkbox {
-      width: 22px;
-      height: 22px;
-      border: 2px solid rgba(255,255,255,0.4);
-      border-radius: 6px;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
       transition: all 0.2s ease;
+      background: var(--card);
     }
 
     .option.selected .checkbox {
-      background: ${tenant.colors.primary};
-      border-color: ${tenant.colors.primary};
+      background: var(--primary);
+      border-color: var(--primary);
     }
 
     .checkbox svg {
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       opacity: 0;
       transition: opacity 0.2s ease;
+      stroke: white;
     }
 
     .option.selected .checkbox svg {
@@ -193,45 +223,42 @@ function generateHTML(tenant) {
       display: block;
       font-size: 14px;
       font-weight: 500;
-      margin-bottom: 8px;
-      color: rgba(255,255,255,0.9);
+      margin-bottom: 6px;
+      color: var(--foreground);
     }
 
     .input-group input,
     .input-group select {
       width: 100%;
-      padding: 14px 16px;
-      border: 2px solid rgba(255,255,255,0.2);
-      border-radius: 10px;
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-      font-size: 16px;
-      transition: border-color 0.2s ease;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--card);
+      color: var(--foreground);
+      font-size: 15px;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 
     .input-group select {
       cursor: pointer;
       appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
-      background-size: 20px;
+      background-size: 18px;
       padding-right: 44px;
     }
 
-    .input-group select option {
-      background: ${tenant.colors.background};
-      color: #fff;
-    }
-
     .input-group input::placeholder {
-      color: rgba(255,255,255,0.4);
+      color: #9ca3af;
     }
 
     .input-group input:focus,
     .input-group select:focus {
       outline: none;
-      border-color: ${tenant.colors.primary};
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
     }
 
     .form-section {
@@ -239,34 +266,72 @@ function generateHTML(tenant) {
     }
 
     .form-section-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
-      color: rgba(255,255,255,0.7);
+      color: var(--muted);
       margin-bottom: 12px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .map-preview {
-      margin-bottom: 20px;
-      text-align: center;
+      margin-bottom: 16px;
     }
 
     .map-preview img {
-      border: 2px solid rgba(255,255,255,0.2);
+      width: 100%;
+      border-radius: var(--radius);
     }
 
     .map-caption {
       font-size: 13px;
-      color: rgba(255,255,255,0.5);
+      color: var(--muted);
       margin-top: 8px;
     }
 
+    /* Mapbox Geocoder styling */
+    .mapboxgl-ctrl-geocoder {
+      width: 100% !important;
+      max-width: 100% !important;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+    .mapboxgl-ctrl-geocoder input {
+      padding: 12px 14px 12px 40px;
+      font-size: 15px;
+      color: var(--foreground);
+      height: auto;
+    }
+    .mapboxgl-ctrl-geocoder input:focus {
+      outline: none;
+    }
+    .mapboxgl-ctrl-geocoder--icon-search {
+      left: 12px;
+      top: 12px;
+      fill: var(--muted);
+    }
+    .mapboxgl-ctrl-geocoder--suggestion {
+      padding: 10px 14px;
+      font-size: 14px;
+    }
+    .mapboxgl-ctrl-geocoder--suggestion:hover {
+      background: var(--card-hover);
+    }
+    .mapboxgl-ctrl-geocoder--suggestion-title {
+      color: var(--foreground);
+    }
+    .mapboxgl-ctrl-geocoder--suggestion-address {
+      color: var(--muted);
+    }
+
     .streetview-preview {
-      margin: 20px 0;
-      border-radius: 12px;
+      margin: 16px 0 0;
+      border-radius: var(--radius);
       overflow: hidden;
-      background: rgba(255,255,255,0.1);
+      background: var(--card);
+      border: 1px solid var(--border);
       display: none;
     }
 
@@ -283,15 +348,15 @@ function generateHTML(tenant) {
     .streetview-preview .caption {
       padding: 12px;
       font-size: 13px;
-      color: rgba(255,255,255,0.6);
+      color: var(--muted);
       text-align: center;
     }
 
     .streetview-loading {
       display: none;
       text-align: center;
-      padding: 20px;
-      color: rgba(255,255,255,0.6);
+      padding: 16px 0 0;
+      color: var(--muted);
       font-size: 14px;
     }
 
@@ -300,34 +365,37 @@ function generateHTML(tenant) {
     }
 
     .btn {
-      background: ${tenant.colors.primary};
-      color: #000;
+      background: var(--primary);
+      color: #fff;
       border: none;
-      border-radius: 10px;
-      padding: 16px 32px;
-      font-size: 16px;
+      border-radius: var(--radius);
+      padding: 14px 28px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
       width: 100%;
       margin-top: auto;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .btn:hover {
-      background: ${tenant.colors.primaryHover};
+      background: var(--primary-hover);
       transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
 
     .btn:disabled {
-      opacity: 0.5;
+      
       cursor: not-allowed;
       transform: none;
+      box-shadow: none;
     }
 
     .loading {
       display: none;
       text-align: center;
-      padding: 40px 20px;
+      padding: 60px 20px;
     }
 
     .loading.active {
@@ -337,11 +405,15 @@ function generateHTML(tenant) {
     .spinner {
       width: 40px;
       height: 40px;
-      border: 3px solid rgba(255,255,255,0.2);
-      border-top-color: ${tenant.colors.primary};
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
       margin: 0 auto 20px;
+    }
+
+    .loading p {
+      color: var(--muted);
     }
 
     @keyframes spin {
@@ -350,7 +422,7 @@ function generateHTML(tenant) {
 
     .results {
       display: none;
-      animation: fadeIn 0.3s ease;
+      animation: slideIn 0.4s ease;
     }
 
     .results.active {
@@ -358,24 +430,26 @@ function generateHTML(tenant) {
     }
 
     .results-card {
-      background: rgba(255,255,255,0.1);
-      border-radius: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       padding: 24px;
       margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     }
 
     .results-headline {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
       margin-bottom: 16px;
-      color: ${tenant.colors.primary};
+      color: var(--primary);
     }
 
     .results-item {
       display: flex;
       justify-content: space-between;
       padding: 12px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid var(--border);
       font-size: 14px;
     }
 
@@ -384,27 +458,28 @@ function generateHTML(tenant) {
     }
 
     .results-label {
-      color: rgba(255,255,255,0.6);
+      color: var(--muted);
     }
 
     .results-value {
       font-weight: 500;
       text-align: right;
       max-width: 60%;
+      color: var(--foreground);
     }
 
     .cost-highlight {
-      background: rgba(255,200,0,0.2);
-      border: 1px solid rgba(255,200,0,0.4);
+      background: #fef3c7;
+      border: 1px solid #fbbf24;
       border-radius: 8px;
-      padding: 12px 16px;
+      padding: 16px;
       margin: 16px 0;
       text-align: center;
     }
 
     .cost-highlight .label {
       font-size: 12px;
-      color: rgba(255,255,255,0.6);
+      color: #92400e;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 4px;
@@ -413,13 +488,13 @@ function generateHTML(tenant) {
     .cost-highlight .value {
       font-size: 24px;
       font-weight: 700;
-      color: #FFC107;
+      color: #b45309;
     }
 
     .assessment {
-      background: ${tenant.colors.primary}22;
-      border: 1px solid ${tenant.colors.primary}44;
-      border-radius: 12px;
+      background: color-mix(in srgb, var(--primary) 8%, white);
+      border: 1px solid color-mix(in srgb, var(--primary) 20%, white);
+      border-radius: var(--radius);
       padding: 16px;
       margin-top: 16px;
     }
@@ -427,20 +502,20 @@ function generateHTML(tenant) {
     .assessment-title {
       font-weight: 600;
       margin-bottom: 8px;
-      color: ${tenant.colors.primary};
+      color: var(--primary);
     }
 
     .assessment-text {
       font-size: 14px;
       line-height: 1.6;
-      color: rgba(255,255,255,0.9);
+      color: var(--foreground);
     }
 
     .powered-by {
       text-align: center;
-      padding: 20px;
+      padding: 24px 20px;
       font-size: 12px;
-      color: rgba(255,255,255,0.4);
+      color: var(--muted);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -449,7 +524,7 @@ function generateHTML(tenant) {
 
     .powered-by img {
       height: 16px;
-      opacity: 0.6;
+      
     }
 
     @media (max-width: 480px) {
@@ -458,7 +533,13 @@ function generateHTML(tenant) {
       }
       .option {
         padding: 14px 16px;
-        font-size: 15px;
+        font-size: 14px;
+      }
+      .header {
+        padding: 12px 0;
+      }
+      .logo {
+        height: 40px;
       }
     }
   </style>
@@ -467,37 +548,21 @@ function generateHTML(tenant) {
   <div class="container">
     <div class="header">
       <img src="${tenant.logo}" alt="${tenant.name}" class="logo">
-    </div>
-
-    <div class="progress-bar">
-      <div class="progress-fill" id="progressFill" style="width: 16%"></div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 20%"></div>
+      </div>
     </div>
 
     <!-- Step 1: Address -->
     <div class="step active" id="step1">
-      <h1 class="step-title">Where is the home with the roof you're curious about?</h1>
-      <p class="step-subtitle">We'll use this to understand your climate, sun exposure, and see if we can pull a street-level view of your roof.</p>
+      <h1 class="step-title">What's the address of your dirty roof?</h1>
+      <p class="step-subtitle">Enter your address and we'll pinpoint your location.</p>
 
-      <div class="map-preview" id="mapPreview">
-        <img src="https://maps.googleapis.com/maps/api/staticmap?center=Kansas+City,MO&zoom=7&size=400x400&maptype=roadmap&style=feature:all|element:labels|visibility:simplified&style=feature:road|element:geometry|color:0x6b7280&style=feature:water|color:0x1e3a5f&style=feature:landscape|color:0x1f2937&key=${googleMapsApiKey}" alt="Kansas City Metro Area" style="width: 100%; border-radius: 12px;">
-        <div class="map-caption">Serving the Kansas City Metro Area</div>
-      </div>
+      <div id="map" style="width: 100%; height: 280px; border-radius: var(--radius); overflow: hidden;"></div>
+      <div id="geocoder-container" style="margin-top: 12px;"></div>
+      <div class="map-caption" style="text-align: center; margin-top: 8px;">Serving the Kansas City Metro Area</div>
 
-      <div class="input-group">
-        <label for="address">Property Address</label>
-        <input type="text" id="address" placeholder="Enter your address" autocomplete="street-address">
-      </div>
-
-      <div class="streetview-loading" id="streetviewLoading">
-        Checking sun exposure, climate, and roof visibility for your area...
-      </div>
-
-      <div class="streetview-preview" id="streetviewPreview">
-        <img id="streetviewImage" src="" alt="Street view of property">
-        <div class="caption">Street-level view of your property (if available)</div>
-      </div>
-
-      <button class="btn" onclick="nextStep(1)" id="btn1">Continue</button>
+      <button class="btn" onclick="nextStep(1)" id="btn1" disabled style="margin-top: 16px;">Continue</button>
     </div>
 
     <!-- Step 2: Symptoms -->
@@ -818,28 +883,10 @@ function generateHTML(tenant) {
     async function nextStep(current) {
       // Validate and process current step
       if (current === 1) {
-        const address = document.getElementById('address').value.trim();
-        if (!address) {
+        // Address already set by map interaction
+        if (!formData.address) {
           alert('Please enter your address');
           return;
-        }
-        formData.address = address;
-
-        // Show loading state
-        document.getElementById('streetviewLoading').classList.add('visible');
-        document.getElementById('btn1').disabled = true;
-
-        // Try to fetch Street View
-        const streetViewUrl = await fetchStreetView(address);
-
-        document.getElementById('streetviewLoading').classList.remove('visible');
-        document.getElementById('btn1').disabled = false;
-
-        if (streetViewUrl) {
-          formData.streetviewUrl = streetViewUrl;
-          formData.streetviewAvailable = true;
-          document.getElementById('streetviewImage').src = streetViewUrl;
-          document.getElementById('streetviewPreview').classList.add('visible');
         }
       }
 
@@ -997,9 +1044,68 @@ function generateHTML(tenant) {
       window.location.href = 'tel:' + PHONE.replace(/[^0-9]/g, '');
     }
 
-    // Enable first button when address has content
-    document.getElementById('address').addEventListener('input', function() {
-      document.getElementById('btn1').disabled = !this.value.trim();
+    // Initialize Mapbox
+    let map;
+    let marker;
+    const MAPBOX_TOKEN = '${mapboxToken}';
+
+    function initMap() {
+      mapboxgl.accessToken = MAPBOX_TOKEN;
+
+      map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/dark-v11',
+        center: [-94.5786, 39.0997], // KC center [lng, lat]
+        zoom: 8
+      });
+
+      // Add geocoder search control
+      const geocoder = new MapboxGeocoder({
+        accessToken: MAPBOX_TOKEN,
+        mapboxgl: mapboxgl,
+        placeholder: 'Enter your address...',
+        countries: 'us',
+        types: 'address',
+        proximity: { longitude: -94.5786, latitude: 39.0997 }
+      });
+
+      // Add geocoder to the address input container
+      document.getElementById('geocoder-container').appendChild(geocoder.onAdd(map));
+
+      // Handle result selection
+      geocoder.on('result', function(e) {
+        const coords = e.result.center;
+        const address = e.result.place_name;
+
+        // Fly to location
+        map.flyTo({
+          center: coords,
+          zoom: 16,
+          duration: 1500
+        });
+
+        // Add marker
+        if (marker) marker.remove();
+        marker = new mapboxgl.Marker({ color: '${tenant.colors.primary}' })
+          .setLngLat(coords)
+          .addTo(map);
+
+        // Store address and enable Continue button
+        formData.address = address;
+        document.getElementById('btn1').disabled = false;
+      });
+    }
+
+    // Initialize map when page loads
+    window.addEventListener('load', initMap);
+
+    // Cmd+K to focus address input
+    document.addEventListener('keydown', function(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        const input = document.querySelector('.mapboxgl-ctrl-geocoder input');
+        if (input) input.focus();
+      }
     });
   </script>
 </body>

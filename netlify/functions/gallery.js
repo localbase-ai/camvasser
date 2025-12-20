@@ -33,9 +33,21 @@ export async function handler(event) {
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
+    :root {
+      --primary: ${tenantConfig.colors.primary};
+      --primary-hover: ${tenantConfig.colors.primaryHover};
+      --background: #fafafa;
+      --foreground: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --card: #ffffff;
+      --card-hover: #f9fafb;
+      --radius: 0.75rem;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -43,36 +55,36 @@ export async function handler(event) {
     }
 
     body {
-      font-family: 'Outfit', -apple-system, system-ui, sans-serif;
-      background: #f5f5f5;
-      color: #212529;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--background);
+      color: var(--foreground);
       min-height: 100vh;
     }
 
     .header {
-      background: linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 100%);
-      padding: 10px 20px;
+      background: var(--background);
+      padding: 16px 20px;
       text-align: center;
-      color: white;
+      border-bottom: 1px solid var(--border);
     }
 
     .logo {
       max-width: 100px;
       height: auto;
-      margin: 0 auto 5px;
+      margin: 0 auto;
       display: block;
     }
 
     .company-name {
-      font-size: 32px;
+      font-size: 24px;
       font-weight: 700;
-      color: white;
+      color: var(--foreground);
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 800px;
       margin: 0 auto;
-      padding: 20px 20px;
+      padding: 24px 20px;
     }
 
     /* Lead Capture Form */
@@ -81,77 +93,79 @@ export async function handler(event) {
     }
 
     .lead-capture h1 {
-      font-size: 32px;
+      font-size: 26px;
       font-weight: 700;
-      margin-bottom: 15px;
-      color: #212529;
+      margin-bottom: 12px;
+      color: var(--foreground);
     }
 
     .lead-capture .subtitle {
-      color: #6C757D;
-      font-size: 18px;
-      margin-bottom: 35px;
+      color: var(--muted);
+      font-size: 15px;
+      margin-bottom: 28px;
       line-height: 1.6;
     }
 
     .input-group {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       text-align: left;
     }
 
     label {
       display: block;
-      color: #212529;
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 8px;
+      color: var(--foreground);
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
     }
 
     input[type="text"],
     input[type="email"],
     input[type="tel"] {
       width: 100%;
-      padding: 16px;
-      background: #FFFFFF;
-      border: 2px solid #E5E5E5;
-      border-radius: 8px;
-      color: #212529;
-      font-size: 16px;
-      font-family: 'Outfit', sans-serif;
+      padding: 12px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--foreground);
+      font-size: 15px;
+      font-family: 'Inter', sans-serif;
       transition: all 0.2s;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 
     input[type="text"]:focus,
     input[type="email"]:focus,
     input[type="tel"]:focus {
       outline: none;
-      border-color: ${tenantConfig.colors.primary};
-      box-shadow: 0 0 0 4px ${tenantConfig.colors.primary}20;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
     }
 
     .btn {
       width: 100%;
-      padding: 18px;
+      padding: 14px 24px;
       border: none;
-      border-radius: 8px;
-      font-size: 18px;
+      border-radius: var(--radius);
+      font-size: 15px;
       font-weight: 600;
-      font-family: 'Outfit', sans-serif;
+      font-family: 'Inter', sans-serif;
       cursor: pointer;
-      transition: all 0.3s;
-      margin-top: 10px;
-      background: ${tenantConfig.colors.primary};
-      color: #212529;
+      transition: all 0.2s;
+      margin-top: 8px;
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .btn:hover {
-      background: ${tenantConfig.colors.primaryHover};
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px ${tenantConfig.colors.primary}60;
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     .btn:disabled {
-      opacity: 0.6;
+      
       cursor: not-allowed;
     }
 
@@ -161,51 +175,55 @@ export async function handler(event) {
     }
 
     .project-info {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
+      background: var(--card);
+      padding: 20px 24px;
+      border-radius: var(--radius);
       margin-bottom: 20px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
 
     .project-info h2 {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      color: var(--foreground);
     }
 
     .project-info .address {
-      color: #6C757D;
-      font-size: 15px;
-      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 8px;
     }
 
     .photo-count {
-      color: #6C757D;
-      font-size: 14px;
-      font-weight: 600;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
     }
 
     .photo-grid {
       position: relative;
       width: 100%;
       overflow: hidden;
-      margin-bottom: 40px;
+      margin-bottom: 24px;
+      border-radius: var(--radius);
     }
 
     .carousel-container {
       display: flex;
-      transition: transform 0.3s ease-out;
-      gap: 20px;
+      transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
     .photo-item {
       flex: 0 0 100%;
-      max-width: 100%;
-      background: white;
-      border-radius: 12px;
+      width: 100%;
+      min-width: 100%;
+      background: var(--card);
+      border-radius: var(--radius);
       overflow: hidden;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
       cursor: pointer;
     }
 
@@ -213,7 +231,7 @@ export async function handler(event) {
       width: 100%;
       height: 400px;
       object-fit: contain;
-      background: #000;
+      background: #1a1a2e;
       display: block;
     }
 
@@ -221,47 +239,49 @@ export async function handler(event) {
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
-      background: rgba(0, 0, 0, 0.5);
-      color: white;
-      border: none;
-      width: 50px;
-      height: 50px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--foreground);
+      border: 1px solid var(--border);
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
-      font-size: 24px;
+      font-size: 20px;
       cursor: pointer;
       z-index: 10;
-      transition: background 0.3s;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .carousel-nav:hover {
-      background: rgba(0, 0, 0, 0.8);
+      background: var(--card);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     .carousel-nav.prev {
-      left: 20px;
+      left: 16px;
     }
 
     .carousel-nav.next {
-      right: 20px;
+      right: 16px;
     }
 
     .carousel-indicators {
       text-align: center;
-      padding: 20px 0;
-      color: #6C757D;
+      padding: 16px 0;
+      color: var(--muted);
       font-size: 14px;
       font-weight: 500;
     }
 
     @media (max-width: 768px) {
       .photo-item img {
-        height: 350px;
+        height: 300px;
       }
 
       .carousel-nav {
         width: 40px;
         height: 40px;
-        font-size: 20px;
+        font-size: 18px;
       }
 
       .carousel-nav.prev {
@@ -274,12 +294,12 @@ export async function handler(event) {
     }
 
     .photo-info {
-      padding: 15px;
+      padding: 12px 16px;
     }
 
     .photo-date {
-      color: #6C757D;
-      font-size: 14px;
+      color: var(--muted);
+      font-size: 13px;
       font-weight: 500;
     }
 
@@ -309,16 +329,16 @@ export async function handler(event) {
 
     .lightbox-close {
       position: absolute;
-      top: 30px;
-      right: 40px;
+      top: 24px;
+      right: 32px;
       color: white;
-      font-size: 40px;
+      font-size: 36px;
       cursor: pointer;
       background: none;
       border: none;
       padding: 0;
       line-height: 1;
-      transition: opacity 0.3s;
+      transition: opacity 0.2s;
     }
 
     .lightbox-close:hover {
@@ -332,10 +352,10 @@ export async function handler(event) {
       background: rgba(255, 255, 255, 0.1);
       border: none;
       color: white;
-      font-size: 48px;
-      padding: 20px 25px;
+      font-size: 40px;
+      padding: 16px 20px;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: background 0.2s;
       border-radius: 8px;
     }
 
@@ -344,22 +364,22 @@ export async function handler(event) {
     }
 
     .lightbox-nav.prev {
-      left: 30px;
+      left: 24px;
     }
 
     .lightbox-nav.next {
-      right: 30px;
+      right: 24px;
     }
 
     .loader {
       display: inline-block;
-      border: 4px solid #F8F9FA;
-      border-top: 4px solid ${tenantConfig.colors.primary};
+      border: 3px solid var(--border);
+      border-top: 3px solid var(--primary);
       border-radius: 50%;
-      width: 50px;
-      height: 50px;
+      width: 40px;
+      height: 40px;
       animation: spin 1s linear infinite;
-      margin: 50px auto;
+      margin: 40px auto;
     }
 
     @keyframes spin {
@@ -368,43 +388,61 @@ export async function handler(event) {
     }
 
     .contact-cta {
-      background: white;
-      padding: 25px 20px;
-      border-radius: 8px;
+      background: var(--card);
+      padding: 24px;
+      border-radius: var(--radius);
       text-align: center;
-      margin-top: 20px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      margin-top: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
 
     .contact-cta h3 {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
+      color: var(--foreground);
     }
 
     .contact-cta p {
-      color: #6C757D;
-      margin-bottom: 20px;
-      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      font-size: 14px;
     }
 
     .contact-cta .btn {
-      max-width: 300px;
+      max-width: 280px;
       margin: 0 auto;
       display: block;
       text-decoration: none;
-      background: #28A745;
+      background: #059669;
       color: white;
     }
 
     .contact-cta .btn:hover {
-      background: #218838;
+      background: #047857;
+    }
+
+    .powered-by {
+      text-align: center;
+      padding: 24px 20px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .powered-by img {
+      height: 16px;
+      
     }
 
     @media (max-width: 768px) {
       .lightbox-nav {
-        font-size: 32px;
-        padding: 15px 20px;
+        font-size: 28px;
+        padding: 12px 16px;
       }
 
       .lightbox-nav.prev {
@@ -413,6 +451,10 @@ export async function handler(event) {
 
       .lightbox-nav.next {
         right: 10px;
+      }
+
+      .container {
+        padding: 16px;
       }
     }
   </style>
@@ -467,8 +509,13 @@ export async function handler(event) {
 
       <div class="contact-cta">
         <h3>Ready to get started?</h3>
-        <p>Call us at <a href="tel:${tenantConfig.phone}" style="color: #28A745; text-decoration: none; font-weight: 600;">${tenantConfig.phone}</a> or click below.</p>
+        <p>Call us at <a href="tel:${tenantConfig.phone}" style="color: #059669; text-decoration: none; font-weight: 600;">${tenantConfig.phone}</a> or click below.</p>
         <a href="/.netlify/functions/lead-form?tenant=${tenant}&projectId=${projectId}" class="btn">Schedule an Appointment</a>
+      </div>
+
+      <div class="powered-by">
+        <img src="/favicon.png" alt="Camvasser">
+        <span>Powered by Camvasser</span>
       </div>
     </div>
   </div>

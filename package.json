@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@vitest/ui": "^4.0.1",
+    "better-sqlite3": "^12.5.0",
     "netlify-cli": "^17.0.0",
     "vitest": "^4.0.1"
   }

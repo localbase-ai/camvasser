@@ -12,3 +12,4 @@ tmp/
 
 /generated/prisma
 docs/
+prisma/camvasser_local.db

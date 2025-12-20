@@ -31,9 +31,20 @@ export async function handler(event) {
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
+    :root {
+      --primary: ${tenantConfig.colors.primary};
+      --primary-hover: ${tenantConfig.colors.primaryHover};
+      --background: #fafafa;
+      --foreground: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --card: #ffffff;
+      --radius: 0.75rem;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -41,69 +52,70 @@ export async function handler(event) {
     }
 
     body {
-      font-family: 'Outfit', -apple-system, system-ui, sans-serif;
-      background: #f5f5f5;
-      color: #212529;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--background);
+      color: var(--foreground);
       min-height: 100vh;
     }
 
     .header {
-      background: linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 100%);
-      padding: 10px 20px;
+      background: var(--background);
+      padding: 16px 20px;
       text-align: center;
-      color: white;
+      border-bottom: 1px solid var(--border);
     }
 
     .logo {
       max-width: 100px;
       height: auto;
-      margin: 0 auto 5px;
+      margin: 0 auto;
       display: block;
     }
 
     .company-name {
-      font-size: 32px;
+      font-size: 24px;
       font-weight: 700;
-      color: white;
+      color: var(--foreground);
     }
 
     .container {
-      max-width: 600px;
+      max-width: 480px;
       margin: 0 auto;
-      padding: 20px 20px;
+      padding: 24px 20px;
     }
 
     .lead-capture {
-      background: white;
-      padding: 30px 25px;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      background: var(--card);
+      padding: 28px 24px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       text-align: center;
     }
 
     .lead-capture h1 {
-      font-size: 26px;
+      font-size: 22px;
       font-weight: 700;
-      margin-bottom: 10px;
-      color: #212529;
+      margin-bottom: 8px;
+      color: var(--foreground);
     }
 
     .lead-capture .subtitle {
-      color: #6C757D;
-      font-size: 16px;
-      margin-bottom: 25px;
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 24px;
       line-height: 1.5;
     }
 
     .input-group {
-      margin-bottom: 15px;
+      margin-bottom: 16px;
       text-align: left;
     }
 
     .input-group label {
       display: block;
       margin-bottom: 6px;
-      color: #495057;
+      color: var(--foreground);
       font-weight: 500;
       font-size: 14px;
     }
@@ -111,42 +123,48 @@ export async function handler(event) {
     .input-group input,
     .input-group textarea {
       width: 100%;
-      padding: 12px 16px;
-      border: 2px solid #E9ECEF;
-      border-radius: 8px;
-      font-size: 16px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 15px;
       font-family: inherit;
-      transition: border-color 0.3s;
+      transition: all 0.2s;
+      background: var(--card);
+      color: var(--foreground);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 
     .input-group input:focus,
     .input-group textarea:focus {
       outline: none;
-      border-color: #28A745;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
     }
 
     .input-group textarea {
-      min-height: 120px;
+      min-height: 100px;
       resize: vertical;
     }
 
     .btn {
-      background: linear-gradient(135deg, #28A745 0%, #20873a 100%);
+      background: #059669;
       color: white;
-      padding: 16px 40px;
+      padding: 14px 28px;
       border: none;
-      border-radius: 8px;
-      font-size: 18px;
+      border-radius: var(--radius);
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: all 0.2s;
       width: 100%;
-      margin-top: 10px;
+      margin-top: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
+      background: #047857;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
     }
 
     .btn:active {
@@ -155,11 +173,11 @@ export async function handler(event) {
 
     .success-message {
       display: none;
-      background: #D4EDDA;
-      border: 2px solid #28A745;
-      color: #155724;
+      background: #ecfdf5;
+      border: 1px solid #059669;
+      color: #065f46;
       padding: 20px;
-      border-radius: 8px;
+      border-radius: var(--radius);
       margin-top: 20px;
       text-align: center;
     }
@@ -172,12 +190,38 @@ export async function handler(event) {
       display: block;
       text-align: center;
       margin-top: 20px;
-      color: #6C757D;
+      color: var(--muted);
       text-decoration: none;
+      font-size: 14px;
     }
 
     .back-link:hover {
-      color: #28A745;
+      color: var(--foreground);
+    }
+
+    .powered-by {
+      text-align: center;
+      padding: 24px 20px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .powered-by img {
+      height: 16px;
+      
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 16px;
+      }
+      .lead-capture {
+        padding: 24px 20px;
+      }
     }
   </style>
 </head>
@@ -226,6 +270,11 @@ export async function handler(event) {
       </div>
 
       ${projectId ? `<a href="/.netlify/functions/gallery?tenant=${tenant}&projectId=${projectId}" class="back-link">← Back to Gallery</a>` : ''}
+    </div>
+
+    <div class="powered-by">
+      <img src="/favicon.png" alt="Camvasser">
+      <span>Powered by Camvasser</span>
     </div>
   </div>
 

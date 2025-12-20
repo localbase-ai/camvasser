@@ -49,212 +49,346 @@ function generateHTML(tenant) {
       box-sizing: border-box;
     }
 
+    :root {
+      --primary: ${tenant.colors.primary};
+      --primary-hover: ${tenant.colors.primaryHover};
+      --background: #fafafa;
+      --foreground: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --card: #ffffff;
+      --card-hover: #f9fafb;
+      --radius: 0.75rem;
+    }
+
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: ${tenant.colors.background};
+      background: var(--background);
       min-height: 100vh;
-      color: #fff;
+      color: var(--foreground);
+      line-height: 1.5;
     }
 
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
+    /* Header */
     .header {
-      text-align: center;
-      padding: 20px 0 30px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+    }
+
+    .header-inner {
+      max-width: 56rem;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .logo {
-      height: 60px;
-      margin-bottom: 10px;
+      height: 48px;
+      border-radius: 8px;
+    }
+
+    .progress-container {
+      flex: 1;
+      max-width: 20rem;
+      margin: 0 2rem;
     }
 
     .progress-bar {
-      background: rgba(255,255,255,0.2);
-      border-radius: 10px;
-      height: 8px;
-      margin-bottom: 30px;
+      height: 6px;
+      background: var(--border);
+      border-radius: 100px;
       overflow: hidden;
     }
 
     .progress-fill {
-      background: ${tenant.colors.primary};
       height: 100%;
-      border-radius: 10px;
-      transition: width 0.3s ease;
+      background: var(--primary);
+      border-radius: 100px;
+      transition: width 0.5s ease-out;
     }
 
+    .header-spacer {
+      width: 48px;
+    }
+
+    /* Main Content */
+    .main {
+      max-width: 56rem;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 4rem;
+    }
+
+    /* Steps */
     .step {
       display: none;
-      flex: 1;
-      animation: fadeIn 0.3s ease;
+      animation: fadeSlideIn 0.5s ease-out;
     }
 
     .step.active {
-      display: flex;
-      flex-direction: column;
+      display: block;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Typography */
+    .step-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
     }
 
     .step-title {
-      font-size: 24px;
+      font-size: clamp(1.75rem, 5vw, 2.5rem);
       font-weight: 700;
-      margin-bottom: 10px;
-      line-height: 1.3;
+      color: var(--foreground);
+      margin-bottom: 0.75rem;
+      line-height: 1.2;
+      text-wrap: balance;
     }
 
     .step-subtitle {
-      font-size: 16px;
-      color: rgba(255,255,255,0.7);
-      margin-bottom: 25px;
-      line-height: 1.5;
+      font-size: 1.125rem;
+      color: var(--muted);
+      max-width: 32rem;
+      margin: 0 auto;
     }
 
-    .options {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 20px;
+    /* Option Cards - Grid for icon cards */
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      max-width: 36rem;
+      margin: 0 auto 2rem;
     }
 
-    .option {
-      background: rgba(255,255,255,0.1);
-      border: 2px solid rgba(255,255,255,0.2);
-      border-radius: 12px;
-      padding: 16px 20px;
+    .option-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
       cursor: pointer;
       transition: all 0.2s ease;
-      font-size: 16px;
+      text-align: center;
+    }
+
+    .option-card:hover {
+      border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transform: scale(1.02);
+    }
+
+    .option-card.selected {
+      border-color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 5%, white);
+    }
+
+    .option-icon {
+      width: 3rem;
+      height: 3rem;
+      margin: 0 auto 0.75rem;
+      background: color-mix(in srgb, var(--primary) 10%, transparent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .option-icon svg {
+      width: 1.5rem;
+      height: 1.5rem;
+      stroke: var(--primary);
+    }
+
+    .option-label {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--foreground);
+    }
+
+    /* Option List - Vertical list style */
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-width: 32rem;
+      margin: 0 auto 2rem;
+    }
+
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
       text-align: left;
     }
 
-    .option:hover {
-      background: rgba(255,255,255,0.15);
-      border-color: rgba(255,255,255,0.3);
+    .option-row:hover {
+      border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+      background: var(--card-hover);
     }
 
-    .option.selected {
-      background: ${tenant.colors.primary}22;
-      border-color: ${tenant.colors.primary};
+    .option-row.selected {
+      border-color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 5%, white);
     }
 
-    .option.multi {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    .option-row .option-icon {
+      margin: 0;
+      flex-shrink: 0;
+      width: 2.5rem;
+      height: 2.5rem;
     }
 
+    .option-row .option-icon svg {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    .option-row .option-label {
+      flex: 1;
+    }
+
+    /* Checkbox for multi-select */
     .checkbox {
-      width: 22px;
-      height: 22px;
-      border: 2px solid rgba(255,255,255,0.4);
+      width: 1.5rem;
+      height: 1.5rem;
+      border: 2px solid var(--border);
       border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
       transition: all 0.2s ease;
+      background: var(--card);
     }
 
-    .option.selected .checkbox {
-      background: ${tenant.colors.primary};
-      border-color: ${tenant.colors.primary};
+    .option-row.selected .checkbox {
+      background: var(--primary);
+      border-color: var(--primary);
     }
 
     .checkbox svg {
       width: 14px;
       height: 14px;
+      stroke: white;
+      stroke-width: 3;
       opacity: 0;
       transition: opacity 0.2s ease;
     }
 
-    .option.selected .checkbox svg {
+    .option-row.selected .checkbox svg {
       opacity: 1;
     }
 
+    /* Form inputs */
+    .form-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      max-width: 28rem;
+      margin: 0 auto;
+    }
+
     .input-group {
-      margin-bottom: 16px;
+      margin-bottom: 1.25rem;
+    }
+
+    .input-group:last-of-type {
+      margin-bottom: 1.5rem;
     }
 
     .input-group label {
       display: block;
-      font-size: 14px;
+      font-size: 0.875rem;
       font-weight: 500;
-      margin-bottom: 8px;
-      color: rgba(255,255,255,0.9);
+      margin-bottom: 0.5rem;
+      color: var(--foreground);
     }
 
     .input-group input {
       width: 100%;
-      padding: 14px 16px;
-      border: 2px solid rgba(255,255,255,0.2);
-      border-radius: 10px;
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-      font-size: 16px;
-      transition: border-color 0.2s ease;
+      padding: 0.875rem 1rem;
+      border: 2px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--background);
+      color: var(--foreground);
+      font-size: 1rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .input-group input::placeholder {
-      color: rgba(255,255,255,0.4);
+      color: var(--muted);
     }
 
     .input-group input:focus {
       outline: none;
-      border-color: ${tenant.colors.primary};
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+    }
+
+    /* Buttons */
+    .btn-container {
+      max-width: 32rem;
+      margin: 0 auto;
     }
 
     .btn {
-      background: ${tenant.colors.primary};
-      color: #000;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--primary);
+      color: white;
       border: none;
-      border-radius: 10px;
-      padding: 16px 32px;
-      font-size: 16px;
+      border-radius: 0.5rem;
+      padding: 1rem 2rem;
+      font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
       width: 100%;
-      margin-top: auto;
     }
 
     .btn:hover {
-      background: ${tenant.colors.primaryHover};
-      transform: translateY(-1px);
+      background: var(--primary-hover);
     }
 
     .btn:disabled {
-      opacity: 0.5;
+      
       cursor: not-allowed;
-      transform: none;
     }
 
-    .btn-secondary {
-      background: transparent;
-      border: 2px solid rgba(255,255,255,0.3);
-      color: #fff;
-      margin-top: 12px;
+    .btn svg {
+      width: 1.25rem;
+      height: 1.25rem;
     }
 
-    .btn-secondary:hover {
-      background: rgba(255,255,255,0.1);
-      border-color: rgba(255,255,255,0.5);
-    }
-
+    /* Loading */
     .loading {
       display: none;
       text-align: center;
-      padding: 40px 20px;
+      padding: 4rem 2rem;
     }
 
     .loading.active {
@@ -262,22 +396,28 @@ function generateHTML(tenant) {
     }
 
     .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(255,255,255,0.2);
-      border-top-color: ${tenant.colors.primary};
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
+      margin: 0 auto 1.5rem;
     }
 
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
 
+    .loading p {
+      color: var(--muted);
+      font-size: 1.125rem;
+    }
+
+    /* Results */
     .results {
       display: none;
-      animation: fadeIn 0.3s ease;
+      animation: fadeSlideIn 0.5s ease-out;
     }
 
     .results.active {
@@ -285,202 +425,311 @@ function generateHTML(tenant) {
     }
 
     .results-card {
-      background: rgba(255,255,255,0.1);
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      max-width: 32rem;
+      margin: 0 auto 2rem;
     }
 
     .results-headline {
-      font-size: 22px;
+      font-size: 1.25rem;
       font-weight: 700;
-      margin-bottom: 16px;
-      color: ${tenant.colors.primary};
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      line-height: 1.4;
     }
 
     .results-item {
       display: flex;
       justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      font-size: 14px;
+      padding: 0.875rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9375rem;
     }
 
-    .results-item:last-child {
+    .results-item:last-of-type {
       border-bottom: none;
     }
 
     .results-label {
-      color: rgba(255,255,255,0.6);
+      color: var(--muted);
     }
 
     .results-value {
       font-weight: 500;
       text-align: right;
       max-width: 60%;
+      color: var(--foreground);
     }
 
     .assessment {
-      background: ${tenant.colors.primary}22;
-      border: 1px solid ${tenant.colors.primary}44;
-      border-radius: 12px;
-      padding: 16px;
-      margin-top: 16px;
+      background: color-mix(in srgb, var(--primary) 8%, white);
+      border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      margin-top: 1.5rem;
     }
 
     .assessment-title {
       font-weight: 600;
-      margin-bottom: 8px;
-      color: ${tenant.colors.primary};
+      margin-bottom: 0.5rem;
+      color: var(--primary);
     }
 
     .assessment-text {
-      font-size: 14px;
+      font-size: 0.9375rem;
       line-height: 1.6;
-      color: rgba(255,255,255,0.9);
+      color: var(--foreground);
     }
 
+    .next-steps {
+      max-width: 32rem;
+      margin: 0 auto;
+    }
+
+    .next-steps p {
+      text-align: center;
+      font-size: 1rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    /* Footer */
     .powered-by {
       text-align: center;
-      padding: 20px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.4);
+      padding: 2rem;
+      font-size: 0.75rem;
+      color: var(--muted);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 0.5rem;
     }
 
     .powered-by img {
-      height: 16px;
-      opacity: 0.6;
+      height: 14px;
+      
     }
 
-    @media (max-width: 480px) {
-      .step-title {
-        font-size: 20px;
+    /* Responsive */
+    @media (max-width: 640px) {
+      .options-grid {
+        grid-template-columns: 1fr;
       }
-      .option {
-        padding: 14px 16px;
-        font-size: 15px;
+
+      .progress-container {
+        display: none;
+      }
+
+      .main {
+        padding: 2rem 1rem 3rem;
+      }
+
+      .form-card {
+        padding: 1.5rem;
       }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
+  <header class="header">
+    <div class="header-inner">
       <img src="${tenant.logo}" alt="${tenant.name}" class="logo">
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 20%"></div>
+        </div>
+      </div>
+      <div class="header-spacer"></div>
     </div>
+  </header>
 
-    <div class="progress-bar">
-      <div class="progress-fill" id="progressFill" style="width: 20%"></div>
-    </div>
-
+  <main class="main">
     <!-- Step 1: Address -->
     <div class="step active" id="step1">
-      <h1 class="step-title">What's the address of the property with the denied claim?</h1>
-      <p class="step-subtitle">We'll use this to check local storm history and coverage factors.</p>
-
-      <div class="input-group">
-        <label for="address">Property Address</label>
-        <input type="text" id="address" placeholder="Enter your address" autocomplete="street-address">
+      <div class="step-header">
+        <h1 class="step-title">Where is the property with the denied claim?</h1>
+        <p class="step-subtitle">We'll use this to check local storm history and coverage factors.</p>
       </div>
 
-      <button class="btn" onclick="nextStep(1)" id="btn1">Continue</button>
+      <div class="form-card">
+        <div class="input-group">
+          <label for="address">Property Address</label>
+          <input type="text" id="address" placeholder="123 Main St, City, State" autocomplete="street-address">
+        </div>
+        <button class="btn" onclick="nextStep(1)" id="btn1">
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Step 2: Denial Reason -->
     <div class="step" id="step2">
-      <h1 class="step-title">What reason did the insurance company give for denying your claim?</h1>
-      <p class="step-subtitle">Select the closest match.</p>
-
-      <div class="options" id="denialOptions">
-        <div class="option" data-value="wear_and_tear">Wear and tear</div>
-        <div class="option" data-value="no_storm_event">No storm event / no covered peril</div>
-        <div class="option" data-value="not_severe_enough">Damage not severe enough</div>
-        <div class="option" data-value="improper_installation">Improper installation</div>
-        <div class="option" data-value="cosmetic_only">Cosmetic damage only</div>
-        <div class="option" data-value="not_covered">Not covered under policy</div>
-        <div class="option" data-value="other_unsure">Other / Not sure</div>
+      <div class="step-header">
+        <h1 class="step-title">Why was your claim denied?</h1>
+        <p class="step-subtitle">Select the reason that best matches your denial letter.</p>
       </div>
 
-      <button class="btn" onclick="nextStep(2)" id="btn2" disabled>Continue</button>
+      <div class="options-list" id="denialOptions">
+        <div class="option-row" data-value="wear_and_tear">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>
+          </div>
+          <span class="option-label">Wear and tear</span>
+        </div>
+        <div class="option-row" data-value="no_storm_event">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg>
+          </div>
+          <span class="option-label">No storm event / no covered peril</span>
+        </div>
+        <div class="option-row" data-value="not_severe_enough">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <span class="option-label">Damage not severe enough</span>
+        </div>
+        <div class="option-row" data-value="improper_installation">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </div>
+          <span class="option-label">Improper installation</span>
+        </div>
+        <div class="option-row" data-value="cosmetic_only">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          </div>
+          <span class="option-label">Cosmetic damage only</span>
+        </div>
+        <div class="option-row" data-value="not_covered">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <span class="option-label">Not covered under policy</span>
+        </div>
+        <div class="option-row" data-value="other_unsure">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <span class="option-label">Other / Not sure</span>
+        </div>
+      </div>
+
+      <div class="btn-container">
+        <button class="btn" onclick="nextStep(2)" id="btn2" disabled>
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Step 3: Visible Damage -->
     <div class="step" id="step3">
-      <h1 class="step-title">What kind of visible damage is present?</h1>
-      <p class="step-subtitle">Choose all that apply.</p>
+      <div class="step-header">
+        <h1 class="step-title">What damage can you see?</h1>
+        <p class="step-subtitle">Select all that apply.</p>
+      </div>
 
-      <div class="options" id="damageOptions">
-        <div class="option multi" data-value="missing_shingles">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Missing shingles</span>
+      <div class="options-list" id="damageOptions">
+        <div class="option-row" data-value="missing_shingles">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="option-label">Missing shingles</span>
         </div>
-        <div class="option multi" data-value="lifted_shingles">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Lifted shingles</span>
+        <div class="option-row" data-value="lifted_shingles">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="option-label">Lifted or curling shingles</span>
         </div>
-        <div class="option multi" data-value="granule_loss">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Granule loss</span>
+        <div class="option-row" data-value="granule_loss">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="option-label">Granule loss in gutters</span>
         </div>
-        <div class="option multi" data-value="impact_marks">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Impact marks</span>
+        <div class="option-row" data-value="impact_marks">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="option-label">Dents or impact marks</span>
         </div>
-        <div class="option multi" data-value="soft_spots">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Soft spots</span>
+        <div class="option-row" data-value="soft_spots">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="option-label">Soft spots when walking</span>
         </div>
-        <div class="option multi" data-value="leaks">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Leaks or water stains</span>
+        <div class="option-row" data-value="leaks">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="option-label">Leaks or water stains inside</span>
         </div>
-        <div class="option multi" data-value="not_sure">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Not sure / haven't looked</span>
+        <div class="option-row" data-value="not_sure">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="option-label">Not sure / Haven't checked</span>
         </div>
       </div>
 
-      <button class="btn" onclick="nextStep(3)" id="btn3" disabled>Continue</button>
+      <div class="btn-container">
+        <button class="btn" onclick="nextStep(3)" id="btn3" disabled>
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Step 4: Has Denial Letter -->
     <div class="step" id="step4">
-      <h1 class="step-title">Do you have your denial letter handy?</h1>
-      <p class="step-subtitle">This helps us understand exactly why your claim was denied.</p>
-
-      <div class="options" id="letterOptions">
-        <div class="option" data-value="yes">Yes, I have it</div>
-        <div class="option" data-value="no">No, I don't have it right now</div>
+      <div class="step-header">
+        <h1 class="step-title">Do you have your denial letter?</h1>
+        <p class="step-subtitle">This helps us understand exactly why your claim was denied.</p>
       </div>
 
-      <button class="btn" onclick="nextStep(4)" id="btn4" disabled>Continue</button>
+      <div class="options-grid" id="letterOptions">
+        <div class="option-card" data-value="yes">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <span class="option-label">Yes, I have it</span>
+        </div>
+        <div class="option-card" data-value="no">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+          <span class="option-label">No, not right now</span>
+        </div>
+      </div>
+
+      <div class="btn-container">
+        <button class="btn" onclick="nextStep(4)" id="btn4" disabled>
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Step 5: Lead Capture -->
     <div class="step" id="step5">
-      <h1 class="step-title">Where should we send your results?</h1>
-      <p class="step-subtitle">We found indicators that your denial may qualify for a second review.</p>
-
-      <div class="input-group">
-        <label for="name">Full Name</label>
-        <input type="text" id="name" placeholder="John Smith">
+      <div class="step-header">
+        <h1 class="step-title">Where should we send your results?</h1>
+        <p class="step-subtitle">Based on your answers, you may qualify for a second opinion review.</p>
       </div>
 
-      <div class="input-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" placeholder="john@example.com">
-      </div>
+      <div class="form-card">
+        <div class="input-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" placeholder="John Smith">
+        </div>
 
-      <div class="input-group">
-        <label for="phone">Phone</label>
-        <input type="tel" id="phone" placeholder="(555) 123-4567">
-      </div>
+        <div class="input-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="john@example.com">
+        </div>
 
-      <button class="btn" onclick="submitLead()" id="btnSubmit">See My Results</button>
+        <div class="input-group">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" placeholder="(555) 123-4567">
+        </div>
+
+        <button class="btn" onclick="submitLead()" id="btnSubmit">
+          See My Results
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -491,7 +740,9 @@ function generateHTML(tenant) {
 
     <!-- Results -->
     <div class="results" id="results">
-      <h1 class="step-title">Your Roof Claim Review Results</h1>
+      <div class="step-header">
+        <h1 class="step-title">Your Claim Review Results</h1>
+      </div>
 
       <div class="results-card">
         <div class="results-headline" id="resultsHeadline">Based on what you shared, you may qualify for a Second Opinion Roof Claim Review.</div>
@@ -516,18 +767,18 @@ function generateHTML(tenant) {
       </div>
 
       <div class="next-steps">
-        <p style="text-align: center; font-size: 16px; line-height: 1.6; color: rgba(255,255,255,0.9); margin-bottom: 20px;">
-          One of our roof claim denial experts will reach out to you shortly to discuss your options.
-        </p>
-        <button class="btn" onclick="callNow()">Call Us Now: ${tenant.phone}</button>
+        <p>One of our roof claim experts will reach out shortly to discuss your options.</p>
+        <button class="btn" onclick="callNow()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Call Us Now: ${tenant.phone}
+        </button>
       </div>
     </div>
+  </main>
 
-    <div class="powered-by">
-      <img src="/favicon.png" alt="Camvasser">
-      <span>Powered by Camvasser</span>
-    </div>
-  </div>
+  <footer class="powered-by">
+    <span>Powered by Camvasser</span>
+  </footer>
 
   <script>
     const TENANT = '${tenant.slug}';
@@ -565,30 +816,33 @@ function generateHTML(tenant) {
       'not_sure': 'Not sure'
     };
 
-    // Single select options
-    document.querySelectorAll('#denialOptions .option, #letterOptions .option').forEach(opt => {
+    // Single select - denial reasons
+    document.querySelectorAll('#denialOptions .option-row').forEach(opt => {
       opt.addEventListener('click', function() {
-        const parent = this.parentElement;
-        parent.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+        document.querySelectorAll('#denialOptions .option-row').forEach(o => o.classList.remove('selected'));
         this.classList.add('selected');
-
-        if (parent.id === 'denialOptions') {
-          formData.denialReason = this.dataset.value;
-          document.getElementById('btn2').disabled = false;
-        } else if (parent.id === 'letterOptions') {
-          formData.hasLetter = this.dataset.value;
-          document.getElementById('btn4').disabled = false;
-        }
+        formData.denialReason = this.dataset.value;
+        document.getElementById('btn2').disabled = false;
       });
     });
 
-    // Multi select options
-    document.querySelectorAll('#damageOptions .option').forEach(opt => {
+    // Single select - letter options (card style)
+    document.querySelectorAll('#letterOptions .option-card').forEach(opt => {
+      opt.addEventListener('click', function() {
+        document.querySelectorAll('#letterOptions .option-card').forEach(o => o.classList.remove('selected'));
+        this.classList.add('selected');
+        formData.hasLetter = this.dataset.value;
+        document.getElementById('btn4').disabled = false;
+      });
+    });
+
+    // Multi select - damage options
+    document.querySelectorAll('#damageOptions .option-row').forEach(opt => {
       opt.addEventListener('click', function() {
         this.classList.toggle('selected');
 
         const selected = [];
-        document.querySelectorAll('#damageOptions .option.selected').forEach(o => {
+        document.querySelectorAll('#damageOptions .option-row.selected').forEach(o => {
           selected.push(o.dataset.value);
         });
         formData.visibleDamage = selected;
@@ -735,11 +989,6 @@ function generateHTML(tenant) {
         document.getElementById('loading').classList.remove('active');
         document.getElementById('step5').classList.add('active');
       }
-    }
-
-    function scheduleCall() {
-      // For now, just show a message. Can integrate Calendly later.
-      alert('Thanks! We\\'ll call you within 24 hours to schedule your claim review.');
     }
 
     function callNow() {

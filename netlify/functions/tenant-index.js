@@ -42,6 +42,18 @@ function generateHTML(tenant) {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --primary: ${tenant.colors.primary};
+      --primary-hover: ${tenant.colors.primaryHover};
+      --background: #fafafa;
+      --foreground: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --card: #ffffff;
+      --card-hover: #f9fafb;
+      --radius: 0.75rem;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -50,76 +62,82 @@ function generateHTML(tenant) {
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: ${tenant.colors.background};
+      background: var(--background);
       min-height: 100vh;
-      color: #fff;
+      color: var(--foreground);
     }
 
     .container {
-      max-width: 600px;
+      max-width: 520px;
       margin: 0 auto;
       padding: 40px 20px;
     }
 
     .header {
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 32px;
     }
 
     .logo {
-      height: 80px;
-      margin-bottom: 20px;
+      height: 64px;
+      margin-bottom: 24px;
     }
 
     .title {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 700;
       margin-bottom: 8px;
+      color: var(--foreground);
     }
 
     .subtitle {
-      font-size: 16px;
-      color: rgba(255,255,255,0.7);
+      font-size: 15px;
+      color: var(--muted);
     }
 
     .flows {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
     }
 
     .flow-card {
-      background: rgba(255,255,255,0.1);
-      border: 2px solid rgba(255,255,255,0.15);
-      border-radius: 16px;
-      padding: 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
       text-decoration: none;
-      color: #fff;
+      color: var(--foreground);
       transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
 
     .flow-card:hover {
-      background: rgba(255,255,255,0.15);
-      border-color: ${tenant.colors.primary};
+      background: var(--card-hover);
+      border-color: var(--primary);
       transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
 
     .flow-card h3 {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
-      margin-bottom: 8px;
-      color: ${tenant.colors.primary};
+      margin-bottom: 6px;
+      color: var(--foreground);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .flow-card p {
       font-size: 14px;
-      color: rgba(255,255,255,0.7);
+      color: var(--muted);
       line-height: 1.5;
     }
 
     .flow-card .arrow {
-      display: inline-block;
-      margin-left: 8px;
+      color: var(--primary);
+      font-size: 18px;
       transition: transform 0.2s ease;
     }
 
@@ -128,13 +146,13 @@ function generateHTML(tenant) {
     }
 
     .section-label {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: rgba(255,255,255,0.5);
-      margin-bottom: 12px;
-      margin-top: 32px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      margin-top: 24px;
     }
 
     .section-label:first-of-type {
@@ -143,9 +161,9 @@ function generateHTML(tenant) {
 
     .powered-by {
       text-align: center;
-      padding: 40px 20px 20px;
+      padding: 32px 20px 0;
       font-size: 12px;
-      color: rgba(255,255,255,0.4);
+      color: var(--muted);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -154,7 +172,19 @@ function generateHTML(tenant) {
 
     .powered-by img {
       height: 16px;
-      opacity: 0.6;
+      
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 24px 16px;
+      }
+      .title {
+        font-size: 22px;
+      }
+      .logo {
+        height: 56px;
+      }
     }
   </style>
 </head>
