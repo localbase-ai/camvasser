@@ -7,7 +7,7 @@ node_modules/
 .netlify/
 dist/
 *.log
-scripts/
+# scripts/
 tmp/
 
 /generated/prisma
