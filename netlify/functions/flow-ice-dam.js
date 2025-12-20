@@ -482,7 +482,7 @@ function generateHTML(tenant) {
 
     <!-- Step 1: Address -->
     <div class="step active" id="step1">
-      <h1 class="step-title">Where is the home you're asking about?</h1>
+      <h1 class="step-title">What is the Address where you're concerned about Ice Dams??</h1>
       <p class="step-subtitle">We'll check winter weather patterns and ice dam risk for your area.</p>
 
       <div id="map" style="width: 100%; height: 280px; border-radius: var(--radius); overflow: hidden;"></div>
