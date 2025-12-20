@@ -197,6 +197,14 @@ function generateHTML(tenant) {
     </div>
 
     <div class="flows">
+      ${tenant.flows.includes('roof-leak-emergency') ? `
+      <div class="section-label">Emergency</div>
+      <a href="/${tenant.slug}/roof-leak-emergency" class="flow-card" style="border-color: #dc2626;">
+        <h3>Roof Leak Emergency <span class="arrow" style="color: #dc2626;">&rarr;</span></h3>
+        <p>Get immediate help for an active or recent roof leak</p>
+      </a>
+      ` : ''}
+
       ${tenant.flows.includes('roof-claim-denial') || tenant.flows.includes('roof-spray-vs-sealant-options') ? `
       <div class="section-label">Qualification</div>
       ` : ''}

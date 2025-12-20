@@ -24,6 +24,7 @@ import { handler as flowClaimDenialHandler } from '../netlify/functions/flow-roo
 import { handler as flowSprayOptionsHandler } from '../netlify/functions/flow-roof-spray-options.js';
 import { handler as flowCloggedGuttersHandler } from '../netlify/functions/flow-clogged-gutters.js';
 import { handler as flowIceDamHandler } from '../netlify/functions/flow-ice-dam.js';
+import { handler as flowRoofLeakEmergencyHandler } from '../netlify/functions/flow-roof-leak-emergency.js';
 import { handler as saveFlowLeadHandler } from '../netlify/functions/save-flow-lead.js';
 import { __mockMethods } from '@prisma/client';
 
@@ -36,7 +37,8 @@ const FLOWS = [
   { name: 'roof-claim-denial', handler: flowClaimDenialHandler, slug: 'roof-claim-denial' },
   { name: 'roof-spray-options', handler: flowSprayOptionsHandler, slug: 'roof-spray-vs-sealant-options' },
   { name: 'clogged-gutters', handler: flowCloggedGuttersHandler, slug: 'clogged-gutters-damage' },
-  { name: 'ice-dam', handler: flowIceDamHandler, slug: 'ice-dam-prevention' }
+  { name: 'ice-dam', handler: flowIceDamHandler, slug: 'ice-dam-prevention' },
+  { name: 'roof-leak-emergency', handler: flowRoofLeakEmergencyHandler, slug: 'roof-leak-emergency' }
 ];
 
 describe('Flow Handlers', () => {
