@@ -3,6 +3,8 @@ import { handler as pageHandler } from './page.js';
 import { handler as flowRoofClaimDenialHandler } from './flow-roof-claim-denial.js';
 import { handler as flowDirtyRoofCostsHandler } from './flow-dirty-roof-costs.js';
 import { handler as flowRoofSprayOptionsHandler } from './flow-roof-spray-options.js';
+import { handler as flowCloggedGuttersHandler } from './flow-clogged-gutters.js';
+import { handler as flowIceDamHandler } from './flow-ice-dam.js';
 
 // Route mapping: page slug -> handler
 const pageHandlers = {
@@ -11,6 +13,8 @@ const pageHandlers = {
   'roof-claim-denial': flowRoofClaimDenialHandler,
   'dirty-roof-costs': flowDirtyRoofCostsHandler,
   'roof-spray-vs-sealant-options': flowRoofSprayOptionsHandler,
+  'clogged-gutters-damage': flowCloggedGuttersHandler,
+  'ice-dam-prevention': flowIceDamHandler,
 };
 
 /**

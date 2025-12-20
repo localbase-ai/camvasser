@@ -33,7 +33,6 @@ export async function handler(event) {
 }
 
 function generateHTML(tenant) {
-  // Mapbox token (needs to be set in Netlify env vars)
   const mapboxToken = process.env.MAPBOX_TOKEN || '';
 
   return `<!DOCTYPE html>
@@ -41,8 +40,8 @@ function generateHTML(tenant) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Is Your Dirty Roof Costing You Money? - ${tenant.name}</title>
-  <meta name="description" content="Find out how a dirty roof may be costing you money in energy, lifespan, and curb appeal.">
+  <title>Are Clogged Gutters Damaging Your Roof? - ${tenant.name}</title>
+  <meta name="description" content="Find out how clogged or poorly draining gutters may be putting your roof at risk.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
@@ -263,28 +262,6 @@ function generateHTML(tenant) {
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
     }
 
-    .form-section {
-      margin-bottom: 24px;
-    }
-
-    .form-section-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--muted);
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .map-preview {
-      margin-bottom: 16px;
-    }
-
-    .map-preview img {
-      width: 100%;
-      border-radius: var(--radius);
-    }
-
     .map-caption {
       font-size: 13px;
       color: var(--muted);
@@ -328,42 +305,60 @@ function generateHTML(tenant) {
       color: var(--muted);
     }
 
-    .streetview-preview {
-      margin: 16px 0 0;
-      border-radius: var(--radius);
-      overflow: hidden;
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card-option {
       background: var(--card);
       border: 1px solid var(--border);
-      display: none;
-    }
-
-    .streetview-preview.visible {
-      display: block;
-    }
-
-    .streetview-preview img {
-      width: 100%;
-      height: 200px;
-      object-fit: cover;
-    }
-
-    .streetview-preview .caption {
-      padding: 12px;
-      font-size: 13px;
-      color: var(--muted);
+      border-radius: var(--radius);
+      padding: 32px 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
       text-align: center;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 
-    .streetview-loading {
-      display: none;
-      text-align: center;
-      padding: 16px 0 0;
+    .card-option:hover {
+      background: var(--card-hover);
+      border-color: #d1d5db;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-option.selected {
+      background: color-mix(in srgb, var(--primary) 8%, white);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .card-option .icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       color: var(--muted);
-      font-size: 14px;
     }
 
-    .streetview-loading.visible {
-      display: block;
+    .card-option.selected .icon {
+      color: var(--primary);
+    }
+
+    .card-option .icon svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .card-option .label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--foreground);
     }
 
     .btn {
@@ -388,7 +383,6 @@ function generateHTML(tenant) {
     }
 
     .btn:disabled {
-      
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
@@ -526,7 +520,6 @@ function generateHTML(tenant) {
 
     .powered-by img {
       height: 16px;
-      
     }
 
     @media (max-width: 480px) {
@@ -551,14 +544,14 @@ function generateHTML(tenant) {
     <div class="header">
       <img src="${tenant.logo}" alt="${tenant.name}" class="logo">
       <div class="progress-bar">
-        <div class="progress-fill" id="progressFill" style="width: 20%"></div>
+        <div class="progress-fill" id="progressFill" style="width: 16%"></div>
       </div>
     </div>
 
     <!-- Step 1: Address -->
     <div class="step active" id="step1">
-      <h1 class="step-title">What's the address of your dirty roof?</h1>
-      <p class="step-subtitle">Enter your address and we'll pinpoint your location.</p>
+      <h1 class="step-title">What is the address with Gutter issues??</h1>
+      <p class="step-subtitle">Enter your address and we'll check drainage risk for your area.</p>
 
       <div id="map" style="width: 100%; height: 280px; border-radius: var(--radius); overflow: hidden;"></div>
       <div id="geocoder-container" style="margin-top: 12px;"></div>
@@ -567,120 +560,182 @@ function generateHTML(tenant) {
       <button class="btn" onclick="nextStep(1)" id="btn1" disabled style="margin-top: 16px;">Continue</button>
     </div>
 
-    <!-- Step 2: Symptoms -->
+    <!-- Step 2: Gutter Behavior -->
     <div class="step" id="step2">
-      <h1 class="step-title">What do you see when you look at your roof?</h1>
+      <h1 class="step-title">When it rains, what do your gutters do?</h1>
       <p class="step-subtitle">Choose all that apply.</p>
 
-      <div class="options" id="symptomsOptions">
-        <div class="option multi" data-value="dark_streaks">
+      <div class="options" id="behaviorOptions">
+        <div class="option multi" data-value="flows_smooth">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Dark streaks or stains</span>
+          <span>Water flows smoothly through downspouts</span>
         </div>
-        <div class="option multi" data-value="black_algae">
+        <div class="option multi" data-value="spills_over">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Black algae spots</span>
+          <span>Water spills over the sides</span>
         </div>
-        <div class="option multi" data-value="green_growth">
+        <div class="option multi" data-value="pours_corners">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Greenish film or growth</span>
+          <span>Water pours over corners or seams</span>
         </div>
-        <div class="option multi" data-value="moss_lichen">
+        <div class="option multi" data-value="sagging">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Moss or lichen patches</span>
+          <span>Gutters sag or pull away in places</span>
         </div>
-        <div class="option multi" data-value="granules_in_gutters">
+        <div class="option multi" data-value="pools_foundation">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Lots of granules in gutters or at downspouts</span>
+          <span>Water pools near the foundation</span>
         </div>
-        <div class="option multi" data-value="dull_faded">
+        <div class="option multi" data-value="dripping_splashing">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Roof looks dull or faded compared to neighbors</span>
+          <span>I hear dripping or splashing near the roof edge</span>
         </div>
         <div class="option multi" data-value="not_sure">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Not sure - I haven't really looked</span>
+          <span>Not sure — I haven't paid attention</span>
         </div>
       </div>
 
       <button class="btn" onclick="nextStep(2)" id="btn2" disabled>Continue</button>
     </div>
 
-    <!-- Step 3: Age & Maintenance -->
+    <!-- Step 3: Visible Symptoms -->
     <div class="step" id="step3">
-      <h1 class="step-title">Tell us about your roof's age and history.</h1>
-      <p class="step-subtitle">This helps us estimate the cost impact.</p>
+      <h1 class="step-title">Have you noticed any of these around your gutters or roof edges?</h1>
+      <p class="step-subtitle">Choose all that apply.</p>
 
-      <div class="input-group">
-        <label for="roofAge">About how old is your roof?</label>
-        <select id="roofAge">
-          <option value="">Select age...</option>
-          <option value="under_10">Under 10 years</option>
-          <option value="10_15">10-15 years</option>
-          <option value="16_20">16-20 years</option>
-          <option value="21_25">21-25 years</option>
-          <option value="26_plus_or_unknown">26+ years / not sure</option>
-        </select>
-      </div>
-
-      <div class="input-group">
-        <label for="lastCleaned">When was your roof last cleaned or treated?</label>
-        <select id="lastCleaned">
-          <option value="">Select...</option>
-          <option value="within_1_year">Within the last year</option>
-          <option value="one_to_three_years">1-3 years ago</option>
-          <option value="three_to_five_years">3-5 years ago</option>
-          <option value="five_plus_years">5+ years ago</option>
-          <option value="never_or_unknown">Never / not sure</option>
-        </select>
+      <div class="options" id="symptomsOptions">
+        <div class="option multi" data-value="leaves_debris">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Leaves or debris visible in gutters</span>
+        </div>
+        <div class="option multi" data-value="dark_streaks">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Dark streaks below gutters</span>
+        </div>
+        <div class="option multi" data-value="rotting_fascia">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Rotting or peeling fascia boards</span>
+        </div>
+        <div class="option multi" data-value="rust_corrosion">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Rust, corrosion, or staining on gutters</span>
+        </div>
+        <div class="option multi" data-value="granules_gutters">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Granules collecting in gutters or at downspouts</span>
+        </div>
+        <div class="option multi" data-value="ice_buildup">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Ice buildup near roof edges (in winter)</span>
+        </div>
+        <div class="option multi" data-value="none_not_sure">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>None of these / not sure</span>
+        </div>
       </div>
 
       <button class="btn" onclick="nextStep(3)" id="btn3" disabled>Continue</button>
     </div>
 
-    <!-- Step 4: Goals -->
+    <!-- Step 4: Maintenance & Environment -->
     <div class="step" id="step4">
-      <h1 class="step-title">What matters most to you?</h1>
-      <p class="step-subtitle">Select all that apply.</p>
+      <h1 class="step-title">Tell us about your gutter maintenance and property.</h1>
+      <p class="step-subtitle">This helps us estimate the risk level.</p>
 
-      <div class="options" id="goalsOptions">
-        <div class="option multi" data-value="lower_energy_costs">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Lowering energy/cooling costs</span>
-        </div>
-        <div class="option multi" data-value="extend_lifespan">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Extending the life of my roof</span>
-        </div>
-        <div class="option multi" data-value="improve_curb_appeal">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Improving curb appeal / how it looks</span>
-        </div>
-        <div class="option multi" data-value="protect_home_value">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Protecting home value</span>
-        </div>
-        <div class="option multi" data-value="prevent_future_issues">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Preventing future leaks or issues</span>
-        </div>
-        <div class="option multi" data-value="avoid_early_replacement">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Avoiding an early roof replacement</span>
-        </div>
-        <div class="option multi" data-value="just_learning">
-          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Just learning more right now</span>
-        </div>
+      <div class="input-group">
+        <label for="cleaningFreq">How often are your gutters cleaned?</label>
+        <select id="cleaningFreq">
+          <option value="">Select...</option>
+          <option value="twice_year">2+ times per year</option>
+          <option value="once_year">About once per year</option>
+          <option value="every_few_years">Every few years</option>
+          <option value="rarely_never">Rarely or never</option>
+          <option value="not_sure">Not sure</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label for="treeExposure">What best describes your property?</label>
+        <select id="treeExposure">
+          <option value="">Select...</option>
+          <option value="lots_trees">Lots of nearby trees</option>
+          <option value="some_trees">Some trees nearby</option>
+          <option value="few_no_trees">Very few or no trees</option>
+          <option value="not_sure">Not sure</option>
+        </select>
       </div>
 
       <button class="btn" onclick="nextStep(4)" id="btn4" disabled>Continue</button>
     </div>
 
-    <!-- Step 5: Lead Capture -->
+    <!-- Step 5: Gutter Guards -->
     <div class="step" id="step5">
-      <h1 class="step-title">Where should we send your Roof Condition Savings Report?</h1>
-      <p class="step-subtitle">We've analyzed your roof symptoms and can estimate how much a dirty roof may be costing you over time.</p>
+      <h1 class="step-title">Have you ever considered gutter guards for this property?</h1>
+      <p class="step-subtitle">Gutter guards can help reduce debris buildup and maintenance.</p>
+
+      <div class="card-grid" id="gutterGuardsOptions">
+        <div class="card-option" data-value="yes">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="label">Yes</div>
+        </div>
+        <div class="card-option" data-value="no">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </div>
+          <div class="label">No</div>
+        </div>
+      </div>
+
+      <button class="btn" onclick="nextStep(5)" id="btn5" disabled>Continue</button>
+    </div>
+
+    <!-- Step 6: Goals -->
+    <div class="step" id="step6">
+      <h1 class="step-title">What matters most to you about your home exterior?</h1>
+      <p class="step-subtitle">Select all that apply.</p>
+
+      <div class="options" id="goalsOptions">
+        <div class="option multi" data-value="avoid_roof_damage">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Avoiding roof damage</span>
+        </div>
+        <div class="option multi" data-value="prevent_water_intrusion">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Preventing water intrusion</span>
+        </div>
+        <div class="option multi" data-value="reduce_repair_costs">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Reducing long-term repair costs</span>
+        </div>
+        <div class="option multi" data-value="protect_home_value">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Protecting home value</span>
+        </div>
+        <div class="option multi" data-value="avoid_surprise_repairs">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Avoiding surprise repairs</span>
+        </div>
+        <div class="option multi" data-value="just_learning">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Just learning more / being proactive</span>
+        </div>
+      </div>
+
+      <button class="btn" onclick="nextStep(6)" id="btn6" disabled>Continue</button>
+    </div>
+
+    <!-- Step 7: Lead Capture -->
+    <div class="step" id="step7">
+      <h1 class="step-title">Where should we send your Gutter & Roof Risk Report?</h1>
+      <p class="step-subtitle">We can estimate how clogged or poorly draining gutters may be affecting your roof and future repair costs.</p>
 
       <div class="input-group">
         <label for="name">Full Name</label>
@@ -697,41 +752,41 @@ function generateHTML(tenant) {
         <input type="tel" id="phone" placeholder="(555) 123-4567">
       </div>
 
-      <button class="btn" onclick="submitLead()" id="btnSubmit">See My Savings Report</button>
+      <button class="btn" onclick="submitLead()" id="btnSubmit">Get My Risk Report</button>
     </div>
 
     <!-- Loading -->
     <div class="loading" id="loading">
       <div class="spinner"></div>
-      <p>Calculating your roof's cost impact...</p>
+      <p>Analyzing your gutter & roof risk...</p>
     </div>
 
     <!-- Results -->
     <div class="results" id="results">
-      <h1 class="step-title">Your Roof Condition Savings Impact</h1>
+      <h1 class="step-title">Your Gutter & Roof Risk Report</h1>
 
       <div class="results-card">
-        <div class="results-headline" id="resultsHeadline">Your roof's condition may be costing you more than you think.</div>
-
-        <div id="streetviewResultContainer" style="display: none; margin-bottom: 16px;">
-          <img id="streetviewResultImage" src="" alt="Your property" style="width: 100%; border-radius: 8px;">
-        </div>
+        <div class="results-headline" id="resultsHeadline">Your gutters may be putting your roof at risk.</div>
 
         <div class="results-item">
           <span class="results-label">Address</span>
           <span class="results-value" id="resultAddress">-</span>
         </div>
         <div class="results-item">
+          <span class="results-label">Gutter Behavior</span>
+          <span class="results-value" id="resultBehavior">-</span>
+        </div>
+        <div class="results-item">
           <span class="results-label">Visible Symptoms</span>
           <span class="results-value" id="resultSymptoms">-</span>
         </div>
         <div class="results-item">
-          <span class="results-label">Roof Age</span>
-          <span class="results-value" id="resultAge">-</span>
+          <span class="results-label">Cleaning Frequency</span>
+          <span class="results-value" id="resultCleaning">-</span>
         </div>
         <div class="results-item">
-          <span class="results-label">Last Cleaned</span>
-          <span class="results-value" id="resultCleaned">-</span>
+          <span class="results-label">Tree Exposure</span>
+          <span class="results-value" id="resultTrees">-</span>
         </div>
         <div class="results-item">
           <span class="results-label">Your Goals</span>
@@ -739,8 +794,8 @@ function generateHTML(tenant) {
         </div>
 
         <div class="cost-highlight">
-          <div class="label">Estimated Impact on Home Value</div>
-          <div class="value" id="resultHomeValueImpact">-</div>
+          <div class="label">Estimated Cost Impact</div>
+          <div class="value" id="resultCostImpact">-</div>
         </div>
 
         <div class="assessment">
@@ -750,8 +805,8 @@ function generateHTML(tenant) {
       </div>
 
       <div class="next-steps">
-        <p style="text-align: center; font-size: 16px; line-height: 1.6; color: rgba(255,255,255,0.9); margin-bottom: 20px;">
-          One of our roof care specialists will reach out with your personalized Savings Report and discuss your options.
+        <p style="text-align: center; font-size: 15px; line-height: 1.6; color: var(--muted); margin-bottom: 20px;">
+          One of our specialists will reach out to discuss your personalized Risk Report and options.
         </p>
         <button class="btn" onclick="callNow()">Call Us Now: ${tenant.phone}</button>
       </div>
@@ -767,58 +822,77 @@ function generateHTML(tenant) {
     const TENANT = '${tenant.slug}';
     const PHONE = '${tenant.phone}';
 
-    // Form state
     let formData = {
       address: '',
-      streetviewUrl: '',
-      streetviewAvailable: false,
-      roofSymptoms: [],
-      roofAge: '',
-      lastCleaned: '',
-      homeownerGoals: [],
+      gutterBehavior: [],
+      visibleSymptoms: [],
+      cleaningFreq: '',
+      treeExposure: '',
+      consideredGutterGuards: '',
+      goals: [],
       name: '',
       email: '',
       phone: ''
     };
 
     // Labels for display
-    const symptomsLabels = {
-      'dark_streaks': 'Dark streaks',
-      'black_algae': 'Black algae',
-      'green_growth': 'Green growth',
-      'moss_lichen': 'Moss/lichen',
-      'granules_in_gutters': 'Granules in gutters',
-      'dull_faded': 'Dull/faded',
+    const behaviorLabels = {
+      'flows_smooth': 'Flows smoothly',
+      'spills_over': 'Spills over sides',
+      'pours_corners': 'Pours over corners',
+      'sagging': 'Gutters sagging',
+      'pools_foundation': 'Pools at foundation',
+      'dripping_splashing': 'Dripping/splashing',
       'not_sure': 'Not sure'
     };
 
-    const ageLabels = {
-      'under_10': 'Under 10 years',
-      '10_15': '10-15 years',
-      '16_20': '16-20 years',
-      '21_25': '21-25 years',
-      '26_plus_or_unknown': '26+ years / not sure'
+    const symptomsLabels = {
+      'leaves_debris': 'Leaves/debris',
+      'dark_streaks': 'Dark streaks',
+      'rotting_fascia': 'Rotting fascia',
+      'rust_corrosion': 'Rust/corrosion',
+      'granules_gutters': 'Granules in gutters',
+      'ice_buildup': 'Ice buildup',
+      'none_not_sure': 'None/not sure'
     };
 
-    const cleanedLabels = {
-      'within_1_year': 'Within the last year',
-      'one_to_three_years': '1-3 years ago',
-      'three_to_five_years': '3-5 years ago',
-      'five_plus_years': '5+ years ago',
-      'never_or_unknown': 'Never / not sure'
+    const cleaningLabels = {
+      'twice_year': '2+ times/year',
+      'once_year': 'Once/year',
+      'every_few_years': 'Every few years',
+      'rarely_never': 'Rarely/never',
+      'not_sure': 'Not sure'
+    };
+
+    const treeLabels = {
+      'lots_trees': 'Lots of trees',
+      'some_trees': 'Some trees',
+      'few_no_trees': 'Few/no trees',
+      'not_sure': 'Not sure'
     };
 
     const goalsLabels = {
-      'lower_energy_costs': 'Lower energy costs',
-      'extend_lifespan': 'Extend roof life',
-      'improve_curb_appeal': 'Curb appeal',
-      'protect_home_value': 'Home value',
-      'prevent_future_issues': 'Prevent issues',
-      'avoid_early_replacement': 'Avoid replacement',
+      'avoid_roof_damage': 'Avoid roof damage',
+      'prevent_water_intrusion': 'Prevent water intrusion',
+      'reduce_repair_costs': 'Reduce repair costs',
+      'protect_home_value': 'Protect home value',
+      'avoid_surprise_repairs': 'Avoid surprises',
       'just_learning': 'Learning'
     };
 
-    // Multi select for symptoms
+    // Multi-select handlers
+    document.querySelectorAll('#behaviorOptions .option').forEach(opt => {
+      opt.addEventListener('click', function() {
+        this.classList.toggle('selected');
+        const selected = [];
+        document.querySelectorAll('#behaviorOptions .option.selected').forEach(o => {
+          selected.push(o.dataset.value);
+        });
+        formData.gutterBehavior = selected;
+        document.getElementById('btn2').disabled = selected.length === 0;
+      });
+    });
+
     document.querySelectorAll('#symptomsOptions .option').forEach(opt => {
       opt.addEventListener('click', function() {
         this.classList.toggle('selected');
@@ -826,12 +900,11 @@ function generateHTML(tenant) {
         document.querySelectorAll('#symptomsOptions .option.selected').forEach(o => {
           selected.push(o.dataset.value);
         });
-        formData.roofSymptoms = selected;
-        document.getElementById('btn2').disabled = selected.length === 0;
+        formData.visibleSymptoms = selected;
+        document.getElementById('btn3').disabled = selected.length === 0;
       });
     });
 
-    // Multi select for goals
     document.querySelectorAll('#goalsOptions .option').forEach(opt => {
       opt.addEventListener('click', function() {
         this.classList.toggle('selected');
@@ -839,127 +912,108 @@ function generateHTML(tenant) {
         document.querySelectorAll('#goalsOptions .option.selected').forEach(o => {
           selected.push(o.dataset.value);
         });
-        formData.homeownerGoals = selected;
-        document.getElementById('btn4').disabled = selected.length === 0;
+        formData.goals = selected;
+        document.getElementById('btn6').disabled = selected.length === 0;
       });
     });
 
-    // Validate step 3 (age and maintenance)
-    function validateStep3() {
-      const age = document.getElementById('roofAge').value;
-      const cleaned = document.getElementById('lastCleaned').value;
-      document.getElementById('btn3').disabled = !age || !cleaned;
-    }
-
-    document.getElementById('roofAge').addEventListener('change', function() {
-      formData.roofAge = this.value;
-      validateStep3();
+    // Gutter guards card selection (single select)
+    document.querySelectorAll('#gutterGuardsOptions .card-option').forEach(opt => {
+      opt.addEventListener('click', function() {
+        document.querySelectorAll('#gutterGuardsOptions .card-option').forEach(o => o.classList.remove('selected'));
+        this.classList.add('selected');
+        formData.consideredGutterGuards = this.dataset.value;
+        document.getElementById('btn5').disabled = false;
+      });
     });
 
-    document.getElementById('lastCleaned').addEventListener('change', function() {
-      formData.lastCleaned = this.value;
-      validateStep3();
-    });
-
-    // Street View fetch via server-side proxy (avoids CORS issues)
-    async function fetchStreetView(address) {
-      try {
-        const response = await fetch(\`/.netlify/functions/streetview?address=\${encodeURIComponent(address)}\`);
-        const data = await response.json();
-
-        if (data.available && data.imageUrl) {
-          return data.imageUrl;
-        }
-
-        console.log('Street View not available:', data.reason);
-        return null;
-      } catch (error) {
-        console.error('Street View fetch error:', error);
-        return null;
-      }
+    // Step 4 validation
+    function validateStep4() {
+      const cleaning = document.getElementById('cleaningFreq').value;
+      const trees = document.getElementById('treeExposure').value;
+      document.getElementById('btn4').disabled = !cleaning || !trees;
     }
 
-    // Progress percentages (5 steps)
-    const progressSteps = [16, 32, 48, 64, 80, 96, 100];
+    document.getElementById('cleaningFreq').addEventListener('change', function() {
+      formData.cleaningFreq = this.value;
+      validateStep4();
+    });
+
+    document.getElementById('treeExposure').addEventListener('change', function() {
+      formData.treeExposure = this.value;
+      validateStep4();
+    });
+
+    // Progress percentages (7 steps)
+    const progressSteps = [14, 28, 42, 56, 70, 84, 95, 100];
 
     async function nextStep(current) {
-      // Validate and process current step
-      if (current === 1) {
-        // Address already set by map interaction
-        if (!formData.address) {
-          alert('Please enter your address');
-          return;
-        }
+      if (current === 1 && !formData.address) {
+        alert('Please enter your address');
+        return;
       }
 
-      // Hide current, show next
       document.getElementById('step' + current).classList.remove('active');
       document.getElementById('step' + (current + 1)).classList.add('active');
       document.getElementById('progressFill').style.width = progressSteps[current] + '%';
     }
 
-    function computeCostImpact() {
-      const symptoms = formData.roofSymptoms;
-      const age = formData.roofAge;
-      const cleaned = formData.lastCleaned;
+    function computeRiskLevel() {
+      const behavior = formData.gutterBehavior;
+      const symptoms = formData.visibleSymptoms;
+      const cleaning = formData.cleaningFreq;
+      const trees = formData.treeExposure;
 
-      // Major: heavy growth symptoms + older roof + never cleaned
-      const heavySymptoms = ['moss_lichen', 'black_algae', 'green_growth', 'dark_streaks'];
-      const hasHeavySymptoms = symptoms.some(s => heavySymptoms.includes(s));
-      const isOlderRoof = ['16_20', '21_25', '26_plus_or_unknown'].includes(age);
-      const neverCleaned = ['five_plus_years', 'never_or_unknown'].includes(cleaned);
+      // High risk indicators
+      const overflowBehaviors = ['spills_over', 'pours_corners', 'sagging', 'pools_foundation'];
+      const hasOverflow = behavior.some(b => overflowBehaviors.includes(b));
+      const severeSymptoms = ['rotting_fascia', 'granules_gutters', 'ice_buildup'];
+      const hasSevereSymptoms = symptoms.some(s => severeSymptoms.includes(s));
+      const rarelyCleaned = ['rarely_never', 'every_few_years'].includes(cleaning);
+      const highTreeExposure = trees === 'lots_trees';
 
-      if (hasHeavySymptoms && isOlderRoof && neverCleaned) {
-        return 'major_cost_impact';
+      if ((hasOverflow && hasSevereSymptoms) || (hasOverflow && rarelyCleaned && highTreeExposure)) {
+        return 'high_risk';
       }
 
-      // Moderate: visible symptoms + mid-age roof
-      const visibleSymptoms = ['dark_streaks', 'dull_faded', 'granules_in_gutters'];
-      const hasVisibleSymptoms = symptoms.some(s => visibleSymptoms.includes(s));
-      const isMidAgeRoof = ['10_15', '16_20'].includes(age);
+      // Moderate risk
+      const moderateSymptoms = ['leaves_debris', 'dark_streaks', 'rust_corrosion'];
+      const hasModerateSymptoms = symptoms.some(s => moderateSymptoms.includes(s));
+      const infrequentCleaning = ['once_year', 'every_few_years'].includes(cleaning);
 
-      if (hasVisibleSymptoms && isMidAgeRoof) {
-        return 'moderate_cost_impact';
+      if (hasOverflow || (hasModerateSymptoms && infrequentCleaning)) {
+        return 'moderate_risk';
       }
 
-      // Minor: mild symptoms + newer roof + recently cleaned
-      const recentlyCleaned = ['within_1_year', 'one_to_three_years', 'three_to_five_years'].includes(cleaned);
-      const isNewerRoof = ['under_10', '10_15'].includes(age);
-
-      if (symptoms.includes('dull_faded') && isNewerRoof && recentlyCleaned) {
-        return 'minor_cost_impact';
-      }
-
-      // Unknown: not sure answers
-      if (symptoms.includes('not_sure')) {
+      // Unknown
+      if (behavior.includes('not_sure') || symptoms.includes('none_not_sure')) {
         return 'unknown';
       }
 
-      return 'moderate_cost_impact';
+      return 'low_risk';
     }
 
-    function getHomeValueImpact(impact) {
+    function getCostImpact(risk) {
       const impacts = {
-        'major_cost_impact': '-3% to -5% of home value',
-        'moderate_cost_impact': '-1% to -3% of home value',
-        'minor_cost_impact': 'Up to -1% of home value',
-        'unknown': 'Varies - needs a closer look'
+        'high_risk': '$500–$5,000+ over time',
+        'moderate_risk': '$250–$1,500 over time',
+        'low_risk': '$0–$250 (preventative)',
+        'unknown': 'Varies — needs a closer look'
       };
-      return impacts[impact] || impacts['moderate_cost_impact'];
+      return impacts[risk] || impacts['moderate_risk'];
     }
 
-    function getCostImpactText(impact) {
+    function getAssessmentText(risk) {
       const texts = {
-        'major_cost_impact': 'Based on what you shared, your roof has significant visible issues that are likely affecting your home\\'s curb appeal and resale value. Buyers notice dirty roofs immediately - it\\'s one of the first things they see. A professional cleaning and treatment can restore your roof\\'s appearance and protect your home\\'s value.',
-        'moderate_cost_impact': 'Your roof shows noticeable signs of wear that could be impacting how your home looks from the street. This kind of visible neglect can hurt your home\\'s perceived value and make buyers hesitant. A cleaning and treatment now can improve curb appeal and help maintain your home\\'s worth.',
-        'minor_cost_impact': 'Your roof has mild symptoms that are starting to affect its appearance. Addressing these early helps maintain your home\\'s curb appeal and prevents bigger problems down the road.',
-        'unknown': 'We need a bit more information to assess the impact on your home\\'s value, but a quick look at your roof can clarify how much curb appeal you may be losing.'
+        'high_risk': 'Water backing up at the roof edge can slowly damage shingles, decking, and fascia over time. Addressing gutter issues early often prevents much more expensive roof repairs later.',
+        'moderate_risk': 'There are early signs that water may not always be draining correctly. Proactive maintenance now can help avoid moisture-related roof damage.',
+        'low_risk': 'Your gutters appear to be doing their job, but periodic checks and maintenance help keep small issues from becoming expensive ones.',
+        'unknown': 'We don\\'t have enough information yet, but a quick look can clarify whether your gutters are protecting or putting stress on your roof.'
       };
-      return texts[impact] || texts['moderate_cost_impact'];
+      return texts[risk] || texts['moderate_risk'];
     }
 
     async function submitLead() {
-      // Get form values
       formData.name = document.getElementById('name').value.trim();
       formData.email = document.getElementById('email').value.trim();
       formData.phone = document.getElementById('phone').value.trim();
@@ -969,16 +1023,13 @@ function generateHTML(tenant) {
         return;
       }
 
-      // Show loading
-      document.getElementById('step5').classList.remove('active');
+      document.getElementById('step7').classList.remove('active');
       document.getElementById('loading').classList.add('active');
       document.getElementById('progressFill').style.width = '95%';
 
-      // Compute cost impact
-      const costImpact = computeCostImpact();
-      const homeValueImpact = getHomeValueImpact(costImpact);
+      const riskLevel = computeRiskLevel();
+      const costImpact = getCostImpact(riskLevel);
 
-      // Get UTM params
       const urlParams = new URLSearchParams(window.location.search);
 
       try {
@@ -988,21 +1039,21 @@ function generateHTML(tenant) {
           body: JSON.stringify({
             tenant: TENANT,
             flowType: 'educate',
-            flowSlug: 'dirty-roof-costs',
+            flowSlug: 'clogged-gutters-damage',
             name: formData.name,
             email: formData.email,
             phone: formData.phone,
             address: formData.address,
-            urgencyLevel: costImpact === 'major_cost_impact' ? 'high' : (costImpact === 'moderate_cost_impact' ? 'medium' : 'low'),
-            qualifyScore: costImpact,
+            urgencyLevel: riskLevel === 'high_risk' ? 'high' : (riskLevel === 'moderate_risk' ? 'medium' : 'low'),
+            qualifyScore: riskLevel,
             flowData: {
-              roofSymptoms: formData.roofSymptoms,
-              roofAge: formData.roofAge,
-              lastCleaned: formData.lastCleaned,
-              homeownerGoals: formData.homeownerGoals,
-              streetviewAvailable: formData.streetviewAvailable,
-              streetviewUrl: formData.streetviewUrl,
-              estimatedHomeValueImpact: homeValueImpact
+              gutterBehavior: formData.gutterBehavior,
+              visibleSymptoms: formData.visibleSymptoms,
+              cleaningFreq: formData.cleaningFreq,
+              treeExposure: formData.treeExposure,
+              consideredGutterGuards: formData.consideredGutterGuards,
+              goals: formData.goals,
+              estimatedCostImpact: costImpact
             },
             utmSource: urlParams.get('utm_source'),
             utmMedium: urlParams.get('utm_medium'),
@@ -1012,33 +1063,26 @@ function generateHTML(tenant) {
 
         const result = await response.json();
 
-        // Show results
         setTimeout(() => {
           document.getElementById('loading').classList.remove('active');
           document.getElementById('results').classList.add('active');
           document.getElementById('progressFill').style.width = '100%';
 
-          // Show Street View in results if available
-          if (formData.streetviewAvailable && formData.streetviewUrl) {
-            document.getElementById('streetviewResultImage').src = formData.streetviewUrl;
-            document.getElementById('streetviewResultContainer').style.display = 'block';
-          }
-
-          // Populate results
           document.getElementById('resultAddress').textContent = formData.address;
-          document.getElementById('resultSymptoms').textContent = formData.roofSymptoms.map(s => symptomsLabels[s] || s).join(', ');
-          document.getElementById('resultAge').textContent = ageLabels[formData.roofAge] || formData.roofAge;
-          document.getElementById('resultCleaned').textContent = cleanedLabels[formData.lastCleaned] || formData.lastCleaned;
-          document.getElementById('resultGoals').textContent = formData.homeownerGoals.map(g => goalsLabels[g] || g).join(', ');
-          document.getElementById('resultHomeValueImpact').textContent = homeValueImpact;
-          document.getElementById('assessmentText').textContent = getCostImpactText(costImpact);
+          document.getElementById('resultBehavior').textContent = formData.gutterBehavior.map(b => behaviorLabels[b] || b).join(', ');
+          document.getElementById('resultSymptoms').textContent = formData.visibleSymptoms.map(s => symptomsLabels[s] || s).join(', ');
+          document.getElementById('resultCleaning').textContent = cleaningLabels[formData.cleaningFreq] || formData.cleaningFreq;
+          document.getElementById('resultTrees').textContent = treeLabels[formData.treeExposure] || formData.treeExposure;
+          document.getElementById('resultGoals').textContent = formData.goals.map(g => goalsLabels[g] || g).join(', ');
+          document.getElementById('resultCostImpact').textContent = costImpact;
+          document.getElementById('assessmentText').textContent = getAssessmentText(riskLevel);
         }, 1500);
 
       } catch (error) {
         console.error('Error:', error);
         alert('Something went wrong. Please try again.');
         document.getElementById('loading').classList.remove('active');
-        document.getElementById('step5').classList.add('active');
+        document.getElementById('step7').classList.add('active');
       }
     }
 
@@ -1057,11 +1101,10 @@ function generateHTML(tenant) {
       map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/dark-v11',
-        center: [-94.5786, 39.0997], // KC center [lng, lat]
+        center: [-94.5786, 39.0997],
         zoom: 8
       });
 
-      // Add geocoder search control
       const geocoder = new MapboxGeocoder({
         accessToken: MAPBOX_TOKEN,
         mapboxgl: mapboxgl,
@@ -1071,37 +1114,30 @@ function generateHTML(tenant) {
         proximity: { longitude: -94.5786, latitude: 39.0997 }
       });
 
-      // Add geocoder to the address input container
       document.getElementById('geocoder-container').appendChild(geocoder.onAdd(map));
 
-      // Handle result selection
       geocoder.on('result', function(e) {
         const coords = e.result.center;
         const address = e.result.place_name;
 
-        // Fly to location
         map.flyTo({
           center: coords,
           zoom: 16,
           duration: 1500
         });
 
-        // Add marker
         if (marker) marker.remove();
         marker = new mapboxgl.Marker({ color: '${tenant.colors.primary}' })
           .setLngLat(coords)
           .addTo(map);
 
-        // Store address and enable Continue button
         formData.address = address;
         document.getElementById('btn1').disabled = false;
       });
     }
 
-    // Initialize map when page loads
     window.addEventListener('load', initMap);
 
-    // Cmd+K to focus address input
     document.addEventListener('keydown', function(e) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();

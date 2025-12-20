@@ -33,7 +33,6 @@ export async function handler(event) {
 }
 
 function generateHTML(tenant) {
-  // Mapbox token (needs to be set in Netlify env vars)
   const mapboxToken = process.env.MAPBOX_TOKEN || '';
 
   return `<!DOCTYPE html>
@@ -41,8 +40,8 @@ function generateHTML(tenant) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Is Your Dirty Roof Costing You Money? - ${tenant.name}</title>
-  <meta name="description" content="Find out how a dirty roof may be costing you money in energy, lifespan, and curb appeal.">
+  <title>Is Your Roof at Risk for Ice Dams? - ${tenant.name}</title>
+  <meta name="description" content="Find out if your home is at risk for ice dam damage and learn how to protect your roof this winter.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
@@ -229,8 +228,7 @@ function generateHTML(tenant) {
       color: var(--foreground);
     }
 
-    .input-group input,
-    .input-group select {
+    .input-group input {
       width: 100%;
       padding: 12px 14px;
       border: 1px solid var(--border);
@@ -242,47 +240,14 @@ function generateHTML(tenant) {
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 
-    .input-group select {
-      cursor: pointer;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      background-size: 18px;
-      padding-right: 44px;
-    }
-
     .input-group input::placeholder {
       color: #9ca3af;
     }
 
-    .input-group input:focus,
-    .input-group select:focus {
+    .input-group input:focus {
       outline: none;
       border-color: var(--primary);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
-    }
-
-    .form-section {
-      margin-bottom: 24px;
-    }
-
-    .form-section-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--muted);
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .map-preview {
-      margin-bottom: 16px;
-    }
-
-    .map-preview img {
-      width: 100%;
-      border-radius: var(--radius);
     }
 
     .map-caption {
@@ -328,44 +293,6 @@ function generateHTML(tenant) {
       color: var(--muted);
     }
 
-    .streetview-preview {
-      margin: 16px 0 0;
-      border-radius: var(--radius);
-      overflow: hidden;
-      background: var(--card);
-      border: 1px solid var(--border);
-      display: none;
-    }
-
-    .streetview-preview.visible {
-      display: block;
-    }
-
-    .streetview-preview img {
-      width: 100%;
-      height: 200px;
-      object-fit: cover;
-    }
-
-    .streetview-preview .caption {
-      padding: 12px;
-      font-size: 13px;
-      color: var(--muted);
-      text-align: center;
-    }
-
-    .streetview-loading {
-      display: none;
-      text-align: center;
-      padding: 16px 0 0;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .streetview-loading.visible {
-      display: block;
-    }
-
     .btn {
       background: var(--cta);
       color: #fff;
@@ -388,7 +315,6 @@ function generateHTML(tenant) {
     }
 
     .btn:disabled {
-      
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
@@ -526,7 +452,6 @@ function generateHTML(tenant) {
 
     .powered-by img {
       height: 16px;
-      
     }
 
     @media (max-width: 480px) {
@@ -551,14 +476,14 @@ function generateHTML(tenant) {
     <div class="header">
       <img src="${tenant.logo}" alt="${tenant.name}" class="logo">
       <div class="progress-bar">
-        <div class="progress-fill" id="progressFill" style="width: 20%"></div>
+        <div class="progress-fill" id="progressFill" style="width: 16%"></div>
       </div>
     </div>
 
     <!-- Step 1: Address -->
     <div class="step active" id="step1">
-      <h1 class="step-title">What's the address of your dirty roof?</h1>
-      <p class="step-subtitle">Enter your address and we'll pinpoint your location.</p>
+      <h1 class="step-title">Where is the home you're asking about?</h1>
+      <p class="step-subtitle">We'll check winter weather patterns and ice dam risk for your area.</p>
 
       <div id="map" style="width: 100%; height: 280px; border-radius: var(--radius); overflow: hidden;"></div>
       <div id="geocoder-container" style="margin-top: 12px;"></div>
@@ -567,120 +492,166 @@ function generateHTML(tenant) {
       <button class="btn" onclick="nextStep(1)" id="btn1" disabled style="margin-top: 16px;">Continue</button>
     </div>
 
-    <!-- Step 2: Symptoms -->
+    <!-- Step 2: Winter Symptoms -->
     <div class="step" id="step2">
-      <h1 class="step-title">What do you see when you look at your roof?</h1>
+      <h1 class="step-title">During winter, have you noticed any of these around your roof or home?</h1>
       <p class="step-subtitle">Choose all that apply.</p>
 
       <div class="options" id="symptomsOptions">
-        <div class="option multi" data-value="dark_streaks">
+        <div class="option multi" data-value="large_icicles">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Dark streaks or stains</span>
+          <span>Large icicles hanging from gutters or roof edges</span>
         </div>
-        <div class="option multi" data-value="black_algae">
+        <div class="option multi" data-value="ice_buildup">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Black algae spots</span>
+          <span>Ice buildup along roof edges</span>
         </div>
-        <div class="option multi" data-value="green_growth">
+        <div class="option multi" data-value="uneven_melting">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Greenish film or growth</span>
+          <span>Snow melting unevenly on the roof</span>
         </div>
-        <div class="option multi" data-value="moss_lichen">
+        <div class="option multi" data-value="water_dripping">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Moss or lichen patches</span>
+          <span>Water dripping from soffits or gutters in freezing weather</span>
         </div>
-        <div class="option multi" data-value="granules_in_gutters">
+        <div class="option multi" data-value="ice_in_gutters">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Lots of granules in gutters or at downspouts</span>
+          <span>Ice forming inside gutters</span>
         </div>
-        <div class="option multi" data-value="dull_faded">
+        <div class="option multi" data-value="ceiling_stains">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Roof looks dull or faded compared to neighbors</span>
+          <span>Interior ceiling stains that appeared in winter</span>
         </div>
-        <div class="option multi" data-value="not_sure">
+        <div class="option multi" data-value="drafts_cold_rooms">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Not sure - I haven't really looked</span>
+          <span>Drafts or cold rooms near the roof</span>
+        </div>
+        <div class="option multi" data-value="none_not_sure">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>None of these / not sure</span>
         </div>
       </div>
 
       <button class="btn" onclick="nextStep(2)" id="btn2" disabled>Continue</button>
     </div>
 
-    <!-- Step 3: Age & Maintenance -->
+    <!-- Step 3: Roof & Attic Conditions -->
     <div class="step" id="step3">
-      <h1 class="step-title">Tell us about your roof's age and history.</h1>
-      <p class="step-subtitle">This helps us estimate the cost impact.</p>
+      <h1 class="step-title">Which of these describes your home?</h1>
+      <p class="step-subtitle">These factors affect ice dam likelihood. Choose all that apply.</p>
 
-      <div class="input-group">
-        <label for="roofAge">About how old is your roof?</label>
-        <select id="roofAge">
-          <option value="">Select age...</option>
-          <option value="under_10">Under 10 years</option>
-          <option value="10_15">10-15 years</option>
-          <option value="16_20">16-20 years</option>
-          <option value="21_25">21-25 years</option>
-          <option value="26_plus_or_unknown">26+ years / not sure</option>
-        </select>
-      </div>
-
-      <div class="input-group">
-        <label for="lastCleaned">When was your roof last cleaned or treated?</label>
-        <select id="lastCleaned">
-          <option value="">Select...</option>
-          <option value="within_1_year">Within the last year</option>
-          <option value="one_to_three_years">1-3 years ago</option>
-          <option value="three_to_five_years">3-5 years ago</option>
-          <option value="five_plus_years">5+ years ago</option>
-          <option value="never_or_unknown">Never / not sure</option>
-        </select>
+      <div class="options" id="conditionsOptions">
+        <div class="option multi" data-value="older_home">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Home is older (15+ years)</span>
+        </div>
+        <div class="option multi" data-value="cold_rooms">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Rooms near the roof feel colder than others</span>
+        </div>
+        <div class="option multi" data-value="old_insulation">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Attic insulation is old or minimal</span>
+        </div>
+        <div class="option multi" data-value="finished_attic">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Attic has been finished or modified</span>
+        </div>
+        <div class="option multi" data-value="complex_roof">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Roof has multiple valleys or dormers</span>
+        </div>
+        <div class="option multi" data-value="not_sure">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>I'm not sure about insulation or attic setup</span>
+        </div>
       </div>
 
       <button class="btn" onclick="nextStep(3)" id="btn3" disabled>Continue</button>
     </div>
 
-    <!-- Step 4: Goals -->
+    <!-- Step 4: Past Experiences -->
     <div class="step" id="step4">
-      <h1 class="step-title">What matters most to you?</h1>
-      <p class="step-subtitle">Select all that apply.</p>
+      <h1 class="step-title">Have you ever dealt with any of these?</h1>
+      <p class="step-subtitle">Choose all that apply.</p>
 
-      <div class="options" id="goalsOptions">
-        <div class="option multi" data-value="lower_energy_costs">
+      <div class="options" id="experiencesOptions">
+        <div class="option multi" data-value="winter_leaks">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Lowering energy/cooling costs</span>
+          <span>Winter roof leaks or moisture inside</span>
         </div>
-        <div class="option multi" data-value="extend_lifespan">
+        <div class="option multi" data-value="stains_after_snow">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Extending the life of my roof</span>
+          <span>Ceiling or wall stains after snow melts</span>
         </div>
-        <div class="option multi" data-value="improve_curb_appeal">
+        <div class="option multi" data-value="mold_musty">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Improving curb appeal / how it looks</span>
+          <span>Mold or musty smells after winter</span>
         </div>
-        <div class="option multi" data-value="protect_home_value">
+        <div class="option multi" data-value="gutter_damage">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Protecting home value</span>
+          <span>Gutter damage or pulling away</span>
         </div>
-        <div class="option multi" data-value="prevent_future_issues">
+        <div class="option multi" data-value="shingle_damage">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Preventing future leaks or issues</span>
+          <span>Shingle damage near roof edges</span>
         </div>
-        <div class="option multi" data-value="avoid_early_replacement">
+        <div class="option multi" data-value="emergency_service">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Avoiding an early roof replacement</span>
+          <span>Ice removal or emergency service calls</span>
         </div>
-        <div class="option multi" data-value="just_learning">
+        <div class="option multi" data-value="none">
           <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-          <span>Just learning more right now</span>
+          <span>None of these so far</span>
         </div>
       </div>
 
       <button class="btn" onclick="nextStep(4)" id="btn4" disabled>Continue</button>
     </div>
 
-    <!-- Step 5: Lead Capture -->
+    <!-- Step 5: Goals -->
     <div class="step" id="step5">
-      <h1 class="step-title">Where should we send your Roof Condition Savings Report?</h1>
-      <p class="step-subtitle">We've analyzed your roof symptoms and can estimate how much a dirty roof may be costing you over time.</p>
+      <h1 class="step-title">What matters most to you about winter roof issues?</h1>
+      <p class="step-subtitle">Select all that apply.</p>
+
+      <div class="options" id="goalsOptions">
+        <div class="option multi" data-value="prevent_leaks">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Preventing roof leaks</span>
+        </div>
+        <div class="option multi" data-value="avoid_water_damage">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Avoiding interior water damage</span>
+        </div>
+        <div class="option multi" data-value="energy_efficiency">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Improving energy efficiency</span>
+        </div>
+        <div class="option multi" data-value="reduce_heating">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Reducing heating costs</span>
+        </div>
+        <div class="option multi" data-value="protect_attic">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Protecting insulation and attic</span>
+        </div>
+        <div class="option multi" data-value="avoid_emergency">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Avoiding emergency winter repairs</span>
+        </div>
+        <div class="option multi" data-value="just_learning">
+          <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <span>Just understanding my risks better</span>
+        </div>
+      </div>
+
+      <button class="btn" onclick="nextStep(5)" id="btn5" disabled>Continue</button>
+    </div>
+
+    <!-- Step 6: Lead Capture -->
+    <div class="step" id="step6">
+      <h1 class="step-title">Where should we send your Ice Dam Risk Report?</h1>
+      <p class="step-subtitle">We'll estimate your home's risk for ice dams and the potential cost impact if they occur.</p>
 
       <div class="input-group">
         <label for="name">Full Name</label>
@@ -697,41 +668,37 @@ function generateHTML(tenant) {
         <input type="tel" id="phone" placeholder="(555) 123-4567">
       </div>
 
-      <button class="btn" onclick="submitLead()" id="btnSubmit">See My Savings Report</button>
+      <button class="btn" onclick="submitLead()" id="btnSubmit">Get My Risk Report</button>
     </div>
 
     <!-- Loading -->
     <div class="loading" id="loading">
       <div class="spinner"></div>
-      <p>Calculating your roof's cost impact...</p>
+      <p>Analyzing your ice dam risk...</p>
     </div>
 
     <!-- Results -->
     <div class="results" id="results">
-      <h1 class="step-title">Your Roof Condition Savings Impact</h1>
+      <h1 class="step-title">Your Ice Dam Risk Report</h1>
 
       <div class="results-card">
-        <div class="results-headline" id="resultsHeadline">Your roof's condition may be costing you more than you think.</div>
-
-        <div id="streetviewResultContainer" style="display: none; margin-bottom: 16px;">
-          <img id="streetviewResultImage" src="" alt="Your property" style="width: 100%; border-radius: 8px;">
-        </div>
+        <div class="results-headline" id="resultsHeadline">Ice dams can cause damage you don't see — here's what your home may be facing.</div>
 
         <div class="results-item">
           <span class="results-label">Address</span>
           <span class="results-value" id="resultAddress">-</span>
         </div>
         <div class="results-item">
-          <span class="results-label">Visible Symptoms</span>
+          <span class="results-label">Winter Symptoms</span>
           <span class="results-value" id="resultSymptoms">-</span>
         </div>
         <div class="results-item">
-          <span class="results-label">Roof Age</span>
-          <span class="results-value" id="resultAge">-</span>
+          <span class="results-label">Home Conditions</span>
+          <span class="results-value" id="resultConditions">-</span>
         </div>
         <div class="results-item">
-          <span class="results-label">Last Cleaned</span>
-          <span class="results-value" id="resultCleaned">-</span>
+          <span class="results-label">Past Experiences</span>
+          <span class="results-value" id="resultExperiences">-</span>
         </div>
         <div class="results-item">
           <span class="results-label">Your Goals</span>
@@ -739,19 +706,19 @@ function generateHTML(tenant) {
         </div>
 
         <div class="cost-highlight">
-          <div class="label">Estimated Impact on Home Value</div>
-          <div class="value" id="resultHomeValueImpact">-</div>
+          <div class="label">Estimated Cost Impact</div>
+          <div class="value" id="resultCostImpact">-</div>
         </div>
 
         <div class="assessment">
-          <div class="assessment-title">Our Assessment</div>
+          <div class="assessment-title">How Ice Dams Form</div>
           <div class="assessment-text" id="assessmentText">-</div>
         </div>
       </div>
 
       <div class="next-steps">
-        <p style="text-align: center; font-size: 16px; line-height: 1.6; color: rgba(255,255,255,0.9); margin-bottom: 20px;">
-          One of our roof care specialists will reach out with your personalized Savings Report and discuss your options.
+        <p style="text-align: center; font-size: 15px; line-height: 1.6; color: var(--muted); margin-bottom: 20px;">
+          One of our specialists will reach out to discuss your personalized Risk Report and prevention options.
         </p>
         <button class="btn" onclick="callNow()">Call Us Now: ${tenant.phone}</button>
       </div>
@@ -767,15 +734,12 @@ function generateHTML(tenant) {
     const TENANT = '${tenant.slug}';
     const PHONE = '${tenant.phone}';
 
-    // Form state
     let formData = {
       address: '',
-      streetviewUrl: '',
-      streetviewAvailable: false,
-      roofSymptoms: [],
-      roofAge: '',
-      lastCleaned: '',
-      homeownerGoals: [],
+      winterSymptoms: [],
+      homeConditions: [],
+      pastExperiences: [],
+      goals: [],
       name: '',
       email: '',
       phone: ''
@@ -783,42 +747,46 @@ function generateHTML(tenant) {
 
     // Labels for display
     const symptomsLabels = {
-      'dark_streaks': 'Dark streaks',
-      'black_algae': 'Black algae',
-      'green_growth': 'Green growth',
-      'moss_lichen': 'Moss/lichen',
-      'granules_in_gutters': 'Granules in gutters',
-      'dull_faded': 'Dull/faded',
+      'large_icicles': 'Large icicles',
+      'ice_buildup': 'Ice at roof edges',
+      'uneven_melting': 'Uneven snow melt',
+      'water_dripping': 'Water dripping',
+      'ice_in_gutters': 'Ice in gutters',
+      'ceiling_stains': 'Ceiling stains',
+      'drafts_cold_rooms': 'Drafts/cold rooms',
+      'none_not_sure': 'None/not sure'
+    };
+
+    const conditionsLabels = {
+      'older_home': 'Older home',
+      'cold_rooms': 'Cold rooms near roof',
+      'old_insulation': 'Old insulation',
+      'finished_attic': 'Finished attic',
+      'complex_roof': 'Complex roof',
       'not_sure': 'Not sure'
     };
 
-    const ageLabels = {
-      'under_10': 'Under 10 years',
-      '10_15': '10-15 years',
-      '16_20': '16-20 years',
-      '21_25': '21-25 years',
-      '26_plus_or_unknown': '26+ years / not sure'
-    };
-
-    const cleanedLabels = {
-      'within_1_year': 'Within the last year',
-      'one_to_three_years': '1-3 years ago',
-      'three_to_five_years': '3-5 years ago',
-      'five_plus_years': '5+ years ago',
-      'never_or_unknown': 'Never / not sure'
+    const experiencesLabels = {
+      'winter_leaks': 'Winter leaks',
+      'stains_after_snow': 'Stains after snow',
+      'mold_musty': 'Mold/musty smells',
+      'gutter_damage': 'Gutter damage',
+      'shingle_damage': 'Shingle damage',
+      'emergency_service': 'Emergency service',
+      'none': 'None'
     };
 
     const goalsLabels = {
-      'lower_energy_costs': 'Lower energy costs',
-      'extend_lifespan': 'Extend roof life',
-      'improve_curb_appeal': 'Curb appeal',
-      'protect_home_value': 'Home value',
-      'prevent_future_issues': 'Prevent issues',
-      'avoid_early_replacement': 'Avoid replacement',
+      'prevent_leaks': 'Prevent leaks',
+      'avoid_water_damage': 'Avoid water damage',
+      'energy_efficiency': 'Energy efficiency',
+      'reduce_heating': 'Reduce heating costs',
+      'protect_attic': 'Protect attic',
+      'avoid_emergency': 'Avoid emergencies',
       'just_learning': 'Learning'
     };
 
-    // Multi select for symptoms
+    // Multi-select handlers
     document.querySelectorAll('#symptomsOptions .option').forEach(opt => {
       opt.addEventListener('click', function() {
         this.classList.toggle('selected');
@@ -826,12 +794,35 @@ function generateHTML(tenant) {
         document.querySelectorAll('#symptomsOptions .option.selected').forEach(o => {
           selected.push(o.dataset.value);
         });
-        formData.roofSymptoms = selected;
+        formData.winterSymptoms = selected;
         document.getElementById('btn2').disabled = selected.length === 0;
       });
     });
 
-    // Multi select for goals
+    document.querySelectorAll('#conditionsOptions .option').forEach(opt => {
+      opt.addEventListener('click', function() {
+        this.classList.toggle('selected');
+        const selected = [];
+        document.querySelectorAll('#conditionsOptions .option.selected').forEach(o => {
+          selected.push(o.dataset.value);
+        });
+        formData.homeConditions = selected;
+        document.getElementById('btn3').disabled = selected.length === 0;
+      });
+    });
+
+    document.querySelectorAll('#experiencesOptions .option').forEach(opt => {
+      opt.addEventListener('click', function() {
+        this.classList.toggle('selected');
+        const selected = [];
+        document.querySelectorAll('#experiencesOptions .option.selected').forEach(o => {
+          selected.push(o.dataset.value);
+        });
+        formData.pastExperiences = selected;
+        document.getElementById('btn4').disabled = selected.length === 0;
+      });
+    });
+
     document.querySelectorAll('#goalsOptions .option').forEach(opt => {
       opt.addEventListener('click', function() {
         this.classList.toggle('selected');
@@ -839,127 +830,80 @@ function generateHTML(tenant) {
         document.querySelectorAll('#goalsOptions .option.selected').forEach(o => {
           selected.push(o.dataset.value);
         });
-        formData.homeownerGoals = selected;
-        document.getElementById('btn4').disabled = selected.length === 0;
+        formData.goals = selected;
+        document.getElementById('btn5').disabled = selected.length === 0;
       });
     });
 
-    // Validate step 3 (age and maintenance)
-    function validateStep3() {
-      const age = document.getElementById('roofAge').value;
-      const cleaned = document.getElementById('lastCleaned').value;
-      document.getElementById('btn3').disabled = !age || !cleaned;
-    }
-
-    document.getElementById('roofAge').addEventListener('change', function() {
-      formData.roofAge = this.value;
-      validateStep3();
-    });
-
-    document.getElementById('lastCleaned').addEventListener('change', function() {
-      formData.lastCleaned = this.value;
-      validateStep3();
-    });
-
-    // Street View fetch via server-side proxy (avoids CORS issues)
-    async function fetchStreetView(address) {
-      try {
-        const response = await fetch(\`/.netlify/functions/streetview?address=\${encodeURIComponent(address)}\`);
-        const data = await response.json();
-
-        if (data.available && data.imageUrl) {
-          return data.imageUrl;
-        }
-
-        console.log('Street View not available:', data.reason);
-        return null;
-      } catch (error) {
-        console.error('Street View fetch error:', error);
-        return null;
-      }
-    }
-
-    // Progress percentages (5 steps)
-    const progressSteps = [16, 32, 48, 64, 80, 96, 100];
+    // Progress percentages (6 steps)
+    const progressSteps = [16, 32, 48, 64, 80, 95, 100];
 
     async function nextStep(current) {
-      // Validate and process current step
-      if (current === 1) {
-        // Address already set by map interaction
-        if (!formData.address) {
-          alert('Please enter your address');
-          return;
-        }
+      if (current === 1 && !formData.address) {
+        alert('Please enter your address');
+        return;
       }
 
-      // Hide current, show next
       document.getElementById('step' + current).classList.remove('active');
       document.getElementById('step' + (current + 1)).classList.add('active');
       document.getElementById('progressFill').style.width = progressSteps[current] + '%';
     }
 
-    function computeCostImpact() {
-      const symptoms = formData.roofSymptoms;
-      const age = formData.roofAge;
-      const cleaned = formData.lastCleaned;
+    function computeRiskLevel() {
+      const symptoms = formData.winterSymptoms;
+      const conditions = formData.homeConditions;
+      const experiences = formData.pastExperiences;
 
-      // Major: heavy growth symptoms + older roof + never cleaned
-      const heavySymptoms = ['moss_lichen', 'black_algae', 'green_growth', 'dark_streaks'];
-      const hasHeavySymptoms = symptoms.some(s => heavySymptoms.includes(s));
-      const isOlderRoof = ['16_20', '21_25', '26_plus_or_unknown'].includes(age);
-      const neverCleaned = ['five_plus_years', 'never_or_unknown'].includes(cleaned);
+      // High risk indicators
+      const severeSymptoms = ['ceiling_stains', 'water_dripping', 'large_icicles', 'ice_buildup'];
+      const hasSevereSymptoms = symptoms.some(s => severeSymptoms.includes(s));
+      const riskConditions = ['cold_rooms', 'old_insulation', 'older_home'];
+      const hasRiskConditions = conditions.some(c => riskConditions.includes(c));
+      const priorDamage = ['winter_leaks', 'stains_after_snow', 'mold_musty', 'emergency_service'];
+      const hasPriorDamage = experiences.some(e => priorDamage.includes(e));
 
-      if (hasHeavySymptoms && isOlderRoof && neverCleaned) {
-        return 'major_cost_impact';
+      if ((hasSevereSymptoms && hasRiskConditions) || hasPriorDamage) {
+        return 'high_risk';
       }
 
-      // Moderate: visible symptoms + mid-age roof
-      const visibleSymptoms = ['dark_streaks', 'dull_faded', 'granules_in_gutters'];
-      const hasVisibleSymptoms = symptoms.some(s => visibleSymptoms.includes(s));
-      const isMidAgeRoof = ['10_15', '16_20'].includes(age);
+      // Moderate risk
+      const moderateSymptoms = ['uneven_melting', 'ice_in_gutters', 'drafts_cold_rooms'];
+      const hasModerateSymptoms = symptoms.some(s => moderateSymptoms.includes(s));
+      const uncertainConditions = conditions.includes('not_sure');
 
-      if (hasVisibleSymptoms && isMidAgeRoof) {
-        return 'moderate_cost_impact';
+      if (hasModerateSymptoms || (hasSevereSymptoms && !hasRiskConditions) || uncertainConditions) {
+        return 'moderate_risk';
       }
 
-      // Minor: mild symptoms + newer roof + recently cleaned
-      const recentlyCleaned = ['within_1_year', 'one_to_three_years', 'three_to_five_years'].includes(cleaned);
-      const isNewerRoof = ['under_10', '10_15'].includes(age);
-
-      if (symptoms.includes('dull_faded') && isNewerRoof && recentlyCleaned) {
-        return 'minor_cost_impact';
-      }
-
-      // Unknown: not sure answers
-      if (symptoms.includes('not_sure')) {
+      // Unknown
+      if (symptoms.includes('none_not_sure') && conditions.includes('not_sure')) {
         return 'unknown';
       }
 
-      return 'moderate_cost_impact';
+      return 'low_risk';
     }
 
-    function getHomeValueImpact(impact) {
+    function getCostImpact(risk) {
       const impacts = {
-        'major_cost_impact': '-3% to -5% of home value',
-        'moderate_cost_impact': '-1% to -3% of home value',
-        'minor_cost_impact': 'Up to -1% of home value',
-        'unknown': 'Varies - needs a closer look'
+        'high_risk': '$1,000–$10,000+',
+        'moderate_risk': '$500–$3,000',
+        'low_risk': '$0–$500 (preventative)',
+        'unknown': 'Varies — needs evaluation'
       };
-      return impacts[impact] || impacts['moderate_cost_impact'];
+      return impacts[risk] || impacts['moderate_risk'];
     }
 
-    function getCostImpactText(impact) {
+    function getAssessmentText(risk) {
       const texts = {
-        'major_cost_impact': 'Based on what you shared, your roof has significant visible issues that are likely affecting your home\\'s curb appeal and resale value. Buyers notice dirty roofs immediately - it\\'s one of the first things they see. A professional cleaning and treatment can restore your roof\\'s appearance and protect your home\\'s value.',
-        'moderate_cost_impact': 'Your roof shows noticeable signs of wear that could be impacting how your home looks from the street. This kind of visible neglect can hurt your home\\'s perceived value and make buyers hesitant. A cleaning and treatment now can improve curb appeal and help maintain your home\\'s worth.',
-        'minor_cost_impact': 'Your roof has mild symptoms that are starting to affect its appearance. Addressing these early helps maintain your home\\'s curb appeal and prevents bigger problems down the road.',
-        'unknown': 'We need a bit more information to assess the impact on your home\\'s value, but a quick look at your roof can clarify how much curb appeal you may be losing.'
+        'high_risk': 'These conditions make it likely that melting snow refreezes at your roof edges, trapping water and forcing it under shingles. Heat escapes from your home, melts snow on the roof, and the water refreezes at the colder edges — creating ice dams that can damage insulation, decking, and interior finishes over time.',
+        'moderate_risk': 'Early warning signs suggest conditions that can lead to ice dams. When heat escapes from your home and melts snow on the roof, that water can refreeze at colder roof edges. Addressing insulation, ventilation, or drainage now can often prevent costly damage later.',
+        'low_risk': 'Your home appears to be handling winter conditions well. Ice dams form when heat escapes and melts snow that refreezes at roof edges — but periodic checks help ensure small issues don\\'t become expensive surprises.',
+        'unknown': 'We don\\'t have enough information yet to assess your risk. Ice dams form when heat escapes through your roof, melts snow, and that water refreezes at the edges. A quick evaluation can clarify whether your roof and attic are vulnerable.'
       };
-      return texts[impact] || texts['moderate_cost_impact'];
+      return texts[risk] || texts['moderate_risk'];
     }
 
     async function submitLead() {
-      // Get form values
       formData.name = document.getElementById('name').value.trim();
       formData.email = document.getElementById('email').value.trim();
       formData.phone = document.getElementById('phone').value.trim();
@@ -969,16 +913,13 @@ function generateHTML(tenant) {
         return;
       }
 
-      // Show loading
-      document.getElementById('step5').classList.remove('active');
+      document.getElementById('step6').classList.remove('active');
       document.getElementById('loading').classList.add('active');
       document.getElementById('progressFill').style.width = '95%';
 
-      // Compute cost impact
-      const costImpact = computeCostImpact();
-      const homeValueImpact = getHomeValueImpact(costImpact);
+      const riskLevel = computeRiskLevel();
+      const costImpact = getCostImpact(riskLevel);
 
-      // Get UTM params
       const urlParams = new URLSearchParams(window.location.search);
 
       try {
@@ -988,21 +929,19 @@ function generateHTML(tenant) {
           body: JSON.stringify({
             tenant: TENANT,
             flowType: 'educate',
-            flowSlug: 'dirty-roof-costs',
+            flowSlug: 'ice-dam-prevention',
             name: formData.name,
             email: formData.email,
             phone: formData.phone,
             address: formData.address,
-            urgencyLevel: costImpact === 'major_cost_impact' ? 'high' : (costImpact === 'moderate_cost_impact' ? 'medium' : 'low'),
-            qualifyScore: costImpact,
+            urgencyLevel: riskLevel === 'high_risk' ? 'high' : (riskLevel === 'moderate_risk' ? 'medium' : 'low'),
+            qualifyScore: riskLevel,
             flowData: {
-              roofSymptoms: formData.roofSymptoms,
-              roofAge: formData.roofAge,
-              lastCleaned: formData.lastCleaned,
-              homeownerGoals: formData.homeownerGoals,
-              streetviewAvailable: formData.streetviewAvailable,
-              streetviewUrl: formData.streetviewUrl,
-              estimatedHomeValueImpact: homeValueImpact
+              winterSymptoms: formData.winterSymptoms,
+              homeConditions: formData.homeConditions,
+              pastExperiences: formData.pastExperiences,
+              goals: formData.goals,
+              estimatedCostImpact: costImpact
             },
             utmSource: urlParams.get('utm_source'),
             utmMedium: urlParams.get('utm_medium'),
@@ -1012,33 +951,25 @@ function generateHTML(tenant) {
 
         const result = await response.json();
 
-        // Show results
         setTimeout(() => {
           document.getElementById('loading').classList.remove('active');
           document.getElementById('results').classList.add('active');
           document.getElementById('progressFill').style.width = '100%';
 
-          // Show Street View in results if available
-          if (formData.streetviewAvailable && formData.streetviewUrl) {
-            document.getElementById('streetviewResultImage').src = formData.streetviewUrl;
-            document.getElementById('streetviewResultContainer').style.display = 'block';
-          }
-
-          // Populate results
           document.getElementById('resultAddress').textContent = formData.address;
-          document.getElementById('resultSymptoms').textContent = formData.roofSymptoms.map(s => symptomsLabels[s] || s).join(', ');
-          document.getElementById('resultAge').textContent = ageLabels[formData.roofAge] || formData.roofAge;
-          document.getElementById('resultCleaned').textContent = cleanedLabels[formData.lastCleaned] || formData.lastCleaned;
-          document.getElementById('resultGoals').textContent = formData.homeownerGoals.map(g => goalsLabels[g] || g).join(', ');
-          document.getElementById('resultHomeValueImpact').textContent = homeValueImpact;
-          document.getElementById('assessmentText').textContent = getCostImpactText(costImpact);
+          document.getElementById('resultSymptoms').textContent = formData.winterSymptoms.map(s => symptomsLabels[s] || s).join(', ');
+          document.getElementById('resultConditions').textContent = formData.homeConditions.map(c => conditionsLabels[c] || c).join(', ');
+          document.getElementById('resultExperiences').textContent = formData.pastExperiences.map(e => experiencesLabels[e] || e).join(', ');
+          document.getElementById('resultGoals').textContent = formData.goals.map(g => goalsLabels[g] || g).join(', ');
+          document.getElementById('resultCostImpact').textContent = costImpact;
+          document.getElementById('assessmentText').textContent = getAssessmentText(riskLevel);
         }, 1500);
 
       } catch (error) {
         console.error('Error:', error);
         alert('Something went wrong. Please try again.');
         document.getElementById('loading').classList.remove('active');
-        document.getElementById('step5').classList.add('active');
+        document.getElementById('step6').classList.add('active');
       }
     }
 
@@ -1057,11 +988,10 @@ function generateHTML(tenant) {
       map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/dark-v11',
-        center: [-94.5786, 39.0997], // KC center [lng, lat]
+        center: [-94.5786, 39.0997],
         zoom: 8
       });
 
-      // Add geocoder search control
       const geocoder = new MapboxGeocoder({
         accessToken: MAPBOX_TOKEN,
         mapboxgl: mapboxgl,
@@ -1071,37 +1001,30 @@ function generateHTML(tenant) {
         proximity: { longitude: -94.5786, latitude: 39.0997 }
       });
 
-      // Add geocoder to the address input container
       document.getElementById('geocoder-container').appendChild(geocoder.onAdd(map));
 
-      // Handle result selection
       geocoder.on('result', function(e) {
         const coords = e.result.center;
         const address = e.result.place_name;
 
-        // Fly to location
         map.flyTo({
           center: coords,
           zoom: 16,
           duration: 1500
         });
 
-        // Add marker
         if (marker) marker.remove();
         marker = new mapboxgl.Marker({ color: '${tenant.colors.primary}' })
           .setLngLat(coords)
           .addTo(map);
 
-        // Store address and enable Continue button
         formData.address = address;
         document.getElementById('btn1').disabled = false;
       });
     }
 
-    // Initialize map when page loads
     window.addEventListener('load', initMap);
 
-    // Cmd+K to focus address input
     document.addEventListener('keydown', function(e) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();

@@ -52,6 +52,8 @@ function generateHTML(tenant) {
     :root {
       --primary: ${tenant.colors.primary};
       --primary-hover: ${tenant.colors.primaryHover};
+      --cta: #059669;
+      --cta-hover: #047857;
       --background: #fafafa;
       --foreground: #1a1a2e;
       --muted: #6b7280;
@@ -358,7 +360,7 @@ function generateHTML(tenant) {
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
-      background: var(--primary);
+      background: var(--cta);
       color: white;
       border: none;
       border-radius: 0.5rem;
@@ -371,7 +373,7 @@ function generateHTML(tenant) {
     }
 
     .btn:hover {
-      background: var(--primary-hover);
+      background: var(--cta-hover);
     }
 
     .btn:disabled {
@@ -777,6 +779,7 @@ function generateHTML(tenant) {
   </main>
 
   <footer class="powered-by">
+    <img src="/favicon.png" alt="Camvasser">
     <span>Powered by Camvasser</span>
   </footer>
 

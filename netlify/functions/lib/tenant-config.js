@@ -9,17 +9,15 @@ const TENANT_CONFIG = {
       phone: "855-661-7663",
       colors: {
         primary: "#FFC107",
-        primaryHover: "#FFB300",
-        background: "#2c2c2c",
-        logoBackground: "#2C2C2C"
+        primaryHover: "#e6ac00"
       },
       companycam_api_token_env: "BUDROOFING_COMPANYCAM_TOKEN",
-      page_title: "View Your Project Photos - Bud Roofing",
-      page_subtitle: "Enter your address to view photos from your roofing project",
-      heading: "View Your Photos",
-      subheading: "Enter your address to view photos from your home.",
       og_image: "https://budroofing.com/bud-vector.png",
-      flows: ['photos']
+      page_title: "Bud Roofing - View Your Project Photos",
+      page_subtitle: "Enter your address to view photos from your roofing project",
+      heading: "View Your Project Photos",
+      subheading: "Enter your address to see before, during, and after photos",
+      flows: ['roof-claim-denial', 'roof-spray-vs-sealant-options', 'dirty-roof-costs', 'clogged-gutters-damage', 'ice-dam-prevention', 'photos']
     },
     kcroofrestoration: {
       name: "KC Roof Restoration",
@@ -29,17 +27,15 @@ const TENANT_CONFIG = {
       phone: "855-661-7663",
       colors: {
         primary: "#156ed7",
-        primaryHover: "#1058b0",
-        background: "#31364c",
-        logoBackground: "#31364c"
+        primaryHover: "#1058b0"
       },
       companycam_api_token_env: "BUDROOFING_COMPANYCAM_TOKEN",
-      page_title: "View Your Project Photos - KC Roof Restoration",
-      page_subtitle: "Enter your address to view photos from your roofing project",
-      heading: "View Your Photos",
-      subheading: "Enter your address to view photos from your home.",
       og_image: "/logos/kcrr-badge.png",
-      flows: ['roof-claim-denial', 'roof-spray-vs-sealant-options', 'dirty-roof-costs', 'photos']
+      page_title: "KC Roof Restoration - View Your Project Photos",
+      page_subtitle: "Enter your address to view photos from your roofing project",
+      heading: "View Your Project Photos",
+      subheading: "Enter your address to see before, during, and after photos",
+      flows: ['roof-claim-denial', 'roof-spray-vs-sealant-options', 'dirty-roof-costs', 'clogged-gutters-damage', 'ice-dam-prevention', 'photos']
     }
   }
 };

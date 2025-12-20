@@ -213,11 +213,25 @@ function generateHTML(tenant) {
       </a>
       ` : ''}
 
-      ${tenant.flows.includes('dirty-roof-costs') ? `
+      ${tenant.flows.includes('dirty-roof-costs') || tenant.flows.includes('clogged-gutters-damage') || tenant.flows.includes('ice-dam-prevention') ? `
       <div class="section-label">Learn More</div>
+      ` : ''}
+      ${tenant.flows.includes('dirty-roof-costs') ? `
       <a href="/${tenant.slug}/dirty-roof-costs" class="flow-card">
         <h3>Dirty Roof Costing You Money? <span class="arrow">&rarr;</span></h3>
         <p>Learn how a dirty roof may be impacting your energy bills and roof lifespan</p>
+      </a>
+      ` : ''}
+      ${tenant.flows.includes('clogged-gutters-damage') ? `
+      <a href="/${tenant.slug}/clogged-gutters-damage" class="flow-card">
+        <h3>Clogged Gutters Damaging Your Roof? <span class="arrow">&rarr;</span></h3>
+        <p>Find out how gutter issues may be putting your roof at risk</p>
+      </a>
+      ` : ''}
+      ${tenant.flows.includes('ice-dam-prevention') ? `
+      <a href="/${tenant.slug}/ice-dam-prevention" class="flow-card">
+        <h3>Ice Dam Risk Assessment <span class="arrow">&rarr;</span></h3>
+        <p>Find out if your home is at risk for ice dam damage this winter</p>
       </a>
       ` : ''}
 
