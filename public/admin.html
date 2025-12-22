@@ -226,10 +226,16 @@
         <div class="relative flex-1 min-h-0 mt-1">
           <!-- Table Pane -->
           <div id="prospectListPane" class="h-full flex flex-col">
+            <!-- Bulk Actions Bar -->
+            <div id="prospectBulkActions" class="hidden bg-warning/10 rounded-lg px-3 py-2 my-2 flex items-center justify-between">
+              <span class="text-sm"><strong id="prospectSelectedCount">0</strong> contact(s) selected</span>
+              <button onclick="deleteSelectedProspects()" class="btn btn-error btn-sm">Delete Selected</button>
+            </div>
             <div class="overflow-auto flex-1">
               <table class="table w-full">
                 <thead class="sticky top-0 bg-base-100 z-10">
                   <tr>
+                    <th class="w-8"><input type="checkbox" id="selectAllProspects" class="checkbox checkbox-sm" onchange="toggleAllProspects(this.checked)"></th>
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortProspects('name')">Name</th>
                     <th>Address</th>
                     <th>Phone</th>
@@ -241,7 +247,7 @@
                 </thead>
                 <tbody id="prospectTableBody">
                   <tr>
-                    <td colspan="7" class="text-center py-8">
+                    <td colspan="8" class="text-center py-8">
                       <span class="loading loading-spinner loading-md"></span>
                     </td>
                   </tr>
@@ -1117,7 +1123,7 @@
       const tbody = document.getElementById('prospectTableBody');
 
       if (allProspects.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-base-content/60">No contacts found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-base-content/60">No contacts found</td></tr>`;
       } else {
         tbody.innerHTML = allProspects.map(prospect => {
           const phone = prospect.phones?.sort((a, b) => b.score - a.score)[0];
@@ -1136,18 +1142,24 @@
           const isSelected = selectedProspectId === prospect.id;
 
           return `
-            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''}" onclick="showProspectDetail('${prospect.id}')">
-              <td class="font-medium">${prospect.name || '-'}</td>
-              <td class="text-sm">${prospect.project?.address || '-'}</td>
-              <td class="text-sm">${phoneDisplay}</td>
-              <td class="text-sm max-w-[200px] truncate">${email}</td>
-              <td>${typeBadges || '-'}</td>
-              <td>${status}</td>
-              <td class="text-sm text-base-content/60">${created}</td>
+            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''}">
+              <td class="w-8" onclick="event.stopPropagation()">
+                <input type="checkbox" class="checkbox checkbox-sm prospect-checkbox" data-id="${prospect.id}" onchange="updateProspectSelectionUI()">
+              </td>
+              <td class="font-medium" onclick="showProspectDetail('${prospect.id}')">${prospect.name || '-'}</td>
+              <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${prospect.project?.address || '-'}</td>
+              <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${phoneDisplay}</td>
+              <td class="text-sm max-w-[200px] truncate" onclick="showProspectDetail('${prospect.id}')">${email}</td>
+              <td onclick="showProspectDetail('${prospect.id}')">${typeBadges || '-'}</td>
+              <td onclick="showProspectDetail('${prospect.id}')">${status}</td>
+              <td class="text-sm text-base-content/60" onclick="showProspectDetail('${prospect.id}')">${created}</td>
             </tr>
           `;
         }).join('');
       }
+      // Reset select all checkbox and bulk actions when results change
+      document.getElementById('selectAllProspects').checked = false;
+      updateProspectSelectionUI();
 
       renderPagination('prospect', prospectPage, prospectTotalPages, prospectTotal, (p) => { prospectPage = p; loadProspects(); });
     }
@@ -1249,6 +1261,16 @@
               <p class="text-sm bg-base-200 p-2 rounded">${prospect.notes}</p>
             </div>
           ` : ''}
+
+          <!-- Actions -->
+          <div class="pt-4 border-t border-base-300">
+            <button onclick="deleteProspect('${prospect.id}')" class="btn btn-error btn-sm btn-outline">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Delete Contact
+            </button>
+          </div>
         </div>
       `;
 
@@ -1567,6 +1589,88 @@
       const selectedCount = document.querySelectorAll('.lead-checkbox:checked').length;
       const bulkActions = document.getElementById('leadBulkActions');
       const selectedCountEl = document.getElementById('leadSelectedCount');
+
+      if (selectedCount > 0) {
+        bulkActions.classList.remove('hidden');
+        selectedCountEl.textContent = selectedCount;
+      } else {
+        bulkActions.classList.add('hidden');
+      }
+    }
+
+    // Prospect/Contact delete functions
+    async function deleteProspect(prospectId) {
+      const confirmed = await showConfirmModal('Delete Contact', 'Are you sure you want to delete this contact? This cannot be undone.');
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch(`/.netlify/functions/delete-prospects?id=${prospectId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById('prospectDetailPane').classList.add('hidden');
+          selectedProspectId = null;
+          searchProspects();
+        } else {
+          alert('Failed to delete contact: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error deleting contact:', error);
+        alert('Failed to delete contact');
+      }
+    }
+
+    async function deleteSelectedProspects() {
+      const selectedIds = Array.from(document.querySelectorAll('.prospect-checkbox:checked')).map(cb => cb.dataset.id);
+
+      if (selectedIds.length === 0) {
+        alert('No contacts selected');
+        return;
+      }
+
+      const confirmed = await showConfirmModal('Delete Contacts', `Are you sure you want to delete ${selectedIds.length} contact(s)? This cannot be undone.`);
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/delete-prospects', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ ids: selectedIds })
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById('selectAllProspects').checked = false;
+          updateProspectSelectionUI();
+          searchProspects();
+        } else {
+          alert('Failed to delete contacts: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error deleting contacts:', error);
+        alert('Failed to delete contacts');
+      }
+    }
+
+    function toggleAllProspects(checked) {
+      document.querySelectorAll('.prospect-checkbox').forEach(cb => cb.checked = checked);
+      updateProspectSelectionUI();
+    }
+
+    function updateProspectSelectionUI() {
+      const selectedCount = document.querySelectorAll('.prospect-checkbox:checked').length;
+      const bulkActions = document.getElementById('prospectBulkActions');
+      const selectedCountEl = document.getElementById('prospectSelectedCount');
 
       if (selectedCount > 0) {
         bulkActions.classList.remove('hidden');
