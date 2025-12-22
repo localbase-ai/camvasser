@@ -48,6 +48,15 @@ export function createMockPrisma() {
       findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn().mockResolvedValue(null)
     },
+    note: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      count: vi.fn().mockResolvedValue(0),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 })
+    },
     $queryRaw: vi.fn().mockResolvedValue([]),
     $queryRawUnsafe: vi.fn().mockResolvedValue([]),
     $disconnect: vi.fn()
@@ -133,6 +142,19 @@ export const factories = {
     value: 'storm-damage',
     display_value: 'Storm Damage',
     tag_type: 'label',
+    ...overrides
+  }),
+
+  note: (overrides = {}) => ({
+    id: 'note_123',
+    content: 'This is a test note',
+    entityType: 'lead',
+    entityId: 'lead_123',
+    tenant: 'acme',
+    authorId: 'user_123',
+    authorName: 'Test User',
+    createdAt: new Date(),
+    updatedAt: new Date(),
     ...overrides
   })
 };
