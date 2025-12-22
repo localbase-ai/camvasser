@@ -36,7 +36,7 @@ export async function handler(event) {
   }
 
   try {
-    const { limit, page, projectId, sortBy, sortDir, search, tag, statusFilter } = event.queryStringParameters || {};
+    const { limit, page, projectId, sortBy, sortDir, search, tag, statusFilter, tenant } = event.queryStringParameters || {};
     const limitNum = limit ? parseInt(limit) : 25;
     const pageNum = page ? parseInt(page) : 1;
     const skip = (pageNum - 1) * limitNum;
@@ -44,9 +44,10 @@ export async function handler(event) {
     // Build where clause
     const where = {};
 
-    // Filter by tenant (from authenticated user)
-    if (user.slug) {
-      where.tenant = user.slug;
+    // Filter by tenant from query param, fall back to user.slug for backwards compat
+    const tenantSlug = tenant || user.slug;
+    if (tenantSlug) {
+      where.tenant = tenantSlug;
     }
 
     if (projectId) {
@@ -95,20 +96,15 @@ export async function handler(event) {
       where.projectId = { in: ids };
     }
 
-    // Handle search with field:value syntax
+    // Handle search - use PostgreSQL full-text search for general queries
+    let useFullTextSearch = false;
+    let fullTextQuery = null;
+
     if (search) {
-      // Strip common filler words for more natural searches
-      let cleanedSearch = search
-        .replace(/^(show\s+me\s+)?(all\s+)?(the\s+)?(contacts?|people|prospects?)\s+(with|where|who|that\s+have)\s+/i, '')
-        .replace(/^(find\s+)?(all\s+)?(the\s+)?/i, '')
-        .replace(/^(get\s+)?(all\s+)?(the\s+)?/i, '')
-        .replace(/^(list\s+)?(all\s+)?(the\s+)?/i, '')
-        .trim();
+      const searchLower = search.toLowerCase().trim();
 
-      const searchLower = cleanedSearch.toLowerCase().trim();
-
-      // Check for field:value or field=value syntax
-      const colonMatch = cleanedSearch.match(/^(\w+)[:=](.+)$/i);
+      // Check for field:value or field=value syntax (keep special handling)
+      const colonMatch = search.match(/^(\w+)[:=](.+)$/i);
 
       if (colonMatch) {
         const [, field, value] = colonMatch;
@@ -116,107 +112,38 @@ export async function handler(event) {
         const valueLower = value.toLowerCase().trim();
 
         if (fieldLower === 'status') {
-          // status:yes/has = has any status, status:no/none = no status set
           if (['yes', 'true', 'has', 'set'].includes(valueLower)) {
-            // Has status: not null AND not empty string
-            where.AND = [
-              { status: { not: null } },
-              { status: { not: '' } }
-            ];
+            where.AND = where.AND || [];
+            where.AND.push({ status: { not: null } }, { status: { not: '' } });
           } else if (['no', 'false', 'none', 'null'].includes(valueLower)) {
-            // No status: null OR empty string
-            where.OR = [
-              { status: null },
-              { status: '' }
-            ];
+            where.OR = [{ status: null }, { status: '' }];
           } else {
-            // Search for specific status value
             where.status = { contains: value.trim(), mode: 'insensitive' };
           }
-        } else if (fieldLower === 'name') {
-          where.name = { contains: value.trim(), mode: 'insensitive' };
         } else if (fieldLower === 'homeowner' || fieldLower === 'owner') {
           where.isHomeowner = ['yes', 'true', '1'].includes(valueLower);
-        } else if (fieldLower === 'email') {
-          if (['yes', 'true', '1', 'has'].includes(valueLower)) {
-            where.emails = { not: { equals: null } };
-          } else if (['no', 'false', '0', 'none'].includes(valueLower)) {
-            where.emails = { equals: null };
-          }
         } else if (fieldLower === 'resident') {
           where.isCurrentResident = ['yes', 'true', '1'].includes(valueLower);
-        } else if (fieldLower === 'tag' || fieldLower === 'tags') {
-          // tags:yes = has any tag, tags:no = no tags, tags:value = specific tag
-          if (['yes', 'true', '1', 'has', 'any'].includes(valueLower)) {
-            // Has any tag - find projects with non-empty tags array
-            const projectIds = await prisma.$queryRaw`
-              SELECT id FROM "Project"
-              WHERE tags IS NOT NULL
-              AND tags::text != '[]'
-              AND tags::text != 'null'
-            `;
-            const ids = projectIds.map(p => p.id);
-            if (ids.length > 0) {
-              where.projectId = { in: ids };
-            } else {
-              where.projectId = { in: [] }; // No matches
-            }
-          } else if (['no', 'false', '0', 'none'].includes(valueLower)) {
-            // No tags
-            const projectIds = await prisma.$queryRaw`
-              SELECT id FROM "Project"
-              WHERE tags IS NULL
-              OR tags::text = '[]'
-              OR tags::text = 'null'
-            `;
-            const ids = projectIds.map(p => p.id);
-            if (ids.length > 0) {
-              where.projectId = { in: ids };
-            } else {
-              where.projectId = { in: [] };
-            }
-          } else {
-            // Specific tag value
-            const tagPattern = `%"value": "${value.trim()}"%`;
-            const projectIds = await prisma.$queryRaw`
-              SELECT id FROM "Project"
-              WHERE tags::text ILIKE ${tagPattern}
-            `;
-            const ids = projectIds.map(p => p.id);
-            if (ids.length > 0) {
-              where.projectId = { in: ids };
-            } else {
-              where.projectId = { in: [] };
-            }
-          }
-        }
-      } else {
-        // Check for natural language tag queries
-        if (['has tags', 'with tags', 'have tags', 'tagged'].includes(searchLower)) {
-          const projectIds = await prisma.$queryRaw`
-            SELECT id FROM "Project"
-            WHERE tags IS NOT NULL
-            AND tags::text != '[]'
-            AND tags::text != 'null'
-          `;
-          const ids = projectIds.map(p => p.id);
-          where.projectId = ids.length > 0 ? { in: ids } : { in: [] };
-        } else if (['no tags', 'without tags', 'untagged', 'not tagged'].includes(searchLower)) {
-          const projectIds = await prisma.$queryRaw`
-            SELECT id FROM "Project"
-            WHERE tags IS NULL
-            OR tags::text = '[]'
-            OR tags::text = 'null'
-          `;
-          const ids = projectIds.map(p => p.id);
-          where.projectId = ids.length > 0 ? { in: ids } : { in: [] };
         } else {
-          // Simple text search across name and status
-          where.OR = [
-            { name: { contains: cleanedSearch, mode: 'insensitive' } },
-            { status: { contains: cleanedSearch, mode: 'insensitive' } }
-          ];
+          // Use full-text search for other field queries
+          useFullTextSearch = true;
+          fullTextQuery = value.trim();
         }
+      } else if (['has tags', 'with tags', 'have tags', 'tagged', 'no tags', 'without tags', 'untagged'].includes(searchLower)) {
+        // Keep tag filter logic
+        const hasTags = ['has tags', 'with tags', 'have tags', 'tagged'].includes(searchLower);
+        const projectIds = await prisma.$queryRaw`
+          SELECT id FROM "Project"
+          WHERE ${hasTags ?
+            prisma.$queryRaw`tags IS NOT NULL AND tags::text != '[]' AND tags::text != 'null'` :
+            prisma.$queryRaw`tags IS NULL OR tags::text = '[]' OR tags::text = 'null'`}
+        `;
+        const ids = projectIds.map(p => p.id);
+        where.projectId = ids.length > 0 ? { in: ids } : { in: [] };
+      } else {
+        // Use full-text search for general queries
+        useFullTextSearch = true;
+        fullTextQuery = search.trim();
       }
     }
 
@@ -224,34 +151,90 @@ export async function handler(event) {
     const validSortFields = ['name', 'createdAt', 'updatedAt', 'isHomeowner', 'companyName', 'status'];
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
     const sortDirection = sortDir === 'asc' ? 'asc' : 'desc';
-    // For status, put nulls first (uncalled contacts at top)
-    const orderBy = sortField === 'status'
-      ? { [sortField]: { sort: sortDirection, nulls: 'first' } }
-      : { [sortField]: sortDirection };
 
-    const prospects = await prisma.prospect.findMany({
-      where,
-      orderBy,
-      take: limitNum,
-      skip,
-      include: {
-        project: {
-          select: {
-            id: true,
-            address: true,
-            city: true,
-            state: true,
-            publicUrl: true,
-            tags: true
-          }
-        }
+    let prospects, totalCount, homeownerCount;
+
+    if (useFullTextSearch && fullTextQuery) {
+      // Sanitize search query for tsquery
+      const sanitizedSearch = fullTextQuery.replace(/[^\w\s]/g, ' ').split(/\s+/).filter(Boolean).join(' & ');
+
+      if (sanitizedSearch) {
+        // Build WHERE conditions for raw query
+        const tenantCondition = user.slug ? `AND p.tenant = '${user.slug}'` : '';
+        const projectCondition = where.projectId ? `AND p."projectId" IN (${typeof where.projectId === 'object' && where.projectId.in ? where.projectId.in.map(id => `'${id}'`).join(',') : `'${where.projectId}'`})` : '';
+        const statusCondition = where.status ? `AND p.status = '${where.status}'` : '';
+
+        const searchQuery = `
+          SELECT p.*,
+                 row_to_json(proj.*) as project_data
+          FROM "Prospect" p
+          LEFT JOIN "Project" proj ON p."projectId" = proj.id
+          WHERE p.search_vector @@ to_tsquery('english', $1)
+          ${tenantCondition}
+          ${projectCondition}
+          ${statusCondition}
+          ORDER BY ts_rank(p.search_vector, to_tsquery('english', $1)) DESC, p."createdAt" DESC
+          LIMIT $2 OFFSET $3
+        `;
+
+        const countQuery = `
+          SELECT COUNT(*) as count FROM "Prospect" p
+          WHERE p.search_vector @@ to_tsquery('english', $1)
+          ${tenantCondition}
+          ${projectCondition}
+          ${statusCondition}
+        `;
+
+        const homeownerQuery = `
+          SELECT COUNT(*) as count FROM "Prospect" p
+          WHERE p.search_vector @@ to_tsquery('english', $1)
+          AND p."isHomeowner" = true
+          ${tenantCondition}
+          ${projectCondition}
+          ${statusCondition}
+        `;
+
+        const [searchResults, countResults, homeownerResults] = await Promise.all([
+          prisma.$queryRawUnsafe(searchQuery, sanitizedSearch, limitNum, skip),
+          prisma.$queryRawUnsafe(countQuery, sanitizedSearch),
+          prisma.$queryRawUnsafe(homeownerQuery, sanitizedSearch)
+        ]);
+
+        // Map results to include project relation
+        prospects = searchResults.map(r => ({
+          ...r,
+          project: r.project_data
+        }));
+        totalCount = Number(countResults[0]?.count || 0);
+        homeownerCount = Number(homeownerResults[0]?.count || 0);
+      } else {
+        // Empty search, fall through to regular query
+        useFullTextSearch = false;
       }
-    });
+    }
 
-    const totalCount = await prisma.prospect.count({ where });
-    const homeownerCount = await prisma.prospect.count({
-      where: { ...where, isHomeowner: true }
-    });
+    if (!useFullTextSearch || !fullTextQuery) {
+      // Regular Prisma query
+      const orderBy = sortField === 'status'
+        ? { [sortField]: { sort: sortDirection, nulls: 'first' } }
+        : { [sortField]: sortDirection };
+
+      [prospects, totalCount, homeownerCount] = await Promise.all([
+        prisma.prospect.findMany({
+          where,
+          orderBy,
+          take: limitNum,
+          skip,
+          include: {
+            project: {
+              select: { id: true, address: true, city: true, state: true, publicUrl: true, tags: true }
+            }
+          }
+        }),
+        prisma.prospect.count({ where }),
+        prisma.prospect.count({ where: { ...where, isHomeowner: true } })
+      ]);
+    }
 
     return {
       statusCode: 200,

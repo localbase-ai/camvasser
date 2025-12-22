@@ -40,16 +40,16 @@ export async function handler(event) {
   }
 
   try {
-    const { type, limit, page, sortBy, sortDir, search } = event.queryStringParameters || {};
-    // Always filter by the authenticated user's slug
-    const tenant = user.slug;
+    const { type, limit, page, sortBy, sortDir, search, tenant: tenantParam } = event.queryStringParameters || {};
+    // Use tenant from query param, fall back to user.slug for backwards compat
+    const tenant = tenantParam || user.slug;
 
     const limitNum = limit ? parseInt(limit) : 25;
     const pageNum = page ? parseInt(page) : 1;
     const skip = (pageNum - 1) * limitNum;
 
     // Build sort order - default to createdAt desc
-    const validSortFields = ['createdAt', 'firstName', 'lastName', 'email', 'phone', 'address'];
+    const validSortFields = ['createdAt', 'firstName', 'lastName', 'email', 'phone', 'address', 'status'];
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
     const sortDirection = sortDir === 'asc' ? 'asc' : 'desc';
     const orderBy = { [sortField]: sortDirection };
@@ -82,47 +82,50 @@ export async function handler(event) {
     // Fetch users
     const where = tenant ? { tenant } : {};
 
-    // Handle search with field:value syntax
-    if (search) {
-      const colonMatch = search.match(/^(\w+)[:=](.+)$/i);
+    // Handle search - use PostgreSQL full-text search
+    let leads, total;
 
-      if (colonMatch) {
-        const [, field, value] = colonMatch;
-        const fieldLower = field.toLowerCase();
-        const valueLower = value.toLowerCase().trim();
+    if (search && search.trim()) {
+      // Sanitize search query for tsquery
+      const sanitizedSearch = search.trim().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(Boolean).join(' & ');
 
-        if (fieldLower === 'name' || fieldLower === 'firstname') {
-          where.firstName = { contains: value.trim(), mode: 'insensitive' };
-        } else if (fieldLower === 'lastname') {
-          where.lastName = { contains: value.trim(), mode: 'insensitive' };
-        } else if (fieldLower === 'email') {
-          where.email = { contains: value.trim(), mode: 'insensitive' };
-        } else if (fieldLower === 'phone') {
-          where.phone = { contains: value.trim(), mode: 'insensitive' };
-        } else if (fieldLower === 'address') {
-          where.address = { contains: value.trim(), mode: 'insensitive' };
-        }
+      if (sanitizedSearch) {
+        // Use raw query for full-text search
+        const searchQuery = `
+          SELECT * FROM "User"
+          WHERE tenant = $1
+          AND search_vector @@ to_tsquery('english', $2)
+          ORDER BY ts_rank(search_vector, to_tsquery('english', $2)) DESC, "createdAt" DESC
+          LIMIT $3 OFFSET $4
+        `;
+
+        const countQuery = `
+          SELECT COUNT(*) as count FROM "User"
+          WHERE tenant = $1
+          AND search_vector @@ to_tsquery('english', $2)
+        `;
+
+        const [searchResults, countResults] = await Promise.all([
+          prisma.$queryRawUnsafe(searchQuery, tenant, sanitizedSearch, limitNum, skip),
+          prisma.$queryRawUnsafe(countQuery, tenant, sanitizedSearch)
+        ]);
+
+        leads = searchResults;
+        total = Number(countResults[0]?.count || 0);
       } else {
-        // Simple text search across name, email, phone, address
-        where.OR = [
-          { firstName: { contains: search, mode: 'insensitive' } },
-          { lastName: { contains: search, mode: 'insensitive' } },
-          { email: { contains: search, mode: 'insensitive' } },
-          { phone: { contains: search, mode: 'insensitive' } },
-          { address: { contains: search, mode: 'insensitive' } }
-        ];
+        // Empty search after sanitization, return all
+        [leads, total] = await Promise.all([
+          prisma.lead.findMany({ where, orderBy, take: limitNum, skip }),
+          prisma.lead.count({ where })
+        ]);
       }
+    } else {
+      // No search, use regular Prisma query
+      [leads, total] = await Promise.all([
+        prisma.lead.findMany({ where, orderBy, take: limitNum, skip }),
+        prisma.lead.count({ where })
+      ]);
     }
-
-    const [leads, total] = await Promise.all([
-      prisma.lead.findMany({
-        where,
-        orderBy,
-        take: limitNum,
-        skip
-      }),
-      prisma.lead.count({ where })
-    ]);
 
     return {
       statusCode: 200,

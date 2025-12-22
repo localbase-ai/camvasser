@@ -51,19 +51,55 @@ model Lead {
   @@index([flowType])
 }
 
-// Business users (contractors signing up to use Camvasser)
+// Tenant (a business/brand that uses Camvasser)
+model Tenant {
+  id          String   @id @default(cuid())
+  slug        String   @unique  // URL slug like "budroofing"
+  name        String   // Display name like "Bud Roofing"
+  domain      String?  // Their website domain
+  logoUrl     String?  // Logo URL
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users       UserTenant[]
+
+  @@index([slug])
+}
+
+// Join table: Users can belong to multiple tenants
+model UserTenant {
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String
+  role      String   @default("member")  // admin, member, viewer
+  createdAt DateTime @default(now())
+
+  user      BusinessUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([userId])
+  @@index([tenantId])
+}
+
+// Business users (people who use Camvasser)
 model BusinessUser {
   id           String   @id @default(cuid())
   name         String   // Person's name
   email        String   @unique
-  phone        String
-  companyName  String
-  domain       String?  // Their website domain
-  slug         String?  @unique // URL slug like "budroofing"
+  phone        String?
+  companyName  String?  // Legacy field, kept for backwards compat
+  domain       String?  // Legacy field
+  slug         String?  @unique // Legacy field - default tenant slug
   status       String   @default("pending") // pending, approved, rejected
   passwordHash String?  // Hashed password for login
+  isAdmin      Boolean  @default(false)  // Super admin can see all tenants
   createdAt    DateTime @default(now())
   approvedAt   DateTime?
+
+  // Relations
+  tenants      UserTenant[]
 
   @@index([createdAt])
   @@index([status])
