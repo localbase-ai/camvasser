@@ -1,8 +1,11 @@
 # Camvasser TODO
 
+# White Pages Test
+- [ ] set up a test account with white pages and source data for a test list
+
 # Bugs
 - [✅] status filter dropdown doesn't work in leads list view
-- [ ] board view columns should have status filters
+- [✅] board view columns should have status filters
 
 # Map Features
 - [ ] filter leads by 'lead-status'
@@ -22,6 +25,7 @@
 
 ## Data Cleanup
 - [✅] Delete 71 junk leads (address-only records with no contact info)
+- [ ] get pins from Cade's door hanging into the data somehow
 
 ## Connect Data Sources
 - [ ] Connect RoofMaxx API, sync new leads to Camvasser

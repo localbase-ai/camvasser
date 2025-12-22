@@ -377,6 +377,9 @@
               <select id="mapTagFilter" class="select select-sm select-bordered w-40" onchange="applyMapFilters()">
                 <option value="">All tags</option>
               </select>
+              <select id="mapLeadStatusFilter" class="select select-sm select-bordered w-40" onchange="applyMapFilters()">
+                <option value="">All lead statuses</option>
+              </select>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" id="clusterToggle" checked class="checkbox checkbox-sm" onchange="toggleClustering(this.checked)">
                 <span class="text-sm">Cluster</span>
@@ -2160,11 +2163,36 @@
           const tagSelect = document.getElementById('mapTagFilter');
           tagSelect.innerHTML = '<option value="">All tags</option>' +
             mapAvailableTags.map(t => `<option value="${t.name}">${t.name} (${t.count})</option>`).join('');
+
+          // Extract unique lead statuses for filter dropdown
+          const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
+          const statusCounts = {};
+          leads.forEach(lead => {
+            if (lead.status) {
+              statusCounts[lead.status] = (statusCounts[lead.status] || 0) + 1;
+            }
+          });
+          const mapAvailableStatuses = Object.entries(statusCounts)
+            .sort((a, b) => {
+              const aIdx = preferredOrder.indexOf(a[0]);
+              const bIdx = preferredOrder.indexOf(b[0]);
+              if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+              if (aIdx !== -1) return -1;
+              if (bIdx !== -1) return 1;
+              return a[0].localeCompare(b[0]);
+            })
+            .map(([status, count]) => ({ status, count }));
+
+          // Populate lead status filter dropdown
+          const statusSelect = document.getElementById('mapLeadStatusFilter');
+          statusSelect.innerHTML = '<option value="">All lead statuses</option>' +
+            mapAvailableStatuses.map(s => `<option value="${s.status}">${formatStatus(s.status)} (${s.count})</option>`).join('');
         }
 
         // Get filter values
         const hasTagsOnly = document.getElementById('mapHasTagsToggle')?.checked || false;
         const selectedTag = document.getElementById('mapTagFilter')?.value || '';
+        const selectedLeadStatus = document.getElementById('mapLeadStatusFilter')?.value || '';
 
         // Filter addresses based on tag settings
         const filteredAddresses = addresses.filter(addr => {
@@ -2243,8 +2271,14 @@
           mapMarkers.push(marker);
         });
 
+        // Filter leads based on status
+        const filteredLeads = leads.filter(lead => {
+          if (selectedLeadStatus && lead.status !== selectedLeadStatus) return false;
+          return true;
+        });
+
         // Add lead markers (on top, with status colors)
-        leads.forEach(lead => {
+        filteredLeads.forEach(lead => {
           const coords = lead.coordinates;
           if (!coords || !coords.lat || !coords.lon) return;
 
