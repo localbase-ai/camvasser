@@ -36,8 +36,8 @@
 - [✅] Add notes to address
 
 ## Admin Features - Conversions
-- [ ] Convert contact to lead
-- [ ] Revert lead to project/address
+- [✅] Convert contact to lead
+- [✅] Revert lead to project/address
 
 ## Admin Features - Calendar
 - [ ] Create appointment on Google Calendar
