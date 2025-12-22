@@ -1,9 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { signToken } from './lib/auth.js';
 
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
@@ -65,16 +64,21 @@ export async function handler(event) {
     }
 
     // Generate JWT
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        slug: user.slug,
-        companyName: user.companyName
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const token = signToken({
+      userId: user.id,
+      email: user.email,
+      slug: user.slug,
+      companyName: user.companyName
+    });
+
+    if (!token) {
+      console.error('Failed to generate token - JWT_SECRET not configured');
+      return {
+        statusCode: 500,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Server configuration error' })
+      };
+    }
 
     return {
       statusCode: 200,

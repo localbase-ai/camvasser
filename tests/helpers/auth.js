@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+// Use the same secret that's set in tests/setup.js
+const JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-for-testing';
 
 // Generate a valid JWT token for testing
 export function generateTestToken(payload = {}) {

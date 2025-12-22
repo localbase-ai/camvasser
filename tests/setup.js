@@ -3,11 +3,15 @@
 
 import { beforeAll, afterAll, vi } from 'vitest';
 
+// Set environment variables BEFORE any modules load
+process.env.NODE_ENV = 'test';
+process.env.BUDROOFING_COMPANYCAM_TOKEN = 'test-token-123';
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
+process.env.JWT_SECRET = 'test-jwt-secret-for-testing';
+
 // Mock environment variables for tests
 beforeAll(() => {
-  process.env.BUDROOFING_COMPANYCAM_TOKEN = 'test-token-123';
-  process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
-  process.env.JWT_SECRET = 'test-jwt-secret-for-testing';
+  // Env vars already set above
 });
 
 afterAll(() => {

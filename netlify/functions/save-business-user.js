@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { verifyToken } from './lib/auth.js';
 
 const prisma = new PrismaClient();
 
@@ -8,6 +9,31 @@ export async function handler(event) {
     return {
       statusCode: 405,
       body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
+
+  // Require authentication - only admins can create business users
+  const authHeader = event.headers.authorization || event.headers.Authorization;
+  const user = verifyToken(authHeader);
+
+  if (!user) {
+    return {
+      statusCode: 401,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Unauthorized - authentication required' })
+    };
+  }
+
+  // Check if user is admin (look up in database)
+  const requestingUser = await prisma.businessUser.findUnique({
+    where: { id: user.userId }
+  });
+
+  if (!requestingUser || !requestingUser.isAdmin) {
+    return {
+      statusCode: 403,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Forbidden - admin access required' })
     };
   }
 

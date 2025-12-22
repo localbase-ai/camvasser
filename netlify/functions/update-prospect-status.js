@@ -1,8 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from './lib/auth.js';
 
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // Valid status values
 const VALID_STATUSES = [
@@ -20,18 +19,6 @@ const VALID_STATUSES = [
   'wants_quote_phone',
   'follow_up_sms_sent'
 ];
-
-function verifyToken(authHeader) {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-  const token = authHeader.substring(7);
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
-    return null;
-  }
-}
 
 export async function handler(event) {
   // Only allow POST/PATCH
