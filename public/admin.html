@@ -1410,8 +1410,14 @@
           </div>
 
           <!-- Actions -->
-          <div class="pt-4 border-t border-base-300">
-            <button onclick="deleteProspect('${prospect.id}')" class="btn btn-error btn-sm btn-outline">
+          <div class="pt-4 border-t border-base-300 space-y-2">
+            <button onclick="convertContactToLead('${prospect.id}')" class="btn btn-primary btn-sm w-full">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+              Convert to Lead
+            </button>
+            <button onclick="deleteProspect('${prospect.id}')" class="btn btn-error btn-sm btn-outline w-full">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
@@ -1720,7 +1726,15 @@
           ` : ''}
 
           <!-- Actions -->
-          <div class="pt-4 border-t border-base-300">
+          <div class="pt-4 border-t border-base-300 space-y-2">
+            ${lead.address ? `
+              <button onclick="revertLeadToProject('${lead.id}')" class="btn btn-secondary btn-sm w-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Revert to Address
+              </button>
+            ` : ''}
             <button onclick="deleteLead('${lead.id}')" class="btn btn-sm btn-error btn-outline w-full">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1994,6 +2008,73 @@
       } catch (error) {
         console.error('Error deleting contact:', error);
         alert('Failed to delete contact');
+      }
+    }
+
+    async function convertContactToLead(prospectId) {
+      const confirmed = await showConfirmModal('Convert to Lead', 'Convert this contact to a lead? The contact will remain unless you delete it.');
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/convert-contact-to-lead', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ prospectId, deleteProspect: false })
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+        if (data.success) {
+          alert(`Contact converted to lead successfully!`);
+          document.getElementById('prospectDetailPane').classList.add('hidden');
+          selectedProspectId = null;
+          // Switch to leads view to show the new lead
+          showView('leads');
+          searchLeads();
+        } else {
+          alert('Failed to convert contact: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error converting contact to lead:', error);
+        alert('Failed to convert contact to lead');
+      }
+    }
+
+    async function revertLeadToProject(leadId) {
+      const confirmed = await showConfirmModal('Revert to Address', 'Create an address record from this lead? The lead will be deleted.');
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/revert-lead-to-project', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ leadId, deleteLead: true, createProspect: true })
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+        if (data.success) {
+          const msg = data.projectCreated ? 'Lead converted to new address' : 'Lead linked to existing address';
+          alert(`${msg}${data.prospectCreated ? ' and contact created' : ''}!`);
+          document.getElementById('leadDetailPane').classList.add('hidden');
+          selectedLeadId = null;
+          // Switch to addresses view
+          showView('addresses');
+          searchAddresses();
+        } else {
+          alert('Failed to revert lead: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error reverting lead to project:', error);
+        alert('Failed to revert lead to address');
       }
     }
 
