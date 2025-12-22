@@ -1733,38 +1733,11 @@
       // Create map centered on Kansas City metro area (~200 mile radius at zoom 7)
       map = L.map('mapContainer').setView([39.1, -94.6], 7);
 
-      // Base tile layers
-      const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // Add OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19
-      });
-      const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: '&copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
-        maxZoom: 19
-      });
-      const labelsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 19,
-        pane: 'shadowPane' // Render below markers but above base tiles
-      });
-
-      // Add street view by default
-      streetLayer.addTo(map);
-
-      // Auto-toggle labels when switching to/from satellite
-      map.on('baselayerchange', (e) => {
-        if (e.name === 'Satellite') {
-          labelsLayer.addTo(map);
-        } else {
-          map.removeLayer(labelsLayer);
-        }
-      });
-
-      // Add base layer control (top right)
-      L.control.layers(
-        { 'Street': streetLayer, 'Satellite': satelliteLayer },
-        null,
-        { position: 'topright' }
-      ).addTo(map);
+      }).addTo(map);
 
       mapInitialized = true;
 
