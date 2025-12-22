@@ -1067,6 +1067,26 @@
             </div>
           </div>
 
+          <!-- Notes -->
+          <div class="space-y-2">
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Notes</h5>
+
+            <!-- Add Note Form -->
+            <div class="flex gap-2">
+              <textarea id="projectNoteInput" class="textarea textarea-bordered textarea-sm flex-1" placeholder="Add a note... (Enter to submit, Shift+Enter for new line)" rows="2" onkeydown="handleProjectNoteKeydown(event, '${addr.id}')"></textarea>
+              <button onclick="addProjectNote('${addr.id}')" class="btn btn-sm btn-primary self-end">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Notes List -->
+            <div id="projectNotesList" class="space-y-2">
+              <div class="text-sm text-base-content/40 italic">Loading notes...</div>
+            </div>
+          </div>
+
           <!-- Actions -->
           <div class="flex gap-2">
             ${addr.publicUrl ? `
@@ -1129,8 +1149,94 @@
       // Show pane
       pane.classList.remove('hidden');
 
+      // Load notes for this project
+      loadProjectNotes(addressId);
+
       // Re-render table to update selected state
       renderAddressResults(allAddresses, addressTotal, addressTotalPages);
+    }
+
+    // Load notes for a project/address
+    async function loadProjectNotes(projectId) {
+      const container = document.getElementById('projectNotesList');
+      if (!container) return;
+
+      try {
+        const params = new URLSearchParams({
+          entityType: 'project',
+          entityId: projectId,
+          tenant: currentTenant
+        });
+
+        const response = await fetch(`/.netlify/functions/notes?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to load notes');
+
+        const data = await response.json();
+
+        if (data.notes.length === 0) {
+          container.innerHTML = '<div class="text-sm text-base-content/40 italic">No notes yet</div>';
+        } else {
+          container.innerHTML = data.notes.map(note => `
+            <div class="bg-base-200 p-2 rounded text-sm relative group">
+              <div class="pr-6">${escapeHtml(note.content)}</div>
+              <div class="text-xs text-base-content/40 mt-1">
+                ${note.authorName ? `${note.authorName} - ` : ''}${formatDate(note.createdAt)}
+              </div>
+              <button onclick="deleteNote('${note.id}', 'project', '${projectId}')" class="absolute top-1 right-1 btn btn-ghost btn-xs opacity-0 group-hover:opacity-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Error loading notes:', error);
+        container.innerHTML = '<div class="text-sm text-error">Failed to load notes</div>';
+      }
+    }
+
+    // Add a note to a project/address
+    async function addProjectNote(projectId) {
+      const input = document.getElementById('projectNoteInput');
+      const content = input.value.trim();
+
+      if (!content) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/notes', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            entityType: 'project',
+            entityId: projectId,
+            content,
+            tenant: currentTenant
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to add note');
+
+        input.value = '';
+        loadProjectNotes(projectId);
+      } catch (error) {
+        console.error('Error adding note:', error);
+        alert('Failed to add note');
+      }
+    }
+
+    // Handle Enter/Shift+Enter in project note textarea
+    function handleProjectNoteKeydown(event, projectId) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        addProjectNote(projectId);
+      }
     }
 
     function closeAddressDetail() {
@@ -1277,12 +1383,31 @@
           </div>
 
           <!-- Notes -->
-          ${prospect.notes ? `
-            <div class="space-y-2">
-              <h5 class="text-xs font-semibold text-base-content/60 uppercase">Notes</h5>
-              <p class="text-sm bg-base-200 p-2 rounded">${prospect.notes}</p>
+          <div class="space-y-2">
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Notes</h5>
+
+            <!-- Add Note Form -->
+            <div class="flex gap-2">
+              <textarea id="prospectNoteInput" class="textarea textarea-bordered textarea-sm flex-1" placeholder="Add a note... (Enter to submit, Shift+Enter for new line)" rows="2" onkeydown="handleProspectNoteKeydown(event, '${prospect.id}')"></textarea>
+              <button onclick="addProspectNote('${prospect.id}')" class="btn btn-sm btn-primary self-end">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
             </div>
-          ` : ''}
+
+            <!-- Notes List -->
+            <div id="prospectNotesList" class="space-y-2">
+              <div class="text-sm text-base-content/40 italic">Loading notes...</div>
+            </div>
+
+            <!-- Legacy notes (if any) -->
+            ${prospect.notes ? `
+              <div class="text-xs text-base-content/40 mt-2 pt-2 border-t border-base-300">
+                <span class="font-semibold">Legacy note:</span> ${prospect.notes}
+              </div>
+            ` : ''}
+          </div>
 
           <!-- Actions -->
           <div class="pt-4 border-t border-base-300">
@@ -1304,8 +1429,94 @@
         loadProspectMap(prospect.project);
       }
 
+      // Load notes for this prospect
+      loadProspectNotes(prospectId);
+
       // Re-render table to update selected state
       renderProspects();
+    }
+
+    // Load notes for a prospect
+    async function loadProspectNotes(prospectId) {
+      const container = document.getElementById('prospectNotesList');
+      if (!container) return;
+
+      try {
+        const params = new URLSearchParams({
+          entityType: 'prospect',
+          entityId: prospectId,
+          tenant: currentTenant
+        });
+
+        const response = await fetch(`/.netlify/functions/notes?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to load notes');
+
+        const data = await response.json();
+
+        if (data.notes.length === 0) {
+          container.innerHTML = '<div class="text-sm text-base-content/40 italic">No notes yet</div>';
+        } else {
+          container.innerHTML = data.notes.map(note => `
+            <div class="bg-base-200 p-2 rounded text-sm relative group">
+              <div class="pr-6">${escapeHtml(note.content)}</div>
+              <div class="text-xs text-base-content/40 mt-1">
+                ${note.authorName ? `${note.authorName} - ` : ''}${formatDate(note.createdAt)}
+              </div>
+              <button onclick="deleteNote('${note.id}', 'prospect', '${prospectId}')" class="absolute top-1 right-1 btn btn-ghost btn-xs opacity-0 group-hover:opacity-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Error loading notes:', error);
+        container.innerHTML = '<div class="text-sm text-error">Failed to load notes</div>';
+      }
+    }
+
+    // Add a note to a prospect
+    async function addProspectNote(prospectId) {
+      const input = document.getElementById('prospectNoteInput');
+      const content = input.value.trim();
+
+      if (!content) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/notes', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            entityType: 'prospect',
+            entityId: prospectId,
+            content,
+            tenant: currentTenant
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to add note');
+
+        input.value = '';
+        loadProspectNotes(prospectId);
+      } catch (error) {
+        console.error('Error adding note:', error);
+        alert('Failed to add note');
+      }
+    }
+
+    // Handle Enter/Shift+Enter in prospect note textarea
+    function handleProspectNoteKeydown(event, prospectId) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        addProspectNote(prospectId);
+      }
     }
 
     function loadProspectMap(project) {
@@ -1470,12 +1681,31 @@
           </div>
 
           <!-- Notes -->
-          ${lead.notes ? `
-            <div class="space-y-2">
-              <h5 class="text-xs font-semibold text-base-content/60 uppercase">Notes</h5>
-              <p class="text-sm bg-base-200 p-2 rounded">${lead.notes}</p>
+          <div class="space-y-2">
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Notes</h5>
+
+            <!-- Add Note Form -->
+            <div class="flex gap-2">
+              <textarea id="leadNoteInput" class="textarea textarea-bordered textarea-sm flex-1" placeholder="Add a note... (Enter to submit, Shift+Enter for new line)" rows="2" onkeydown="handleNoteKeydown(event, '${lead.id}')"></textarea>
+              <button onclick="addLeadNote('${lead.id}')" class="btn btn-sm btn-primary self-end">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
             </div>
-          ` : ''}
+
+            <!-- Notes List -->
+            <div id="leadNotesList" class="space-y-2">
+              <div class="text-sm text-base-content/40 italic">Loading notes...</div>
+            </div>
+
+            <!-- Legacy notes (if any) -->
+            ${lead.notes ? `
+              <div class="text-xs text-base-content/40 mt-2 pt-2 border-t border-base-300">
+                <span class="font-semibold">Legacy note:</span> ${lead.notes}
+              </div>
+            ` : ''}
+          </div>
 
           <!-- UTM Data -->
           ${(lead.utmSource || lead.utmMedium || lead.utmCampaign) ? `
@@ -1509,12 +1739,132 @@
         loadLeadMap(lead);
       }
 
+      // Load notes for this lead
+      loadLeadNotes(leadId);
+
       // Re-render to update selected state - respect current view mode
       if (leadsViewMode === 'kanban') {
         // Don't re-render kanban, just keep the pane open
       } else {
         renderLeadResults(allLeads, leadTotal, leadTotalPages);
       }
+    }
+
+    // Load notes for a lead
+    async function loadLeadNotes(leadId) {
+      const container = document.getElementById('leadNotesList');
+      if (!container) return;
+
+      try {
+        const params = new URLSearchParams({
+          entityType: 'lead',
+          entityId: leadId,
+          tenant: currentTenant
+        });
+
+        const response = await fetch(`/.netlify/functions/notes?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to load notes');
+
+        const data = await response.json();
+
+        if (data.notes.length === 0) {
+          container.innerHTML = '<div class="text-sm text-base-content/40 italic">No notes yet</div>';
+        } else {
+          container.innerHTML = data.notes.map(note => `
+            <div class="bg-base-200 p-2 rounded text-sm relative group">
+              <div class="pr-6">${escapeHtml(note.content)}</div>
+              <div class="text-xs text-base-content/40 mt-1">
+                ${note.authorName ? `${note.authorName} - ` : ''}${formatDate(note.createdAt)}
+              </div>
+              <button onclick="deleteNote('${note.id}', 'lead', '${leadId}')" class="absolute top-1 right-1 btn btn-ghost btn-xs opacity-0 group-hover:opacity-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Error loading notes:', error);
+        container.innerHTML = '<div class="text-sm text-error">Failed to load notes</div>';
+      }
+    }
+
+    // Add a note to a lead
+    async function addLeadNote(leadId) {
+      const input = document.getElementById('leadNoteInput');
+      const content = input.value.trim();
+
+      if (!content) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/notes', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            entityType: 'lead',
+            entityId: leadId,
+            content,
+            tenant: currentTenant
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to add note');
+
+        input.value = '';
+        loadLeadNotes(leadId);
+      } catch (error) {
+        console.error('Error adding note:', error);
+        alert('Failed to add note');
+      }
+    }
+
+    // Delete a note
+    async function deleteNote(noteId, entityType, entityId) {
+      if (!confirm('Delete this note?')) return;
+
+      try {
+        const response = await fetch(`/.netlify/functions/notes?id=${noteId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to delete note');
+
+        // Reload notes based on entity type
+        if (entityType === 'lead') {
+          loadLeadNotes(entityId);
+        } else if (entityType === 'prospect') {
+          loadProspectNotes(entityId);
+        } else if (entityType === 'project') {
+          loadProjectNotes(entityId);
+        }
+      } catch (error) {
+        console.error('Error deleting note:', error);
+        alert('Failed to delete note');
+      }
+    }
+
+    // Handle Enter/Shift+Enter in note textarea
+    function handleNoteKeydown(event, leadId) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        addLeadNote(leadId);
+      }
+      // Shift+Enter allows default behavior (new line)
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
 
     // Custom confirm modal
