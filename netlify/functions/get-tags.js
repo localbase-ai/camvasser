@@ -1,8 +1,36 @@
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import axios from 'axios';
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Fetch valid tags from CompanyCam API
+async function fetchValidTagsFromCompanyCam(tenant) {
+  const tokenKey = `${tenant.toUpperCase()}_COMPANYCAM_TOKEN`;
+  const apiToken = process.env[tokenKey] || process.env.COMPANYCAM_API_TOKEN;
+
+  if (!apiToken) {
+    console.warn(`No CompanyCam API token found for tenant: ${tenant}`);
+    return null; // Return null to skip validation if no token
+  }
+
+  try {
+    const response = await axios.get('https://api.companycam.com/v2/tags', {
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+        'Accept': 'application/json'
+      },
+      timeout: 10000
+    });
+
+    // Return a Set of valid tag IDs for fast lookup
+    return new Set((response.data || []).map(tag => tag.id));
+  } catch (error) {
+    console.error('Error fetching tags from CompanyCam:', error.message);
+    return null; // Return null to skip validation on error
+  }
+}
 
 // Helper function to verify JWT token
 function verifyToken(authHeader) {
@@ -52,6 +80,9 @@ export async function handler(event) {
       where.tenant = tenant;
     }
 
+    // Fetch valid tags from CompanyCam (for filtering deleted tags)
+    const validTagIds = tenant ? await fetchValidTagsFromCompanyCam(tenant) : null;
+
     // Fetch projects with tags
     const projects = await prisma.project.findMany({
       where,
@@ -60,12 +91,18 @@ export async function handler(event) {
       }
     });
 
-    // Collect unique tags
+    // Collect unique tags (filtering out deleted ones if we have valid tag list)
     const tagMap = new Map();
     projects.forEach(project => {
       if (project.tags && Array.isArray(project.tags)) {
         project.tags.forEach(tag => {
-          if (tag.value && !tagMap.has(tag.value)) {
+          // Skip if tag has no value
+          if (!tag.value) return;
+
+          // Skip if we have a valid tag list and this tag isn't in it
+          if (validTagIds && !validTagIds.has(tag.id)) return;
+
+          if (!tagMap.has(tag.value)) {
             tagMap.set(tag.value, {
               id: tag.id,
               value: tag.value,
@@ -79,7 +116,7 @@ export async function handler(event) {
 
     // Convert to sorted array
     const tags = Array.from(tagMap.values()).sort((a, b) =>
-      a.display_value.localeCompare(b.display_value)
+      (a.display_value || a.value || '').localeCompare(b.display_value || b.value || '')
     );
 
     return {
