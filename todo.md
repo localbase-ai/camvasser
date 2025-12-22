@@ -8,8 +8,7 @@
 - [✅] board view columns should have status filters
 
 # Map Features
-- [ ] filter leads by 'lead-status'
-- [ ] remove the 'lead' status it's redundant
+- [✅] filter leads by 'lead-status'
 
 ## Mobile App
 - [ ] Set up Capacitor for iOS app
@@ -32,9 +31,9 @@
 - [ ] Connect Bud Roofing website forms, push new submissions into Camvasser
 
 ## Admin Features - Notes
-- [ ] Add notes to lead
-- [ ] Add notes to contact
-- [ ] Add notes to address
+- [✅] Add notes to lead
+- [✅] Add notes to contact
+- [✅] Add notes to address
 
 ## Admin Features - Conversions
 - [ ] Convert contact to lead
