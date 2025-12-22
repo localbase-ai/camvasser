@@ -40,7 +40,7 @@ export async function handler(event) {
   }
 
   try {
-    const { limit, page, search, status, sortBy, sortDir, tag, hasProspects, tenant } = event.queryStringParameters || {};
+    const { limit, page, search, status, sortBy, sortDir, tag, hasTags, hasProspects, tenant } = event.queryStringParameters || {};
     const limitNum = limit ? parseInt(limit) : 25;
     const pageNum = page ? parseInt(page) : 1;
     const skip = (pageNum - 1) * limitNum;
@@ -62,6 +62,15 @@ export async function handler(event) {
       where.prospects = { some: {} };
     } else if (hasProspects === 'false') {
       where.prospects = { none: {} };
+    }
+
+    // Filter by hasTags - projects with non-empty tags array
+    if (hasTags === 'true') {
+      where.AND = where.AND || [];
+      where.AND.push({
+        tags: { not: null }
+      });
+      // Need raw SQL to check array not empty - will handle in query
     }
 
     // Handle search - use PostgreSQL full-text search for general queries
@@ -227,6 +236,7 @@ export async function handler(event) {
         if (where.tenant) conditions.push(`p.tenant = '${where.tenant}'`);
         if (where.status) conditions.push(`p.status = '${where.status}'`);
         if (where.id?.in) conditions.push(`p.id IN (${where.id.in.map(id => `'${id}'`).join(',')})`);
+        if (hasTags === 'true') conditions.push(`p.tags IS NOT NULL AND p.tags::text != '[]' AND p.tags::text != 'null'`);
 
         // Handle hasProspects filter
         let hasProspectsJoin = '';
@@ -302,6 +312,7 @@ export async function handler(event) {
         if (where.tenant) conditions.push(`p.tenant = '${where.tenant}'`);
         if (where.status) conditions.push(`p.status = '${where.status}'`);
         if (where.id?.in) conditions.push(`p.id IN (${where.id.in.map(id => `'${id}'`).join(',')})`);
+        if (hasTags === 'true') conditions.push(`p.tags IS NOT NULL AND p.tags::text != '[]' AND p.tags::text != 'null'`);
 
         let hasProspectsJoin = '';
         let hasProspectsCondition = '';

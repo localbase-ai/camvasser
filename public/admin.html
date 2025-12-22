@@ -227,6 +227,10 @@
                 <option value="">All Tags</option>
               </select>
               <label class="label cursor-pointer gap-2">
+                <input type="checkbox" id="hasTagsFilter" class="toggle toggle-sm">
+                <span class="label-text">Has tags</span>
+              </label>
+              <label class="label cursor-pointer gap-2">
                 <input type="checkbox" id="hasProspectsFilter" class="toggle toggle-sm">
                 <span class="label-text">Has contacts</span>
               </label>
@@ -677,7 +681,7 @@
 
       // Check initial hash
       const initialHash = window.location.hash.slice(1);
-      if (initialHash && ['addresses', 'contacts', 'leads'].includes(initialHash)) {
+      if (initialHash && ['addresses', 'contacts', 'leads', 'map'].includes(initialHash)) {
         switchView(initialHash, false);
       }
     }
@@ -884,6 +888,7 @@
         addressSearchTimeout = setTimeout(() => { addressPage = 1; searchAddresses(); }, 300);
       });
       document.getElementById('addressTagFilter').addEventListener('change', () => { addressPage = 1; searchAddresses(); });
+      document.getElementById('hasTagsFilter').addEventListener('change', () => { addressPage = 1; searchAddresses(); });
       document.getElementById('hasProspectsFilter').addEventListener('change', () => { addressPage = 1; searchAddresses(); });
 
       // Prospect search - use server-side search
@@ -910,6 +915,7 @@
     async function searchAddresses() {
       const searchQuery = document.getElementById('addressSearch').value.trim();
       const tagFilter = document.getElementById('addressTagFilter').value;
+      const hasTags = document.getElementById('hasTagsFilter').checked;
       const hasProspects = document.getElementById('hasProspectsFilter').checked;
 
       // Build query params
@@ -923,6 +929,7 @@
       if (currentTenant) params.set('tenant', currentTenant);
       if (searchQuery) params.set('search', searchQuery);
       if (tagFilter) params.set('tag', tagFilter);
+      if (hasTags) params.set('hasTags', 'true');
       if (hasProspects) params.set('hasProspects', 'true');
 
       try {
@@ -1792,6 +1799,8 @@
     let map = null;
     let mapMarkers = [];
     let mapInitialized = false;
+    let mapLayers = {};       // Layer groups for filtering
+    let mapLayerControl = null;
 
     async function initializeMap() {
       if (mapInitialized && map) {
@@ -1803,8 +1812,8 @@
       const container = document.getElementById('mapContainer');
       if (!container) return;
 
-      // Create map centered on US
-      map = L.map('mapContainer').setView([39.8283, -98.5795], 4);
+      // Create map centered on Kansas City metro area (~200 mile radius at zoom 7)
+      map = L.map('mapContainer').setView([39.1, -94.6], 7);
 
       // Add OpenStreetMap tiles
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1821,48 +1830,47 @@
     async function loadMapData() {
       if (!map) return;
 
-      document.getElementById('mapAddressCount').textContent = 'Loading addresses...';
+      document.getElementById('mapAddressCount').textContent = 'Loading...';
 
       try {
-        // Fetch ALL addresses with coordinates
-        const addressParams = new URLSearchParams({
-          limit: '10000',
-          hasProspects: '' // Get all
-        });
-        if (currentTenant) addressParams.set('tenant', currentTenant);
-
-        const addressResponse = await fetch(`/.netlify/functions/get-projects?${addressParams}`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        const addressData = await addressResponse.json();
-        const addresses = addressData.projects || [];
-
-        // Fetch ALL leads to map projectId -> status
+        // Fetch addresses and leads in parallel
+        const addressParams = new URLSearchParams({ limit: '10000' });
         const leadParams = new URLSearchParams({ limit: '10000' });
-        if (currentTenant) leadParams.set('tenant', currentTenant);
+        if (currentTenant) {
+          addressParams.set('tenant', currentTenant);
+          leadParams.set('tenant', currentTenant);
+        }
 
-        const leadResponse = await fetch(`/.netlify/functions/get-leads?${leadParams}`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
+        const [addressResponse, leadResponse] = await Promise.all([
+          fetch(`/.netlify/functions/get-projects?${addressParams}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          }),
+          fetch(`/.netlify/functions/get-leads?${leadParams}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          })
+        ]);
+
+        const addressData = await addressResponse.json();
         const leadData = await leadResponse.json();
+        const addresses = addressData.projects || [];
         const leads = leadData.leads || [];
 
-        // Create lead status map by projectId
-        const leadStatusMap = {};
-        leads.forEach(lead => {
-          if (lead.projectId) {
-            leadStatusMap[lead.projectId] = lead.status;
-          }
-        });
-
-        // Clear existing markers
-        mapMarkers.forEach(marker => map.removeLayer(marker));
+        // Clear existing layers and control
+        Object.values(mapLayers).forEach(layer => map.removeLayer(layer));
+        if (mapLayerControl) map.removeControl(mapLayerControl);
         mapMarkers = [];
+        mapLayers = {};
 
-        // Filter addresses with coordinates and add markers
+        // Create layer groups
+        const withContactsLayer = L.layerGroup();
+        const leadsLayer = L.layerGroup();
+        const otherLayer = L.layerGroup();
+
         let addressesWithCoords = 0;
-        const bounds = [];
+        let contactCount = 0;
+        let leadCount = 0;
 
+        // Add address markers
         addresses.forEach(addr => {
           const coords = addr.coordinates;
           if (!coords || !coords.lat || !coords.lon) return;
@@ -1870,32 +1878,63 @@
           addressesWithCoords++;
           const lat = parseFloat(coords.lat);
           const lon = parseFloat(coords.lon);
-          bounds.push([lat, lon]);
-
-          // Determine status and color
-          const leadStatus = leadStatusMap[addr.id];
           const hasContacts = addr.prospectCount > 0;
-          const color = leadStatus ? getStatusColor(leadStatus) : { bg: '#6b7280', text: '#fff' }; // Gray if no lead
 
-          // Create custom icon
-          const icon = createMapIcon(color.bg, hasContacts);
-
-          // Create marker
+          // Gray for addresses
+          const icon = createMapIcon('#6b7280', hasContacts);
           const marker = L.marker([lat, lon], { icon })
-            .addTo(map)
-            .on('click', () => showMapPopup(addr, leadStatus, hasContacts));
+            .on('click', () => showMapPopup(addr, null, hasContacts));
 
+          if (hasContacts) {
+            marker.addTo(withContactsLayer);
+            contactCount++;
+          } else {
+            marker.addTo(otherLayer);
+          }
           mapMarkers.push(marker);
         });
 
+        // Add lead markers (on top, with status colors)
+        leads.forEach(lead => {
+          const coords = lead.coordinates;
+          if (!coords || !coords.lat || !coords.lon) return;
+
+          leadCount++;
+          const lat = parseFloat(coords.lat);
+          const lon = parseFloat(coords.lon);
+          const color = getStatusColor(lead.status);
+
+          const icon = createMapIcon(color.bg, false);
+          const marker = L.marker([lat, lon], { icon })
+            .on('click', () => showLeadMapPopup(lead));
+
+          marker.addTo(leadsLayer);
+          mapMarkers.push(marker);
+        });
+
+        // Store layers
+        mapLayers = {
+          contacts: withContactsLayer,
+          leads: leadsLayer,
+          other: otherLayer
+        };
+
+        // Add all layers to map by default
+        withContactsLayer.addTo(map);
+        leadsLayer.addTo(map);
+        otherLayer.addTo(map);
+
+        // Create layer control
+        const overlays = {
+          [`<span class="text-blue-600">📍 With Contacts (${contactCount})</span>`]: withContactsLayer,
+          [`<span class="text-green-600">📍 Leads (${leadCount})</span>`]: leadsLayer,
+          [`<span class="text-gray-500">📍 Address Targets</span>`]: otherLayer
+        };
+        mapLayerControl = L.control.layers(null, overlays, { collapsed: false, position: 'topright' }).addTo(map);
+
         // Update count
         document.getElementById('mapAddressCount').textContent =
-          `${addressesWithCoords} of ${addresses.length} addresses mapped`;
-
-        // Fit bounds if we have markers
-        if (bounds.length > 0) {
-          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
-        }
+          `${addressesWithCoords} addresses mapped (${contactCount} with contacts, ${leadCount} leads)`;
 
       } catch (error) {
         console.error('Error loading map data:', error);
@@ -1904,19 +1943,18 @@
     }
 
     function createMapIcon(color, hasContacts) {
-      // SVG icon with bullseye and optional person indicator
+      // SVG icon - smaller pins (20x25) for less clutter
       const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="32" height="40">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="20" height="25">
           <!-- Pin shape -->
-          <path d="M16 0C9.373 0 4 5.373 4 12c0 8 12 24 12 24s12-16 12-24c0-6.627-5.373-12-12-12z" fill="${color}" stroke="#fff" stroke-width="1.5"/>
-          <!-- Bullseye circles -->
-          <circle cx="16" cy="12" r="6" fill="none" stroke="#fff" stroke-width="1.5"/>
-          <circle cx="16" cy="12" r="3" fill="#fff"/>
+          <path d="M16 0C9.373 0 4 5.373 4 12c0 8 12 24 12 24s12-16 12-24c0-6.627-5.373-12-12-12z" fill="${color}" stroke="#fff" stroke-width="2"/>
+          <!-- Center dot -->
+          <circle cx="16" cy="12" r="4" fill="#fff"/>
           ${hasContacts ? `
-            <!-- Person icon indicator -->
-            <circle cx="24" cy="8" r="6" fill="#fff" stroke="${color}" stroke-width="1"/>
-            <circle cx="24" cy="6" r="2" fill="${color}"/>
-            <path d="M21 11c0-1.5 1.3-2.5 3-2.5s3 1 3 2.5" fill="${color}"/>
+            <!-- Person badge -->
+            <circle cx="26" cy="6" r="5" fill="#fff" stroke="${color}" stroke-width="1.5"/>
+            <circle cx="26" cy="4.5" r="1.5" fill="${color}"/>
+            <path d="M23.5 9c0-1.2 1.1-2 2.5-2s2.5.8 2.5 2" fill="${color}"/>
           ` : ''}
         </svg>
       `;
@@ -1924,9 +1962,9 @@
       return L.divIcon({
         html: svg,
         className: 'custom-map-icon',
-        iconSize: [32, 40],
-        iconAnchor: [16, 40],
-        popupAnchor: [0, -40]
+        iconSize: [20, 25],
+        iconAnchor: [10, 25],
+        popupAnchor: [0, -25]
       });
     }
 
@@ -1984,6 +2022,45 @@
       popup.classList.remove('hidden');
     }
 
+    function showLeadMapPopup(lead) {
+      const popup = document.getElementById('mapDetailPopup');
+      const content = document.getElementById('mapDetailContent');
+
+      const statusBadge = getStatusBadge(lead.status);
+      const name = `${lead.firstName} ${lead.lastName}`.trim() || 'Unknown';
+
+      content.innerHTML = `
+        <div class="space-y-3">
+          <!-- Name -->
+          <div>
+            <h4 class="font-semibold">${name}</h4>
+            <p class="text-sm text-base-content/60">${lead.address || 'No address'}</p>
+          </div>
+
+          <!-- Status badge -->
+          <div class="flex flex-wrap gap-1">
+            ${statusBadge}
+            <span class="badge badge-info badge-sm">Lead</span>
+          </div>
+
+          <!-- Contact info -->
+          <div class="text-sm space-y-1">
+            ${lead.phone ? `<div>📞 ${lead.phone}</div>` : ''}
+            ${lead.email ? `<div>✉️ ${lead.email}</div>` : ''}
+          </div>
+
+          <!-- Actions -->
+          <div class="flex gap-2">
+            <button onclick="viewLeadFromMap('${lead.id}')" class="btn btn-sm btn-primary flex-1">
+              View Details
+            </button>
+          </div>
+        </div>
+      `;
+
+      popup.classList.remove('hidden');
+    }
+
     function closeMapPopup() {
       document.getElementById('mapDetailPopup').classList.add('hidden');
     }
@@ -1993,6 +2070,14 @@
       switchView('addresses');
       setTimeout(() => {
         showAddressDetail(addressId);
+      }, 100);
+    }
+
+    function viewLeadFromMap(leadId) {
+      closeMapPopup();
+      switchView('leads');
+      setTimeout(() => {
+        showLeadDetail(leadId);
       }, 100);
     }
 
@@ -2088,6 +2173,25 @@
         if (input) {
           input.focus();
           input.select();
+        }
+      }
+
+      // Map view keyboard shortcuts (when not in an input)
+      if (currentView === 'map' && map && !e.target.matches('input, textarea')) {
+        // + or = to zoom in
+        if (e.key === '+' || e.key === '=') {
+          e.preventDefault();
+          map.zoomIn();
+        }
+        // - to zoom out
+        if (e.key === '-') {
+          e.preventDefault();
+          map.zoomOut();
+        }
+        // 0 to reset to default KC view
+        if (e.key === '0') {
+          e.preventDefault();
+          map.setView([39.1, -94.6], 7);
         }
       }
     });

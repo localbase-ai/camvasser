@@ -43,6 +43,9 @@ model Lead {
   utmMedium   String?
   utmCampaign String?
 
+  // Location
+  coordinates Json?    // {lat, lon} for map display
+
   @@map("User") // Keep using existing User table
   @@index([tenant])
   @@index([createdAt])
