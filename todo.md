@@ -13,7 +13,7 @@
 - [ ] Script to bulk remove/rename tags
 
 ## Data Cleanup
-- [ ] Clean up leads with no address (find contact details, or move out of leads)
+- [ ] Delete 71 junk leads (address-only records with no contact info)
 
 ## Admin Features - Notes
 - [ ] Add notes to lead
@@ -27,10 +27,12 @@
 - [ ] Create appointment on Google Calendar
 - [ ] Sync GCal to tenant
 
-## Admin Features - Delete Actions
-- [ ] Delete a contact
-- [ ] Delete a lead
-- [ ] Delete an address
+## Admin Features - Search & Bulk Actions
+- [ ] Empty field search syntax (e.g., `email:empty`, `no:phone`, `has:name`)
+- [ ] Checkbox selection on list views
+- [ ] "Select all matching" (all records matching current search, not just visible)
+- [ ] Bulk delete with confirmation modal
+- [ ] Bulk delete API endpoints (leads, contacts, addresses)
 
 ## Data Models
 - [ ] Add HOA object (link to address/project)
