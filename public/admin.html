@@ -763,7 +763,10 @@
 
     async function loadTags() {
       try {
-        const response = await fetch('/.netlify/functions/get-tags', {
+        const params = new URLSearchParams();
+        if (currentTenant) params.set('tenant', currentTenant);
+
+        const response = await fetch(`/.netlify/functions/get-tags?${params}`, {
           headers: { 'Authorization': `Bearer ${authToken}` }
         });
 

@@ -40,11 +40,21 @@ export async function handler(event) {
   }
 
   try {
-    // Fetch all projects with tags
+    const { tenant } = event.queryStringParameters || {};
+
+    // Build where clause
+    const where = {
+      tags: { not: null }
+    };
+
+    // Filter by tenant if provided
+    if (tenant) {
+      where.tenant = tenant;
+    }
+
+    // Fetch projects with tags
     const projects = await prisma.project.findMany({
-      where: {
-        tags: { not: null }
-      },
+      where,
       select: {
         tags: true
       }
