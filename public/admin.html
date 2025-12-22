@@ -1275,7 +1275,7 @@
                 <input type="checkbox" class="checkbox checkbox-sm prospect-checkbox" data-id="${prospect.id}" onchange="updateProspectSelectionUI()">
               </td>
               <td class="font-medium" onclick="showProspectDetail('${prospect.id}')">${prospect.name || '-'}</td>
-              <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${prospect.project?.address || '-'}</td>
+              <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${prospect.project ? [prospect.project.address, prospect.project.city, prospect.project.state].filter(Boolean).join(', ') : '-'}</td>
               <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${phoneDisplay}</td>
               <td class="text-sm max-w-[200px] truncate" onclick="showProspectDetail('${prospect.id}')">${email}</td>
               <td onclick="showProspectDetail('${prospect.id}')">${typeBadges || '-'}</td>
