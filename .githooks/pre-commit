@@ -1,0 +1,20 @@
+#!/bin/sh
+
+echo "🧪 Running tests before commit..."
+
+# Run tests
+npm test -- --run
+
+# Capture the exit code
+TEST_EXIT_CODE=$?
+
+if [ $TEST_EXIT_CODE -ne 0 ]; then
+  echo ""
+  echo "❌ Tests failed. Commit aborted."
+  echo "Fix the failing tests and try again."
+  exit 1
+fi
+
+echo ""
+echo "✅ All tests passed!"
+exit 0
