@@ -1,9 +1,8 @@
 import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from './lib/auth.js';
 import axios from 'axios';
 
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // Fetch valid tags from CompanyCam API
 async function fetchValidTagsFromCompanyCam(tenant) {
@@ -29,20 +28,6 @@ async function fetchValidTagsFromCompanyCam(tenant) {
   } catch (error) {
     console.error('Error fetching tags from CompanyCam:', error.message);
     return null; // Return null to skip validation on error
-  }
-}
-
-// Helper function to verify JWT token
-function verifyToken(authHeader) {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-
-  const token = authHeader.substring(7);
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
-    return null;
   }
 }
 
