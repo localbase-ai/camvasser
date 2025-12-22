@@ -175,7 +175,7 @@ export async function handler(event) {
 
         const searchQuery = `
           SELECT id, address, city, state, "postalCode", status, "photoCount", "publicUrl",
-                 "featureImage", tags, "ccCreatedAt", "ccUpdatedAt", "lastSyncedAt"
+                 "featureImage", tags, "ccCreatedAt", "ccUpdatedAt", "lastSyncedAt", coordinates
           FROM "Project"
           WHERE search_vector @@ to_tsquery('english', $1)
           ${statusCondition}
@@ -244,7 +244,7 @@ export async function handler(event) {
 
         const tagSortQuery = hasProspects ? `
           SELECT p.id, p.address, p.city, p.state, p."postalCode", p.status, p."photoCount",
-                 p."publicUrl", p."featureImage", p.tags, p."ccCreatedAt", p."ccUpdatedAt", p."lastSyncedAt", p.tenant,
+                 p."publicUrl", p."featureImage", p.tags, p."ccCreatedAt", p."ccUpdatedAt", p."lastSyncedAt", p.tenant, p.coordinates,
                  COUNT(pr.id) as "prospectCount"
           FROM "Project" p
           ${hasProspectsJoin}
@@ -254,7 +254,7 @@ export async function handler(event) {
           LIMIT $1 OFFSET $2
         ` : `
           SELECT p.id, p.address, p.city, p.state, p."postalCode", p.status, p."photoCount",
-                 p."publicUrl", p."featureImage", p.tags, p."ccCreatedAt", p."ccUpdatedAt", p."lastSyncedAt", p.tenant,
+                 p."publicUrl", p."featureImage", p.tags, p."ccCreatedAt", p."ccUpdatedAt", p."lastSyncedAt", p.tenant, p.coordinates,
                  (SELECT COUNT(*) FROM "Prospect" WHERE "projectId" = p.id) as "prospectCount"
           FROM "Project" p
           ${whereClause}
@@ -318,7 +318,7 @@ export async function handler(event) {
 
         const dateQuery = hasProspects ? `
           SELECT p.id, p.address, p.city, p.state, p."postalCode", p.status, p."photoCount",
-                 p."publicUrl", p."featureImage", p.tags, p."ccCreatedAt", p."ccUpdatedAt", p."lastSyncedAt", p.tenant,
+                 p."publicUrl", p."featureImage", p.tags, p."ccCreatedAt", p."ccUpdatedAt", p."lastSyncedAt", p.tenant, p.coordinates,
                  COUNT(pr.id) as "prospectCount"
           FROM "Project" p
           ${hasProspectsJoin}
@@ -328,7 +328,7 @@ export async function handler(event) {
           LIMIT $1 OFFSET $2
         ` : `
           SELECT p.id, p.address, p.city, p.state, p."postalCode", p.status, p."photoCount",
-                 p."publicUrl", p."featureImage", p.tags, p."ccCreatedAt", p."ccUpdatedAt", p."lastSyncedAt", p.tenant,
+                 p."publicUrl", p."featureImage", p.tags, p."ccCreatedAt", p."ccUpdatedAt", p."lastSyncedAt", p.tenant, p.coordinates,
                  (SELECT COUNT(*) FROM "Prospect" WHERE "projectId" = p.id) as "prospectCount"
           FROM "Project" p
           ${whereClause}
@@ -396,6 +396,7 @@ export async function handler(event) {
             publicUrl: true,
             featureImage: true,
             tags: true,
+            coordinates: true,
             ccCreatedAt: true,
             ccUpdatedAt: true,
             lastSyncedAt: true,
