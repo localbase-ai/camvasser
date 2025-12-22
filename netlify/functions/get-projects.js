@@ -77,8 +77,83 @@ export async function handler(event) {
     let useFullTextSearch = false;
     let fullTextQuery = null;
 
-    if (search) {
-      const colonMatch = search.match(/^(\w+)[:=](.+)$/i);
+    // Parse special field queries from search (e.g., "no:city", "has:address")
+    let searchText = (search || '').trim();
+    const fieldFilters = [];
+
+    // Pattern: no:field, has:field, field:empty
+    const fieldQueryPattern = /(no:\w+|has:\w+|\w+:empty)/gi;
+    searchText = searchText.replace(fieldQueryPattern, (match) => {
+      const lower = match.trim().toLowerCase();
+      if (lower.startsWith('no:')) {
+        const field = lower.substring(3);
+        fieldFilters.push({ field, isEmpty: true });
+      } else if (lower.startsWith('has:')) {
+        const field = lower.substring(4);
+        fieldFilters.push({ field, isEmpty: false });
+      } else if (lower.endsWith(':empty')) {
+        const field = lower.replace(':empty', '');
+        fieldFilters.push({ field, isEmpty: true });
+      }
+      return ''; // Remove from search text
+    }).trim();
+
+    // Map field names to database columns for projects
+    const fieldMap = {
+      address: 'address',
+      city: 'city',
+      state: 'state',
+      tags: 'tags',
+      contacts: 'prospects', // special handling
+      prospects: 'prospects'
+    };
+
+    // Apply field filters to where clause
+    for (const filter of fieldFilters) {
+      const dbField = fieldMap[filter.field];
+      if (!dbField) continue;
+
+      if (dbField === 'prospects') {
+        // Special: check if has contacts/prospects
+        if (filter.isEmpty) {
+          where.prospects = { none: {} };
+        } else {
+          where.prospects = { some: {} };
+        }
+      } else if (dbField === 'tags') {
+        // Tags is a JSON array
+        if (filter.isEmpty) {
+          where.AND = where.AND || [];
+          where.AND.push({
+            OR: [
+              { tags: null },
+              { tags: { equals: [] } }
+            ]
+          });
+        } else {
+          where.AND = where.AND || [];
+          where.AND.push({ tags: { not: null } });
+        }
+      } else {
+        // Regular nullable string fields
+        if (filter.isEmpty) {
+          where.AND = where.AND || [];
+          where.AND.push({
+            OR: [
+              { [dbField]: null },
+              { [dbField]: '' }
+            ]
+          });
+        } else {
+          where.AND = where.AND || [];
+          where.AND.push({ [dbField]: { not: null } });
+          where.AND.push({ [dbField]: { not: '' } });
+        }
+      }
+    }
+
+    if (searchText) {
+      const colonMatch = searchText.match(/^(\w+)[:=](.+)$/i);
 
       if (colonMatch) {
         const [, field, value] = colonMatch;
@@ -115,7 +190,7 @@ export async function handler(event) {
       } else {
         // Use full-text search for general queries
         useFullTextSearch = true;
-        fullTextQuery = search.trim();
+        fullTextQuery = searchText.trim();
       }
     }
 

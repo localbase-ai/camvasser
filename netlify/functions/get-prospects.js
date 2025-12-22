@@ -100,11 +100,73 @@ export async function handler(event) {
     let useFullTextSearch = false;
     let fullTextQuery = null;
 
-    if (search) {
-      const searchLower = search.toLowerCase().trim();
+    // Parse special field queries from search (e.g., "no:email", "has:phone")
+    let searchText = (search || '').trim();
+    const fieldFilters = [];
+
+    // Pattern: no:field, has:field, field:empty
+    const fieldQueryPattern = /(no:\w+|has:\w+|\w+:empty)/gi;
+    searchText = searchText.replace(fieldQueryPattern, (match) => {
+      const lower = match.trim().toLowerCase();
+      if (lower.startsWith('no:')) {
+        const field = lower.substring(3);
+        fieldFilters.push({ field, isEmpty: true });
+      } else if (lower.startsWith('has:')) {
+        const field = lower.substring(4);
+        fieldFilters.push({ field, isEmpty: false });
+      } else if (lower.endsWith(':empty')) {
+        const field = lower.replace(':empty', '');
+        fieldFilters.push({ field, isEmpty: true });
+      }
+      return ''; // Remove from search text
+    }).trim();
+
+    // Map field names to database columns for prospects
+    const fieldMap = {
+      email: 'emails',
+      emails: 'emails',
+      phone: 'phones',
+      phones: 'phones',
+      name: 'name'
+    };
+
+    // Apply field filters to where clause
+    for (const filter of fieldFilters) {
+      const dbField = fieldMap[filter.field];
+      if (!dbField) continue;
+
+      if (dbField === 'name') {
+        // name is required, so only check empty string
+        if (filter.isEmpty) {
+          where.AND = where.AND || [];
+          where.AND.push({ name: '' });
+        } else {
+          where.AND = where.AND || [];
+          where.AND.push({ name: { not: '' } });
+        }
+      } else if (dbField === 'emails' || dbField === 'phones') {
+        // These are JSON arrays - null or empty array means no data
+        if (filter.isEmpty) {
+          where.AND = where.AND || [];
+          where.AND.push({
+            OR: [
+              { [dbField]: null },
+              { [dbField]: { equals: [] } }
+            ]
+          });
+        } else {
+          where.AND = where.AND || [];
+          where.AND.push({ [dbField]: { not: null } });
+          // Can't easily check for non-empty array in Prisma, but not null is close enough
+        }
+      }
+    }
+
+    if (searchText) {
+      const searchLower = searchText.toLowerCase().trim();
 
       // Check for field:value or field=value syntax (keep special handling)
-      const colonMatch = search.match(/^(\w+)[:=](.+)$/i);
+      const colonMatch = searchText.match(/^(\w+)[:=](.+)$/i);
 
       if (colonMatch) {
         const [, field, value] = colonMatch;
@@ -143,7 +205,7 @@ export async function handler(event) {
       } else {
         // Use full-text search for general queries
         useFullTextSearch = true;
-        fullTextQuery = search.trim();
+        fullTextQuery = searchText.trim();
       }
     }
 
