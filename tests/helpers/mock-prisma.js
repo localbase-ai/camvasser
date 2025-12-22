@@ -18,6 +18,7 @@ export function createMockPrisma() {
       count: vi.fn().mockResolvedValue(0),
       create: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
       delete: vi.fn(),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 })
     },
