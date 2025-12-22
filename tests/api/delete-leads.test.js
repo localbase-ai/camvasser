@@ -205,6 +205,86 @@ describe('delete-leads API', () => {
     });
   });
 
+  describe('filter-based delete (select all matching)', () => {
+    it('should delete leads matching filters', async () => {
+      mockPrisma.lead.count.mockResolvedValue(15);
+      mockPrisma.lead.deleteMany.mockResolvedValue({ count: 15 });
+
+      const event = createAuthenticatedEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({
+          filters: {
+            tenant: 'acme',
+            status: 'new'
+          }
+        })
+      });
+      const response = await handler(event);
+      const body = JSON.parse(response.body);
+
+      expect(response.statusCode).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.deleted).toBe(15);
+      expect(body.usedFilters).toBe(true);
+      expect(body.ids).toBe(null);
+
+      expect(mockPrisma.lead.deleteMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          tenant: 'acme',
+          status: 'new'
+        })
+      });
+    });
+
+    it('should delete leads matching search filter', async () => {
+      mockPrisma.lead.count.mockResolvedValue(5);
+      mockPrisma.lead.deleteMany.mockResolvedValue({ count: 5 });
+
+      const event = createAuthenticatedEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({
+          filters: {
+            tenant: 'acme',
+            search: 'john'
+          }
+        })
+      });
+      const response = await handler(event);
+      const body = JSON.parse(response.body);
+
+      expect(response.statusCode).toBe(200);
+      expect(body.deleted).toBe(5);
+      expect(body.usedFilters).toBe(true);
+
+      expect(mockPrisma.lead.deleteMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          tenant: 'acme',
+          OR: expect.any(Array)
+        })
+      });
+    });
+
+    it('should prefer filters over ids when both provided', async () => {
+      mockPrisma.lead.count.mockResolvedValue(10);
+      mockPrisma.lead.deleteMany.mockResolvedValue({ count: 10 });
+
+      const event = createAuthenticatedEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({
+          ids: ['lead_1', 'lead_2'],
+          filters: {
+            tenant: 'acme'
+          }
+        })
+      });
+      const response = await handler(event);
+      const body = JSON.parse(response.body);
+
+      expect(body.usedFilters).toBe(true);
+      expect(body.ids).toBe(null);
+    });
+  });
+
   describe('error handling', () => {
     it('should return 500 when database delete fails', async () => {
       mockPrisma.lead.deleteMany.mockRejectedValue(new Error('Database error'));

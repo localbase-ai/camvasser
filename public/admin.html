@@ -307,7 +307,13 @@
           <div id="leadsListPane" class="h-full flex flex-col">
             <!-- Bulk Actions Bar -->
             <div id="leadBulkActions" class="hidden bg-warning/10 rounded-lg px-3 py-2 my-2 flex items-center justify-between">
-              <span class="text-sm"><strong id="leadSelectedCount">0</strong> lead(s) selected</span>
+              <div class="flex items-center gap-2">
+                <span class="text-sm"><strong id="leadSelectedCount">0</strong> lead(s) selected</span>
+                <span id="selectAllMatchingLeads" class="hidden text-sm">
+                  · <a href="#" onclick="selectAllMatchingLeads(); return false;" class="link link-primary">Select all <strong id="leadMatchingCount">0</strong> matching</a>
+                </span>
+                <span id="allMatchingSelectedLeads" class="hidden text-sm text-success font-medium">· All matching selected</span>
+              </div>
               <button onclick="deleteSelectedLeads()" class="btn btn-error btn-sm">Delete Selected</button>
             </div>
             <!-- List View -->
@@ -1609,6 +1615,8 @@
         }).join('');
       }
       // Reset select all checkbox and bulk actions when results change
+      leadSelectAllMatching = false;
+      leadCurrentFilters = {};
       document.getElementById('selectAllLeads').checked = false;
       updateLeadSelectionUI();
 
@@ -1929,14 +1937,26 @@
     }
 
     async function deleteSelectedLeads() {
-      const selectedIds = Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => cb.dataset.id);
+      let deleteCount;
+      let requestBody;
 
-      if (selectedIds.length === 0) {
-        alert('No leads selected');
-        return;
+      if (leadSelectAllMatching) {
+        // Delete all matching using filters
+        deleteCount = leadTotal;
+        requestBody = { filters: leadCurrentFilters };
+      } else {
+        // Delete specific selected IDs
+        const selectedIds = Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => cb.dataset.id);
+
+        if (selectedIds.length === 0) {
+          alert('No leads selected');
+          return;
+        }
+        deleteCount = selectedIds.length;
+        requestBody = { ids: selectedIds };
       }
 
-      const confirmed = await showConfirmModal('Delete Leads', `Are you sure you want to delete ${selectedIds.length} lead(s)? This cannot be undone.`);
+      const confirmed = await showConfirmModal('Delete Leads', `Are you sure you want to delete ${deleteCount} lead(s)? This cannot be undone.`);
       if (!confirmed) return;
 
       try {
@@ -1946,16 +1966,15 @@
             'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ ids: selectedIds })
+          body: JSON.stringify(requestBody)
         });
 
         if (response.status === 401) { logout(); return; }
 
         const data = await response.json();
         if (data.success) {
-          // Clear selection and refresh
-          document.getElementById('selectAllLeads').checked = false;
-          updateLeadSelectionUI();
+          // Clear selection state and refresh
+          clearLeadSelectionState();
           searchLeads();
         } else {
           alert('Failed to delete leads: ' + (data.error || 'Unknown error'));
@@ -1971,17 +1990,63 @@
       updateLeadSelectionUI();
     }
 
+    // Track if "select all matching" mode is active
+    let leadSelectAllMatching = false;
+    let leadCurrentFilters = {};
+
     function updateLeadSelectionUI() {
       const selectedCount = document.querySelectorAll('.lead-checkbox:checked').length;
+      const visibleCount = document.querySelectorAll('.lead-checkbox').length;
       const bulkActions = document.getElementById('leadBulkActions');
       const selectedCountEl = document.getElementById('leadSelectedCount');
+      const selectAllMatchingEl = document.getElementById('selectAllMatchingLeads');
+      const allMatchingSelectedEl = document.getElementById('allMatchingSelectedLeads');
+      const matchingCountEl = document.getElementById('leadMatchingCount');
 
       if (selectedCount > 0) {
         bulkActions.classList.remove('hidden');
-        selectedCountEl.textContent = selectedCount;
+
+        if (leadSelectAllMatching) {
+          // Show "all matching selected" mode
+          selectedCountEl.textContent = leadTotal;
+          selectAllMatchingEl.classList.add('hidden');
+          allMatchingSelectedEl.classList.remove('hidden');
+        } else {
+          selectedCountEl.textContent = selectedCount;
+          allMatchingSelectedEl.classList.add('hidden');
+
+          // Show "select all matching" link if:
+          // 1. All visible items are selected
+          // 2. There are more results than visible
+          if (selectedCount === visibleCount && leadTotal > visibleCount) {
+            selectAllMatchingEl.classList.remove('hidden');
+            matchingCountEl.textContent = leadTotal;
+          } else {
+            selectAllMatchingEl.classList.add('hidden');
+          }
+        }
       } else {
         bulkActions.classList.add('hidden');
+        leadSelectAllMatching = false;
       }
+    }
+
+    function selectAllMatchingLeads() {
+      // Store current search filters for use in delete
+      leadCurrentFilters = {
+        tenant: currentTenant,
+        search: document.getElementById('leadSearch').value.trim() || undefined,
+        status: document.getElementById('leadStatusFilter').value || undefined
+      };
+      leadSelectAllMatching = true;
+      updateLeadSelectionUI();
+    }
+
+    function clearLeadSelectionState() {
+      leadSelectAllMatching = false;
+      leadCurrentFilters = {};
+      document.getElementById('selectAllLeads').checked = false;
+      updateLeadSelectionUI();
     }
 
     // Prospect/Contact delete functions

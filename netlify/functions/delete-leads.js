@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { verifyToken } from './lib/auth.js';
+import { buildLeadsWhereClause } from './lib/leads-query.js';
 
 const prisma = new PrismaClient();
 
@@ -26,6 +27,8 @@ export async function handler(event) {
 
   try {
     let ids = [];
+    let useFilters = false;
+    let filters = {};
 
     if (event.httpMethod === 'DELETE') {
       // Single delete via query param
@@ -43,7 +46,11 @@ export async function handler(event) {
       const body = JSON.parse(event.body || '{}');
       ids = body.ids || [];
 
-      if (!Array.isArray(ids) || ids.length === 0) {
+      // Check if using filter-based deletion (select all matching)
+      if (body.filters) {
+        useFilters = true;
+        filters = body.filters;
+      } else if (!Array.isArray(ids) || ids.length === 0) {
         return {
           statusCode: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -52,14 +59,32 @@ export async function handler(event) {
       }
     }
 
-    // Delete the leads
-    const result = await prisma.lead.deleteMany({
-      where: {
-        id: { in: ids }
-      }
-    });
+    let result;
+    if (useFilters) {
+      // Build where clause from filters (same logic as get-leads)
+      const where = buildLeadsWhereClause({
+        tenant: filters.tenant,
+        search: filters.search,
+        status: filters.status
+      });
 
-    console.log(`Deleted ${result.count} leads:`, ids);
+      // First count how many will be deleted
+      const count = await prisma.lead.count({ where });
+
+      // Delete matching leads
+      result = await prisma.lead.deleteMany({ where });
+
+      console.log(`Deleted ${result.count} leads matching filters:`, filters);
+    } else {
+      // Delete by specific IDs
+      result = await prisma.lead.deleteMany({
+        where: {
+          id: { in: ids }
+        }
+      });
+
+      console.log(`Deleted ${result.count} leads:`, ids);
+    }
 
     return {
       statusCode: 200,
@@ -67,7 +92,8 @@ export async function handler(event) {
       body: JSON.stringify({
         success: true,
         deleted: result.count,
-        ids
+        ids: useFilters ? null : ids,
+        usedFilters: useFilters
       })
     };
 
