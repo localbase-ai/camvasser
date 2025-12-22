@@ -96,10 +96,6 @@ export async function handler(event) {
       where.projectId = { in: ids };
     }
 
-    // Handle search - use PostgreSQL full-text search for general queries
-    let useFullTextSearch = false;
-    let fullTextQuery = null;
-
     // Parse special field queries from search (e.g., "no:email", "has:phone")
     let searchText = (search || '').trim();
     const fieldFilters = [];
@@ -187,9 +183,12 @@ export async function handler(event) {
         } else if (fieldLower === 'resident') {
           where.isCurrentResident = ['yes', 'true', '1'].includes(valueLower);
         } else {
-          // Use full-text search for other field queries
-          useFullTextSearch = true;
-          fullTextQuery = value.trim();
+          // Simple ILIKE search for other field queries
+          where.OR = [
+            { name: { contains: value.trim(), mode: 'insensitive' } },
+            { companyName: { contains: value.trim(), mode: 'insensitive' } },
+            { jobTitle: { contains: value.trim(), mode: 'insensitive' } }
+          ];
         }
       } else if (['has tags', 'with tags', 'have tags', 'tagged', 'no tags', 'without tags', 'untagged'].includes(searchLower)) {
         // Keep tag filter logic
@@ -203,9 +202,12 @@ export async function handler(event) {
         const ids = projectIds.map(p => p.id);
         where.projectId = ids.length > 0 ? { in: ids } : { in: [] };
       } else {
-        // Use full-text search for general queries
-        useFullTextSearch = true;
-        fullTextQuery = searchText.trim();
+        // Simple ILIKE search for general queries
+        where.OR = [
+          { name: { contains: searchText, mode: 'insensitive' } },
+          { companyName: { contains: searchText, mode: 'insensitive' } },
+          { jobTitle: { contains: searchText, mode: 'insensitive' } }
+        ];
       }
     }
 
@@ -216,87 +218,26 @@ export async function handler(event) {
 
     let prospects, totalCount, homeownerCount;
 
-    if (useFullTextSearch && fullTextQuery) {
-      // Sanitize search query for tsquery
-      const sanitizedSearch = fullTextQuery.replace(/[^\w\s]/g, ' ').split(/\s+/).filter(Boolean).join(' & ');
+    // Regular Prisma query
+    const orderBy = sortField === 'status'
+      ? { [sortField]: { sort: sortDirection, nulls: 'first' } }
+      : { [sortField]: sortDirection };
 
-      if (sanitizedSearch) {
-        // Build WHERE conditions for raw query
-        const tenantCondition = user.slug ? `AND p.tenant = '${user.slug}'` : '';
-        const projectCondition = where.projectId ? `AND p."projectId" IN (${typeof where.projectId === 'object' && where.projectId.in ? where.projectId.in.map(id => `'${id}'`).join(',') : `'${where.projectId}'`})` : '';
-        const statusCondition = where.status ? `AND p.status = '${where.status}'` : '';
-
-        const searchQuery = `
-          SELECT p.*,
-                 row_to_json(proj.*) as project_data
-          FROM "Prospect" p
-          LEFT JOIN "Project" proj ON p."projectId" = proj.id
-          WHERE p.search_vector @@ to_tsquery('english', $1)
-          ${tenantCondition}
-          ${projectCondition}
-          ${statusCondition}
-          ORDER BY ts_rank(p.search_vector, to_tsquery('english', $1)) DESC, p."createdAt" DESC
-          LIMIT $2 OFFSET $3
-        `;
-
-        const countQuery = `
-          SELECT COUNT(*) as count FROM "Prospect" p
-          WHERE p.search_vector @@ to_tsquery('english', $1)
-          ${tenantCondition}
-          ${projectCondition}
-          ${statusCondition}
-        `;
-
-        const homeownerQuery = `
-          SELECT COUNT(*) as count FROM "Prospect" p
-          WHERE p.search_vector @@ to_tsquery('english', $1)
-          AND p."isHomeowner" = true
-          ${tenantCondition}
-          ${projectCondition}
-          ${statusCondition}
-        `;
-
-        const [searchResults, countResults, homeownerResults] = await Promise.all([
-          prisma.$queryRawUnsafe(searchQuery, sanitizedSearch, limitNum, skip),
-          prisma.$queryRawUnsafe(countQuery, sanitizedSearch),
-          prisma.$queryRawUnsafe(homeownerQuery, sanitizedSearch)
-        ]);
-
-        // Map results to include project relation
-        prospects = searchResults.map(r => ({
-          ...r,
-          project: r.project_data
-        }));
-        totalCount = Number(countResults[0]?.count || 0);
-        homeownerCount = Number(homeownerResults[0]?.count || 0);
-      } else {
-        // Empty search, fall through to regular query
-        useFullTextSearch = false;
-      }
-    }
-
-    if (!useFullTextSearch || !fullTextQuery) {
-      // Regular Prisma query
-      const orderBy = sortField === 'status'
-        ? { [sortField]: { sort: sortDirection, nulls: 'first' } }
-        : { [sortField]: sortDirection };
-
-      [prospects, totalCount, homeownerCount] = await Promise.all([
-        prisma.prospect.findMany({
-          where,
-          orderBy,
-          take: limitNum,
-          skip,
-          include: {
-            project: {
-              select: { id: true, address: true, city: true, state: true, postalCode: true, publicUrl: true, tags: true, coordinates: true }
-            }
+    [prospects, totalCount, homeownerCount] = await Promise.all([
+      prisma.prospect.findMany({
+        where,
+        orderBy,
+        take: limitNum,
+        skip,
+        include: {
+          project: {
+            select: { id: true, address: true, city: true, state: true, postalCode: true, publicUrl: true, tags: true, coordinates: true }
           }
-        }),
-        prisma.prospect.count({ where }),
-        prisma.prospect.count({ where: { ...where, isHomeowner: true } })
-      ]);
-    }
+        }
+      }),
+      prisma.prospect.count({ where }),
+      prisma.prospect.count({ where: { ...where, isHomeowner: true } })
+    ]);
 
     return {
       statusCode: 200,

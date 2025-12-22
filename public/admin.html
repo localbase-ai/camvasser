@@ -293,11 +293,17 @@
         <div class="relative flex-1 min-h-0 mt-1">
           <!-- List/Kanban Pane -->
           <div id="leadsListPane" class="h-full flex flex-col">
+            <!-- Bulk Actions Bar -->
+            <div id="leadBulkActions" class="hidden bg-warning/10 rounded-lg px-3 py-2 my-2 flex items-center justify-between">
+              <span class="text-sm"><strong id="leadSelectedCount">0</strong> lead(s) selected</span>
+              <button onclick="deleteSelectedLeads()" class="btn btn-error btn-sm">Delete Selected</button>
+            </div>
             <!-- List View -->
             <div id="leadsListView" class="overflow-auto flex-1">
               <table class="table w-full">
                 <thead class="sticky top-0 bg-base-100 z-10">
                   <tr>
+                    <th class="w-8"><input type="checkbox" id="selectAllLeads" class="checkbox checkbox-sm" onchange="toggleAllLeads(this.checked)"></th>
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortLeads('createdAt')">Date</th>
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortLeads('name')">Name</th>
                     <th>Email</th>
@@ -308,7 +314,7 @@
                 </thead>
                 <tbody id="leadTableBody">
                   <tr>
-                    <td colspan="6" class="text-center py-8">
+                    <td colspan="7" class="text-center py-8">
                       <span class="loading loading-spinner loading-md"></span>
                     </td>
                   </tr>
@@ -1319,7 +1325,7 @@
       const tbody = document.getElementById('leadTableBody');
 
       if (leads.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-base-content/60">No leads found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-base-content/60">No leads found</td></tr>`;
       } else {
         tbody.innerHTML = leads.map(lead => {
           const created = lead.createdAt ? formatDate(lead.createdAt) : '-';
@@ -1327,17 +1333,23 @@
           const isSelected = selectedLeadId === lead.id;
 
           return `
-            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''}" onclick="showLeadDetail('${lead.id}')">
-              <td class="text-sm text-base-content/60">${created}</td>
-              <td class="font-medium">${lead.firstName || ''} ${lead.lastName || ''}</td>
-              <td class="text-sm">${lead.email || '-'}</td>
-              <td class="text-sm">${lead.phone || '-'}</td>
-              <td class="text-sm max-w-[200px] truncate">${lead.address || '-'}</td>
-              <td>${status}</td>
+            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''}">
+              <td class="w-8" onclick="event.stopPropagation()">
+                <input type="checkbox" class="checkbox checkbox-sm lead-checkbox" data-id="${lead.id}" onchange="updateLeadSelectionUI()">
+              </td>
+              <td class="text-sm text-base-content/60" onclick="showLeadDetail('${lead.id}')">${created}</td>
+              <td class="font-medium" onclick="showLeadDetail('${lead.id}')">${lead.firstName || ''} ${lead.lastName || ''}</td>
+              <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.email || '-'}</td>
+              <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.phone || '-'}</td>
+              <td class="text-sm max-w-[200px] truncate" onclick="showLeadDetail('${lead.id}')">${lead.address || '-'}</td>
+              <td onclick="showLeadDetail('${lead.id}')">${status}</td>
             </tr>
           `;
         }).join('');
       }
+      // Reset select all checkbox and bulk actions when results change
+      document.getElementById('selectAllLeads').checked = false;
+      updateLeadSelectionUI();
 
       renderPagination('lead', leadPage, totalPages, total, (p) => { leadPage = p; searchLeads(); });
     }
@@ -1432,6 +1444,16 @@
               </div>
             </div>
           ` : ''}
+
+          <!-- Actions -->
+          <div class="pt-4 border-t border-base-300">
+            <button onclick="deleteLead('${lead.id}')" class="btn btn-sm btn-error btn-outline w-full">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Delete Lead
+            </button>
+          </div>
         </div>
       `;
 
@@ -1448,6 +1470,109 @@
         // Don't re-render kanban, just keep the pane open
       } else {
         renderLeadResults(allLeads, leadTotal, leadTotalPages);
+      }
+    }
+
+    // Custom confirm modal
+    let confirmResolve = null;
+
+    function showConfirmModal(title, message, btnText = 'Delete') {
+      document.getElementById('confirmModalTitle').textContent = title;
+      document.getElementById('confirmModalMessage').textContent = message;
+      document.getElementById('confirmModalBtn').textContent = btnText;
+      document.getElementById('confirmModal').showModal();
+      return new Promise(resolve => { confirmResolve = resolve; });
+    }
+
+    function closeConfirmModal(result) {
+      document.getElementById('confirmModal').close();
+      if (confirmResolve) {
+        confirmResolve(result);
+        confirmResolve = null;
+      }
+    }
+
+    async function deleteLead(leadId) {
+      const confirmed = await showConfirmModal('Delete Lead', 'Are you sure you want to delete this lead? This cannot be undone.');
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch(`/.netlify/functions/delete-leads?id=${leadId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+        if (data.success) {
+          // Close detail pane
+          document.getElementById('leadDetailPane').classList.add('hidden');
+          selectedLeadId = null;
+          // Refresh list
+          searchLeads();
+        } else {
+          alert('Failed to delete lead: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error deleting lead:', error);
+        alert('Failed to delete lead');
+      }
+    }
+
+    async function deleteSelectedLeads() {
+      const selectedIds = Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => cb.dataset.id);
+
+      if (selectedIds.length === 0) {
+        alert('No leads selected');
+        return;
+      }
+
+      const confirmed = await showConfirmModal('Delete Leads', `Are you sure you want to delete ${selectedIds.length} lead(s)? This cannot be undone.`);
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/delete-leads', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ ids: selectedIds })
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+        if (data.success) {
+          // Clear selection and refresh
+          document.getElementById('selectAllLeads').checked = false;
+          updateLeadSelectionUI();
+          searchLeads();
+        } else {
+          alert('Failed to delete leads: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error deleting leads:', error);
+        alert('Failed to delete leads');
+      }
+    }
+
+    function toggleAllLeads(checked) {
+      document.querySelectorAll('.lead-checkbox').forEach(cb => cb.checked = checked);
+      updateLeadSelectionUI();
+    }
+
+    function updateLeadSelectionUI() {
+      const selectedCount = document.querySelectorAll('.lead-checkbox:checked').length;
+      const bulkActions = document.getElementById('leadBulkActions');
+      const selectedCountEl = document.getElementById('leadSelectedCount');
+
+      if (selectedCount > 0) {
+        bulkActions.classList.remove('hidden');
+        selectedCountEl.textContent = selectedCount;
+      } else {
+        bulkActions.classList.add('hidden');
       }
     }
 
@@ -2238,5 +2363,20 @@
       }
     });
   </script>
+
+  <!-- Confirmation Modal -->
+  <dialog id="confirmModal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-base-100" style="padding: 24px;">
+      <h3 class="font-bold text-lg" style="margin-bottom: 8px;" id="confirmModalTitle">Confirm</h3>
+      <p style="padding: 8px 0;" id="confirmModalMessage">Are you sure?</p>
+      <div class="modal-action" style="margin-top: 16px;">
+        <button class="btn" onclick="closeConfirmModal(false)">Cancel</button>
+        <button class="btn btn-error" id="confirmModalBtn" onclick="closeConfirmModal(true)">Delete</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-black/50">
+      <button onclick="closeConfirmModal(false)">close</button>
+    </form>
+  </dialog>
 </body>
 </html>

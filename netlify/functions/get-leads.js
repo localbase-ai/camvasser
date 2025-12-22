@@ -154,74 +154,25 @@ export async function handler(event) {
       }
     }
 
-    // Handle search - use PostgreSQL full-text search
+    // Handle search
     let leads, total;
 
     if (searchText) {
-      // Sanitize search query for tsquery
-      const sanitizedSearch = searchText.replace(/[^\w\s]/g, ' ').split(/\s+/).filter(Boolean).join(' & ');
-
-      if (sanitizedSearch) {
-        // Build additional WHERE conditions for field filters
-        const fieldConditions = [];
-        for (const filter of fieldFilters) {
-          const dbField = fieldMap[filter.field];
-          if (!dbField) continue;
-
-          if (filter.field === 'name') {
-            if (filter.isEmpty) {
-              fieldConditions.push(`("firstName" IS NULL OR "firstName" = '') AND ("lastName" IS NULL OR "lastName" = '')`);
-            } else {
-              fieldConditions.push(`("firstName" IS NOT NULL AND "firstName" != '') OR ("lastName" IS NOT NULL AND "lastName" != '')`);
-            }
-          } else {
-            if (filter.isEmpty) {
-              fieldConditions.push(`("${dbField}" IS NULL OR "${dbField}" = '')`);
-            } else {
-              fieldConditions.push(`"${dbField}" IS NOT NULL AND "${dbField}" != ''`);
-            }
-          }
-        }
-        const fieldConditionsSql = fieldConditions.length > 0 ? ' AND ' + fieldConditions.join(' AND ') : '';
-
-        // Use raw query for full-text search
-        const searchQuery = `
-          SELECT * FROM "User"
-          WHERE tenant = $1
-          AND search_vector @@ to_tsquery('english', $2)
-          ${fieldConditionsSql}
-          ORDER BY ts_rank(search_vector, to_tsquery('english', $2)) DESC, "createdAt" DESC
-          LIMIT $3 OFFSET $4
-        `;
-
-        const countQuery = `
-          SELECT COUNT(*) as count FROM "User"
-          WHERE tenant = $1
-          AND search_vector @@ to_tsquery('english', $2)
-          ${fieldConditionsSql}
-        `;
-
-        const [searchResults, countResults] = await Promise.all([
-          prisma.$queryRawUnsafe(searchQuery, tenant, sanitizedSearch, limitNum, skip),
-          prisma.$queryRawUnsafe(countQuery, tenant, sanitizedSearch)
-        ]);
-
-        leads = searchResults;
-        total = Number(countResults[0]?.count || 0);
-      } else {
-        // Empty search after sanitization, return all with field filters
-        [leads, total] = await Promise.all([
-          prisma.lead.findMany({ where, orderBy, take: limitNum, skip }),
-          prisma.lead.count({ where })
-        ]);
-      }
-    } else {
-      // No text search, use regular Prisma query (field filters already in where)
-      [leads, total] = await Promise.all([
-        prisma.lead.findMany({ where, orderBy, take: limitNum, skip }),
-        prisma.lead.count({ where })
-      ]);
+      // Use simple ILIKE search across name, email, phone, address
+      where.OR = [
+        { firstName: { contains: searchText, mode: 'insensitive' } },
+        { lastName: { contains: searchText, mode: 'insensitive' } },
+        { email: { contains: searchText, mode: 'insensitive' } },
+        { phone: { contains: searchText, mode: 'insensitive' } },
+        { address: { contains: searchText, mode: 'insensitive' } }
+      ];
     }
+
+    // Use Prisma query
+    [leads, total] = await Promise.all([
+      prisma.lead.findMany({ where, orderBy, take: limitNum, skip }),
+      prisma.lead.count({ where })
+    ]);
 
     return {
       statusCode: 200,

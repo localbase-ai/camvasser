@@ -73,10 +73,6 @@ export async function handler(event) {
       // Need raw SQL to check array not empty - will handle in query
     }
 
-    // Handle search - use PostgreSQL full-text search for general queries
-    let useFullTextSearch = false;
-    let fullTextQuery = null;
-
     // Parse special field queries from search (e.g., "no:city", "has:address")
     let searchText = (search || '').trim();
     const fieldFilters = [];
@@ -183,14 +179,24 @@ export async function handler(event) {
             where.prospects = { none: {} };
           }
         } else {
-          // Use full-text search for other queries
-          useFullTextSearch = true;
-          fullTextQuery = value.trim();
+          // Simple ILIKE search for other field queries
+          where.OR = [
+            { address: { contains: value.trim(), mode: 'insensitive' } },
+            { city: { contains: value.trim(), mode: 'insensitive' } },
+            { state: { contains: value.trim(), mode: 'insensitive' } },
+            { postalCode: { contains: value.trim(), mode: 'insensitive' } },
+            { name: { contains: value.trim(), mode: 'insensitive' } }
+          ];
         }
       } else {
-        // Use full-text search for general queries
-        useFullTextSearch = true;
-        fullTextQuery = searchText.trim();
+        // Simple ILIKE search for general queries
+        where.OR = [
+          { address: { contains: searchText, mode: 'insensitive' } },
+          { city: { contains: searchText, mode: 'insensitive' } },
+          { state: { contains: searchText, mode: 'insensitive' } },
+          { postalCode: { contains: searchText, mode: 'insensitive' } },
+          { name: { contains: searchText, mode: 'insensitive' } }
+        ];
       }
     }
 
@@ -248,61 +254,7 @@ export async function handler(event) {
 
     let projects, totalCount;
 
-    if (useFullTextSearch && fullTextQuery) {
-      // Sanitize search query for tsquery
-      const sanitizedSearch = fullTextQuery.replace(/[^\w\s]/g, ' ').split(/\s+/).filter(Boolean).join(' & ');
-
-      if (sanitizedSearch) {
-        // Build WHERE conditions
-        const statusCondition = where.status ? `AND status = '${where.status}'` : '';
-        const idCondition = where.id?.in ? `AND id IN (${where.id.in.map(id => `'${id}'`).join(',')})` : '';
-
-        const searchQuery = `
-          SELECT id, address, city, state, "postalCode", status, "photoCount", "publicUrl",
-                 "featureImage", tags, "ccCreatedAt", "ccUpdatedAt", "lastSyncedAt", coordinates
-          FROM "Project"
-          WHERE search_vector @@ to_tsquery('english', $1)
-          ${statusCondition}
-          ${idCondition}
-          ORDER BY ts_rank(search_vector, to_tsquery('english', $1)) DESC, "ccCreatedAt" DESC
-          LIMIT $2 OFFSET $3
-        `;
-
-        const countQuery = `
-          SELECT COUNT(*) as count FROM "Project"
-          WHERE search_vector @@ to_tsquery('english', $1)
-          ${statusCondition}
-          ${idCondition}
-        `;
-
-        const [searchResults, countResults] = await Promise.all([
-          prisma.$queryRawUnsafe(searchQuery, sanitizedSearch, limitNum, skip),
-          prisma.$queryRawUnsafe(countQuery, sanitizedSearch)
-        ]);
-
-        // Get prospect counts for each project
-        const projectIds = searchResults.map(p => p.id);
-        const prospectCounts = projectIds.length > 0 ? await prisma.prospect.groupBy({
-          by: ['projectId'],
-          where: { projectId: { in: projectIds } },
-          _count: { id: true }
-        }) : [];
-
-        const countMap = {};
-        prospectCounts.forEach(pc => { countMap[pc.projectId] = pc._count.id; });
-
-        projects = searchResults.map(p => ({
-          ...p,
-          prospectCount: countMap[p.id] || 0,
-          prospects: []
-        }));
-        totalCount = Number(countResults[0]?.count || 0);
-      } else {
-        useFullTextSearch = false;
-      }
-    }
-
-    if (!useFullTextSearch || !fullTextQuery) {
+    {
       // Handle special sorting cases
       if (sortBy === 'tags') {
         // Sort by first tag value alphabetically using raw SQL
@@ -312,6 +264,19 @@ export async function handler(event) {
         if (where.status) conditions.push(`p.status = '${where.status}'`);
         if (where.id?.in) conditions.push(`p.id IN (${where.id.in.map(id => `'${id}'`).join(',')})`);
         if (hasTags === 'true') conditions.push(`p.tags IS NOT NULL AND p.tags::text != '[]' AND p.tags::text != 'null'`);
+        // Add search OR conditions (including tags JSON search)
+        if (where.OR) {
+          const orConditions = where.OR.map(cond => {
+            const field = Object.keys(cond)[0];
+            const value = cond[field].contains.replace(/'/g, "''");
+            return `p."${field}" ILIKE '%${value}%'`;
+          });
+          // Also search in tags JSON
+          if (searchText) {
+            orConditions.push(`p.tags::text ILIKE '%${searchText.replace(/'/g, "''")}%'`);
+          }
+          if (orConditions.length > 0) conditions.push(`(${orConditions.join(' OR ')})`);
+        }
 
         // Handle hasProspects filter
         let hasProspectsJoin = '';
@@ -388,6 +353,19 @@ export async function handler(event) {
         if (where.status) conditions.push(`p.status = '${where.status}'`);
         if (where.id?.in) conditions.push(`p.id IN (${where.id.in.map(id => `'${id}'`).join(',')})`);
         if (hasTags === 'true') conditions.push(`p.tags IS NOT NULL AND p.tags::text != '[]' AND p.tags::text != 'null'`);
+        // Add search OR conditions (including tags JSON search)
+        if (where.OR) {
+          const orConditions = where.OR.map(cond => {
+            const field = Object.keys(cond)[0];
+            const value = cond[field].contains.replace(/'/g, "''");
+            return `p."${field}" ILIKE '%${value}%'`;
+          });
+          // Also search in tags JSON
+          if (searchText) {
+            orConditions.push(`p.tags::text ILIKE '%${searchText.replace(/'/g, "''")}%'`);
+          }
+          if (orConditions.length > 0) conditions.push(`(${orConditions.join(' OR ')})`);
+        }
 
         let hasProspectsJoin = '';
         let hasProspectsCondition = '';
