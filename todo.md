@@ -1,7 +1,7 @@
 # Camvasser TODO
 
 # Bugs
-- [x] status filter dropdown doesn't work in leads list view
+- [✅] status filter dropdown doesn't work in leads list view
 - [ ] board view columns should have status filters
 
 # Map Features
@@ -17,8 +17,8 @@
 
 ## CompanyCam Integration
 - [ ] Get OAuth write access (fill out form) or find alternative
-- [x] Clean up tags in CC and resync to local DB
-- [x] Script to bulk remove/rename tags
+- [✅] Clean up tags in CC and resync to local DB
+- [✅] Script to bulk remove/rename tags
 
 ## Data Cleanup
 - [ ] Delete 71 junk leads (address-only records with no contact info)
@@ -37,12 +37,12 @@
 - [ ] Sync GCal to tenant
 
 ## Admin Features - Search & Bulk Actions
-- [x] Empty field search syntax (e.g., `email:empty`, `no:phone`, `has:name`)
-- [x] Checkbox selection on list views (leads)
+- [✅] Empty field search syntax (e.g., `email:empty`, `no:phone`, `has:name`)
+- [✅] Checkbox selection on list views (leads)
 - [ ] "Select all matching" (all records matching current search, not just visible)
-- [x] Bulk delete with confirmation modal
-- [x] Bulk delete API endpoints (leads)
-- [x] Delete contact (single + bulk)
+- [✅] Bulk delete with confirmation modal
+- [✅] Bulk delete API endpoints (leads)
+- [✅] Delete contact (single + bulk)
 - [ ] Delete address/project (single + bulk)
 
 ## Data Models
