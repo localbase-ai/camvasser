@@ -1469,8 +1469,12 @@
         loadLeadMap(lead);
       }
 
-      // Re-render table to update selected state
-      renderLeadResults(allLeads, leadTotal, leadTotalPages);
+      // Re-render to update selected state - respect current view mode
+      if (leadsViewMode === 'kanban') {
+        // Don't re-render kanban, just keep the pane open
+      } else {
+        renderLeadResults(allLeads, leadTotal, leadTotalPages);
+      }
     }
 
     function loadLeadMap(lead) {
@@ -1496,7 +1500,10 @@
     function closeLeadDetail() {
       selectedLeadId = null;
       document.getElementById('leadDetailPane').classList.add('hidden');
-      renderLeadResults(allLeads, leadTotal, leadTotalPages);
+      // Only re-render list view, not kanban
+      if (leadsViewMode !== 'kanban') {
+        renderLeadResults(allLeads, leadTotal, leadTotalPages);
+      }
     }
 
     function renderLeadsKanban(leads) {
@@ -1537,12 +1544,12 @@
         const count = grouped[status].length;
 
         if (isCollapsed) {
-          // Collapsed column - thin vertical bar
+          // Collapsed column - thin vertical bar with label at top
           return `
             <div class="bg-base-200 w-10 flex flex-col h-full cursor-pointer hover:bg-base-300 flex-shrink-0" onclick="toggleColumnCollapse('${status}')">
-              <div class="flex-1 flex flex-col items-center justify-center py-4">
+              <div class="flex flex-col items-center pt-2 pb-4">
                 <span class="badge badge-xs mb-2">${count}</span>
-                <span class="text-xs font-semibold writing-vertical transform rotate-180" style="writing-mode: vertical-rl;">${formatStatus(status, true)}</span>
+                <span class="text-xs font-semibold" style="writing-mode: vertical-rl; transform: rotate(180deg);">${formatStatus(status, true)}</span>
               </div>
             </div>
           `;
@@ -1717,7 +1724,9 @@
         if (response.status === 401) { logout(); return; }
 
         const data = await response.json();
-        renderLeadsKanban(data.leads || []);
+        // Store in allLeads so showLeadDetail can find them
+        allLeads = data.leads || [];
+        renderLeadsKanban(allLeads);
       } catch (error) {
         console.error('Error fetching leads for kanban:', error);
       }
