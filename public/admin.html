@@ -32,10 +32,14 @@
   <!-- Leaflet for maps -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
   <style>
     /* Custom map icon - remove default leaflet styling */
-    .custom-map-icon {
+    .custom-map-icon, .custom-cluster-icon {
       background: transparent !important;
       border: none !important;
     }
@@ -450,6 +454,10 @@
             <h2 class="text-lg font-bold">Map</h2>
             <div class="flex flex-wrap gap-2 items-center">
               <span id="mapAddressCount" class="text-sm text-base-content/60">Loading...</span>
+              <label class="flex items-center gap-2 cursor-pointer ml-4">
+                <input type="checkbox" id="clusterToggle" checked class="checkbox checkbox-sm" onchange="toggleClustering(this.checked)">
+                <span class="text-sm">Cluster</span>
+              </label>
             </div>
           </div>
         </div>
@@ -1801,6 +1809,8 @@
     let mapInitialized = false;
     let mapLayers = {};       // Layer groups for filtering
     let mapLayerControl = null;
+    let mapClusteringEnabled = true;
+    let mapDataCache = { addresses: [], leads: [] }; // Cache for toggling
 
     async function initializeMap() {
       if (mapInitialized && map) {
@@ -1827,33 +1837,44 @@
       await loadMapData();
     }
 
-    async function loadMapData() {
+    async function loadMapData(useCache = false) {
       if (!map) return;
 
       document.getElementById('mapAddressCount').textContent = 'Loading...';
 
       try {
-        // Fetch addresses and leads in parallel
-        const addressParams = new URLSearchParams({ limit: '10000' });
-        const leadParams = new URLSearchParams({ limit: '10000' });
-        if (currentTenant) {
-          addressParams.set('tenant', currentTenant);
-          leadParams.set('tenant', currentTenant);
+        let addresses, leads;
+
+        if (useCache && mapDataCache.addresses.length > 0) {
+          // Use cached data for toggle
+          addresses = mapDataCache.addresses;
+          leads = mapDataCache.leads;
+        } else {
+          // Fetch addresses and leads in parallel
+          const addressParams = new URLSearchParams({ limit: '10000' });
+          const leadParams = new URLSearchParams({ limit: '10000' });
+          if (currentTenant) {
+            addressParams.set('tenant', currentTenant);
+            leadParams.set('tenant', currentTenant);
+          }
+
+          const [addressResponse, leadResponse] = await Promise.all([
+            fetch(`/.netlify/functions/get-projects?${addressParams}`, {
+              headers: { 'Authorization': `Bearer ${authToken}` }
+            }),
+            fetch(`/.netlify/functions/get-leads?${leadParams}`, {
+              headers: { 'Authorization': `Bearer ${authToken}` }
+            })
+          ]);
+
+          const addressData = await addressResponse.json();
+          const leadData = await leadResponse.json();
+          addresses = addressData.projects || [];
+          leads = leadData.leads || [];
+
+          // Cache the data
+          mapDataCache = { addresses, leads };
         }
-
-        const [addressResponse, leadResponse] = await Promise.all([
-          fetch(`/.netlify/functions/get-projects?${addressParams}`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
-          }),
-          fetch(`/.netlify/functions/get-leads?${leadParams}`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
-          })
-        ]);
-
-        const addressData = await addressResponse.json();
-        const leadData = await leadResponse.json();
-        const addresses = addressData.projects || [];
-        const leads = leadData.leads || [];
 
         // Clear existing layers and control
         Object.values(mapLayers).forEach(layer => map.removeLayer(layer));
@@ -1861,10 +1882,33 @@
         mapMarkers = [];
         mapLayers = {};
 
-        // Create layer groups
-        const withContactsLayer = L.layerGroup();
-        const leadsLayer = L.layerGroup();
-        const otherLayer = L.layerGroup();
+        // Create layer groups - clustered or regular based on toggle
+        let withContactsLayer, leadsLayer, otherLayer;
+
+        if (mapClusteringEnabled) {
+          withContactsLayer = L.markerClusterGroup({
+            iconCreateFunction: (cluster) => createClusterIcon(cluster, '#3b82f6'),
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false
+          });
+          leadsLayer = L.markerClusterGroup({
+            iconCreateFunction: (cluster) => createClusterIcon(cluster, '#22c55e'),
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false
+          });
+          otherLayer = L.markerClusterGroup({
+            iconCreateFunction: (cluster) => createClusterIcon(cluster, '#6b7280'),
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false
+          });
+        } else {
+          withContactsLayer = L.layerGroup();
+          leadsLayer = L.layerGroup();
+          otherLayer = L.layerGroup();
+        }
 
         let addressesWithCoords = 0;
         let contactCount = 0;
@@ -1886,10 +1930,10 @@
             .on('click', () => showMapPopup(addr, null, hasContacts));
 
           if (hasContacts) {
-            marker.addTo(withContactsLayer);
+            mapClusteringEnabled ? withContactsLayer.addLayer(marker) : marker.addTo(withContactsLayer);
             contactCount++;
           } else {
-            marker.addTo(otherLayer);
+            mapClusteringEnabled ? otherLayer.addLayer(marker) : marker.addTo(otherLayer);
           }
           mapMarkers.push(marker);
         });
@@ -1908,7 +1952,7 @@
           const marker = L.marker([lat, lon], { icon })
             .on('click', () => showLeadMapPopup(lead));
 
-          marker.addTo(leadsLayer);
+          mapClusteringEnabled ? leadsLayer.addLayer(marker) : marker.addTo(leadsLayer);
           mapMarkers.push(marker);
         });
 
@@ -1940,6 +1984,35 @@
         console.error('Error loading map data:', error);
         document.getElementById('mapAddressCount').textContent = 'Error loading map data';
       }
+    }
+
+    function toggleClustering(enabled) {
+      mapClusteringEnabled = enabled;
+      loadMapData(true); // Use cached data
+    }
+
+    function createClusterIcon(cluster, color) {
+      const count = cluster.getChildCount();
+      const size = count < 10 ? 30 : count < 50 ? 36 : 44;
+      return L.divIcon({
+        html: `<div style="
+          background: ${color};
+          color: white;
+          border-radius: 50%;
+          width: ${size}px;
+          height: ${size}px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          font-size: ${size < 36 ? 12 : 14}px;
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        ">${count}</div>`,
+        className: 'custom-cluster-icon',
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2]
+      });
     }
 
     function createMapIcon(color, hasContacts) {
