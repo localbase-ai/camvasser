@@ -21,7 +21,11 @@
 - [✅] Script to bulk remove/rename tags
 
 ## Data Cleanup
-- [ ] Delete 71 junk leads (address-only records with no contact info)
+- [✅] Delete 71 junk leads (address-only records with no contact info)
+
+## Connect Data Sources
+- [ ] Connect RoofMaxx API, sync new leads to Camvasser
+- [ ] Connect Bud Roofing website forms, push new submissions into Camvasser
 
 ## Admin Features - Notes
 - [ ] Add notes to lead
