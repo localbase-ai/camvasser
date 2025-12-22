@@ -28,11 +28,13 @@
 - [ ] Sync GCal to tenant
 
 ## Admin Features - Search & Bulk Actions
-- [ ] Empty field search syntax (e.g., `email:empty`, `no:phone`, `has:name`)
-- [ ] Checkbox selection on list views
+- [x] Empty field search syntax (e.g., `email:empty`, `no:phone`, `has:name`)
+- [x] Checkbox selection on list views (leads)
 - [ ] "Select all matching" (all records matching current search, not just visible)
-- [ ] Bulk delete with confirmation modal
-- [ ] Bulk delete API endpoints (leads, contacts, addresses)
+- [x] Bulk delete with confirmation modal
+- [x] Bulk delete API endpoints (leads)
+- [ ] Delete contact (single + bulk)
+- [ ] Delete address/project (single + bulk)
 
 ## Data Models
 - [ ] Add HOA object (link to address/project)
