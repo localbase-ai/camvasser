@@ -11,20 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Tailwind + DaisyUI -->
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-          },
-        },
-      },
-    }
-  </script>
+  <!-- Tailwind + DaisyUI (compiled) -->
+  <link href="/styles/output.css" rel="stylesheet" type="text/css" />
 
   <!-- MiniSearch for client-side search -->
   <script src="https://cdn.jsdelivr.net/npm/minisearch@6.3.0/dist/umd/index.min.js"></script>
@@ -37,96 +25,6 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <style>
-    /* Custom map icon - remove default leaflet styling */
-    .custom-map-icon, .custom-cluster-icon {
-      background: transparent !important;
-      border: none !important;
-    }
-    body {
-      font-family: 'Inter', system-ui, sans-serif;
-      overflow-x: hidden;
-    }
-    /* Remove all rounded corners */
-    *, *::before, *::after {
-      border-radius: 0 !important;
-    }
-    /* Full-width nav items */
-    .menu {
-      padding: 0 !important;
-    }
-    .menu li {
-      margin: 0 !important;
-    }
-    .menu li a {
-      margin: 0 !important;
-      padding: 12px 16px !important;
-    }
-    .menu li a.active {
-      background: oklch(var(--b3)) !important;
-      color: oklch(var(--bc)) !important;
-    }
-    /* Compact tables */
-    .table th, .table td {
-      padding: 0.5rem 0.75rem !important;
-    }
-    /* Align first column with header */
-    .table th:first-child, .table td:first-child {
-      padding-left: 0 !important;
-    }
-    /* Compact view headers */
-    .view > div:first-child {
-      margin-bottom: 0.5rem !important;
-    }
-    .view h2 {
-      font-size: 1rem !important;
-      font-weight: 600 !important;
-      margin-bottom: 0 !important;
-    }
-    /* Compact filter bar */
-    .view .shadow.mb-4 {
-      padding: 0.5rem 1rem !important;
-      margin-bottom: 0.5rem !important;
-    }
-    /* Hide scrollbars but allow scrolling */
-    ::-webkit-scrollbar {
-      width: 0;
-      height: 0;
-    }
-    * {
-      scrollbar-width: none; /* Firefox */
-    }
-    /* Sidebar collapse */
-    #sidebar.collapsed {
-      width: 60px;
-    }
-    #sidebar.collapsed .sidebar-text,
-    #sidebar.collapsed .nav-text,
-    #sidebar.collapsed .badge,
-    #sidebar.collapsed .user-info {
-      display: none;
-    }
-    #sidebar.collapsed .nav-link {
-      justify-content: center;
-      padding: 12px !important;
-    }
-    #sidebar.collapsed .menu li a {
-      gap: 0;
-    }
-    #sidebar.collapsed .p-4 {
-      padding: 0.75rem !important;
-    }
-    #sidebar.collapsed .flex.items-center.gap-3 {
-      justify-content: center;
-    }
-    #sidebar.collapsed .btn-logout {
-      width: 100%;
-      justify-content: center;
-    }
-    #sidebar.collapsed .btn-logout svg {
-      margin: 0;
-    }
-  </style>
 </head>
 <body class="bg-base-100 min-h-screen">
 
