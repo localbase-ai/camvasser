@@ -103,11 +103,15 @@ export async function handler(event) {
           if (validTagIds && !validTagIds.has(tag.id)) return;
 
           if (!tagMap.has(tag.value)) {
+            // Handle both camelCase (from resync) and snake_case (from API) formats
+            const displayValue = tag.displayValue || tag.display_value;
+            const tagType = tag.tagType || tag.tag_type;
+
             tagMap.set(tag.value, {
               id: tag.id,
               value: tag.value,
-              display_value: tag.display_value,
-              tag_type: tag.tag_type
+              display_value: displayValue,
+              tag_type: tagType
             });
           }
         });
