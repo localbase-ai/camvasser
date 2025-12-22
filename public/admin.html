@@ -299,32 +299,52 @@
           </div>
         </div>
 
-        <!-- Table -->
-        <div class="overflow-auto flex-1 mt-1">
-          <table class="table w-full">
-            <thead class="sticky top-0 bg-base-100 z-10">
-              <tr>
-                <th class="cursor-pointer hover:bg-base-200" onclick="sortProspects('name')">Name</th>
-                <th>Address</th>
-                <th>Phone</th>
-                <th>Email</th>
-                <th>Type</th>
-                <th class="cursor-pointer hover:bg-base-200" onclick="sortProspects('status')">Status</th>
-                <th class="cursor-pointer hover:bg-base-200" onclick="sortProspects('createdAt')">Created</th>
-              </tr>
-            </thead>
-            <tbody id="prospectTableBody">
-              <tr>
-                <td colspan="7" class="text-center py-8">
-                  <span class="loading loading-spinner loading-md"></span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <!-- Split Pane Container -->
+        <div class="relative flex-1 min-h-0 mt-1">
+          <!-- Table Pane -->
+          <div id="prospectListPane" class="h-full flex flex-col">
+            <div class="overflow-auto flex-1">
+              <table class="table w-full">
+                <thead class="sticky top-0 bg-base-100 z-10">
+                  <tr>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortProspects('name')">Name</th>
+                    <th>Address</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Type</th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortProspects('status')">Status</th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortProspects('createdAt')">Created</th>
+                  </tr>
+                </thead>
+                <tbody id="prospectTableBody">
+                  <tr>
+                    <td colspan="7" class="text-center py-8">
+                      <span class="loading loading-spinner loading-md"></span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-        <!-- Pagination -->
-        <div id="prospectPagination" class="flex justify-center mt-4 flex-shrink-0"></div>
+            <!-- Pagination -->
+            <div id="prospectPagination" class="flex justify-center mt-4 flex-shrink-0"></div>
+          </div>
+
+          <!-- Detail Pane (absolute overlay) -->
+          <div id="prospectDetailPane" class="hidden absolute top-0 right-0 h-full w-[450px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
+            <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
+              <h3 class="font-semibold text-sm">Contact Details</h3>
+              <button onclick="closeProspectDetail()" class="btn btn-ghost btn-xs btn-square">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div id="prospectDetailContent" class="p-4">
+              <!-- Contact details will be rendered here -->
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Leads View -->
@@ -446,8 +466,49 @@
     // Filters
     let currentAddressFilter = null; // For filtering prospects by address
 
+    // Map URL cache - pre-built on data load for instant display
+    const mapUrlCache = new Map();
+
+    function buildMapUrl(addressParts) {
+      const key = addressParts.filter(Boolean).join(', ');
+      if (!key) return null;
+      if (!mapUrlCache.has(key)) {
+        const query = encodeURIComponent(key);
+        mapUrlCache.set(key, `https://maps.google.com/maps?q=${query}&t=m&z=15&output=embed&iwloc=near`);
+      }
+      return mapUrlCache.get(key);
+    }
+
+    function preCacheMapUrls() {
+      // Pre-build map URLs for all loaded addresses and leads
+      allAddresses.forEach(addr => {
+        buildMapUrl([addr.address, addr.city, addr.state, addr.postalCode]);
+      });
+      allProspects.forEach(p => {
+        if (p.project) {
+          buildMapUrl([p.project.address, p.project.city, p.project.state, p.project.postalCode]);
+        }
+      });
+      allLeads.forEach(lead => {
+        buildMapUrl([lead.address, lead.city, lead.state, lead.zip]);
+      });
+    }
+
     // Leads view mode - restore from localStorage
     let leadsViewMode = localStorage.getItem('leadsViewMode') || 'list';
+
+    // Collapsed kanban columns - restore from localStorage
+    let collapsedColumns = JSON.parse(localStorage.getItem('collapsedColumns') || '[]');
+
+    function toggleColumnCollapse(status) {
+      if (collapsedColumns.includes(status)) {
+        collapsedColumns = collapsedColumns.filter(s => s !== status);
+      } else {
+        collapsedColumns.push(status);
+      }
+      localStorage.setItem('collapsedColumns', JSON.stringify(collapsedColumns));
+      renderLeads();
+    }
 
     // =====================
     // Auth & Init
@@ -603,6 +664,8 @@
         loadTags()
       ]);
 
+      // Pre-cache map URLs for faster display
+      preCacheMapUrls();
     }
 
     async function loadAddresses() {
@@ -739,7 +802,7 @@
     }
 
     function populateLeadStatusFilter() {
-      const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'proposal_sent', 'completed', 'won', 'lost'];
+      const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
       const allStatuses = [...new Set(allLeads.map(l => l.status).filter(Boolean))];
 
       // Sort: preferred order first, then alphabetically for any others
@@ -1068,6 +1131,8 @@
       renderAddressResults(allAddresses, addressTotal, addressTotalPages);
     }
 
+    let selectedProspectId = null;
+
     function renderProspects() {
       const tbody = document.getElementById('prospectTableBody');
 
@@ -1088,9 +1153,10 @@
 
           const status = prospect.status ? getStatusBadge(prospect.status) : '-';
           const created = prospect.createdAt ? formatDate(prospect.createdAt) : '-';
+          const isSelected = selectedProspectId === prospect.id;
 
           return `
-            <tr>
+            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''}" onclick="showProspectDetail('${prospect.id}')">
               <td class="font-medium">${prospect.name || '-'}</td>
               <td class="text-sm">${prospect.project?.address || '-'}</td>
               <td class="text-sm">${phoneDisplay}</td>
@@ -1104,6 +1170,160 @@
       }
 
       renderPagination('prospect', prospectPage, prospectTotalPages, prospectTotal, (p) => { prospectPage = p; loadProspects(); });
+    }
+
+    function showProspectDetail(prospectId) {
+      const prospect = allProspects.find(p => p.id === prospectId);
+      if (!prospect) return;
+
+      selectedProspectId = prospectId;
+      const pane = document.getElementById('prospectDetailPane');
+      const content = document.getElementById('prospectDetailContent');
+
+      // Get phone numbers
+      const phones = prospect.phones?.sort((a, b) => b.score - a.score) || [];
+      const emails = prospect.emails || [];
+
+      // Render prospect details
+      content.innerHTML = `
+        <div class="space-y-4">
+          <!-- Name & Status -->
+          <div>
+            <h4 class="text-lg font-semibold">${prospect.name || 'Unknown'}</h4>
+            <div class="flex flex-wrap gap-1 mt-1">
+              ${prospect.isHomeowner ? '<span class="badge badge-neutral badge-sm">Owner</span>' : ''}
+              ${prospect.isCurrentResident ? '<span class="badge badge-ghost badge-sm">Resident</span>' : ''}
+              ${prospect.isDead ? '<span class="badge badge-outline badge-sm">Deceased</span>' : ''}
+              ${prospect.status ? getStatusBadge(prospect.status) : ''}
+            </div>
+          </div>
+
+          <!-- Contact Info -->
+          <div class="space-y-2">
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Contact Information</h5>
+            ${phones.length > 0 ? `
+              <div class="space-y-1">
+                ${phones.map(p => `
+                  <div class="flex items-center gap-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <a href="tel:${p.number}" class="link link-primary">${p.number}</a>
+                    ${p.type && p.type !== 'unknown' ? `<span class="text-xs text-base-content/40">(${p.type})</span>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            ` : '<p class="text-sm text-base-content/60">No phone numbers</p>'}
+            ${emails.length > 0 ? `
+              <div class="space-y-1 mt-2">
+                ${emails.map(e => `
+                  <div class="flex items-center gap-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <a href="mailto:${e}" class="link link-primary">${e}</a>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Associated Address -->
+          ${prospect.project ? `
+            <div class="space-y-2">
+              <h5 class="text-xs font-semibold text-base-content/60 uppercase">Associated Address</h5>
+              <div class="-mx-4" id="prospectMapContainer"></div>
+              <div class="p-3 bg-base-200 rounded">
+                <p class="font-medium text-sm">${prospect.project.address || 'Unknown Address'}</p>
+                ${prospect.project.city || prospect.project.state ? `
+                  <p class="text-xs text-base-content/60">${[prospect.project.city, prospect.project.state, prospect.project.postalCode].filter(Boolean).join(', ')}</p>
+                ` : ''}
+                <button onclick="viewAddressFromProspect('${prospect.project.id}')" class="btn btn-xs btn-ghost text-primary mt-2">
+                  View Address →
+                </button>
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Details -->
+          <div class="space-y-2">
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Details</h5>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <div class="text-base-content/60">Created</div>
+              <div>${prospect.createdAt ? formatDate(prospect.createdAt) : '-'}</div>
+              ${prospect.updatedAt ? `
+                <div class="text-base-content/60">Updated</div>
+                <div>${formatDate(prospect.updatedAt)}</div>
+              ` : ''}
+              ${prospect.source ? `
+                <div class="text-base-content/60">Source</div>
+                <div>${prospect.source}</div>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- Notes -->
+          ${prospect.notes ? `
+            <div class="space-y-2">
+              <h5 class="text-xs font-semibold text-base-content/60 uppercase">Notes</h5>
+              <p class="text-sm bg-base-200 p-2 rounded">${prospect.notes}</p>
+            </div>
+          ` : ''}
+        </div>
+      `;
+
+      // Show pane
+      pane.classList.remove('hidden');
+
+      // Load map for the address
+      if (prospect.project) {
+        loadProspectMap(prospect.project);
+      }
+
+      // Re-render table to update selected state
+      renderProspects();
+    }
+
+    function loadProspectMap(project) {
+      const container = document.getElementById('prospectMapContainer');
+      if (!container) return;
+
+      const mapUrl = buildMapUrl([project.address, project.city, project.state, project.postalCode]);
+      if (!mapUrl) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = `
+        <iframe
+          src="${mapUrl}"
+          class="w-full h-[200px] border-0"
+          loading="eager"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+      `;
+    }
+
+    function closeProspectDetail() {
+      selectedProspectId = null;
+      document.getElementById('prospectDetailPane').classList.add('hidden');
+      renderProspects();
+    }
+
+    function viewAddressFromProspect(addressId) {
+      closeProspectDetail();
+      switchView('addresses');
+      // Small delay to let the view switch, then show the address detail
+      setTimeout(() => {
+        // Load addresses if not already loaded, then show detail
+        const addr = allAddresses.find(a => a.id === addressId);
+        if (addr) {
+          showAddressDetail(addressId);
+        } else {
+          // Address might not be in current page, search for it
+          searchAddresses();
+        }
+      }, 100);
     }
 
     function renderLeads() {
@@ -1190,9 +1410,10 @@
           ${lead.address ? `
             <div class="space-y-2">
               <h5 class="text-xs font-semibold text-base-content/60 uppercase">Address</h5>
-              <div class="text-sm">
-                <p>${lead.address}</p>
-                ${lead.city || lead.state || lead.zip ? `<p>${[lead.city, lead.state, lead.zip].filter(Boolean).join(', ')}</p>` : ''}
+              <div class="-mx-4" id="leadMapContainer"></div>
+              <div class="p-3 bg-base-200 rounded">
+                <p class="font-medium text-sm">${lead.address}</p>
+                ${lead.city || lead.state || lead.zip ? `<p class="text-xs text-base-content/60">${[lead.city, lead.state, lead.zip].filter(Boolean).join(', ')}</p>` : ''}
               </div>
             </div>
           ` : ''}
@@ -1243,8 +1464,33 @@
       // Show pane
       pane.classList.remove('hidden');
 
+      // Load map for the address
+      if (lead.address) {
+        loadLeadMap(lead);
+      }
+
       // Re-render table to update selected state
       renderLeadResults(allLeads, leadTotal, leadTotalPages);
+    }
+
+    function loadLeadMap(lead) {
+      const container = document.getElementById('leadMapContainer');
+      if (!container) return;
+
+      const mapUrl = buildMapUrl([lead.address, lead.city, lead.state, lead.zip]);
+      if (!mapUrl) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = `
+        <iframe
+          src="${mapUrl}"
+          class="w-full h-[200px] border-0"
+          loading="eager"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+      `;
     }
 
     function closeLeadDetail() {
@@ -1255,7 +1501,7 @@
 
     function renderLeadsKanban(leads) {
       // Get all unique statuses from the data, with a preferred order for common ones
-      const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'proposal_sent', 'completed', 'won', 'lost'];
+      const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
       const allStatuses = [...new Set(leads.map(l => l.status).filter(Boolean))];
 
       // Sort: preferred order first, then alphabetically for any others
@@ -1286,25 +1532,50 @@
         return;
       }
 
-      board.innerHTML = statuses.map(status => `
-        <div class="bg-base-100 flex-1 min-w-[140px] flex flex-col h-full">
-          <div class="p-2 border-b border-base-300 flex-shrink-0">
-            <h3 class="font-semibold text-xs flex items-center justify-between">
-              ${formatStatus(status)}
-              <span class="badge badge-xs">${grouped[status].length}</span>
-            </h3>
-          </div>
-          <div class="p-2 space-y-1 overflow-y-auto flex-1">
-            ${grouped[status].map(lead => `
-              <div class="bg-base-200 p-2 text-xs cursor-pointer hover:bg-base-300" onclick="showLeadDetail('${lead.id}')">
-                <div class="font-medium truncate">${lead.firstName || ''} ${lead.lastName || ''}</div>
-                <div class="text-base-content/60 truncate">${lead.phone || lead.email || '-'}</div>
+      board.innerHTML = statuses.map(status => {
+        const isCollapsed = collapsedColumns.includes(status);
+        const count = grouped[status].length;
+
+        if (isCollapsed) {
+          // Collapsed column - thin vertical bar
+          return `
+            <div class="bg-base-200 w-10 flex flex-col h-full cursor-pointer hover:bg-base-300 flex-shrink-0" onclick="toggleColumnCollapse('${status}')">
+              <div class="flex-1 flex flex-col items-center justify-center py-4">
+                <span class="badge badge-xs mb-2">${count}</span>
+                <span class="text-xs font-semibold writing-vertical transform rotate-180" style="writing-mode: vertical-rl;">${formatStatus(status, true)}</span>
               </div>
-            `).join('')}
-            ${grouped[status].length === 0 ? '<p class="text-center text-xs text-base-content/40 py-2">Empty</p>' : ''}
+            </div>
+          `;
+        }
+
+        // Expanded column
+        return `
+          <div class="bg-base-100 flex-1 min-w-[140px] flex flex-col h-full">
+            <div class="p-2 border-b border-base-300 flex-shrink-0">
+              <h3 class="font-semibold text-xs flex items-center justify-between whitespace-nowrap">
+                <span class="flex items-center gap-1">
+                  <button onclick="event.stopPropagation(); toggleColumnCollapse('${status}')" class="btn btn-ghost btn-xs p-0 h-4 min-h-0 w-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  ${formatStatus(status, true)}
+                </span>
+                <span class="badge badge-xs ml-1">${count}</span>
+              </h3>
+            </div>
+            <div class="p-2 space-y-1 overflow-y-auto flex-1">
+              ${grouped[status].map(lead => `
+                <div class="bg-base-200 p-2 text-xs cursor-pointer hover:bg-base-300" onclick="showLeadDetail('${lead.id}')">
+                  <div class="font-medium truncate">${lead.firstName || ''} ${lead.lastName || ''}</div>
+                  <div class="text-base-content/60 truncate">${lead.phone || lead.email || '-'}</div>
+                </div>
+              `).join('')}
+              ${count === 0 ? '<p class="text-center text-xs text-base-content/40 py-2">Empty</p>' : ''}
+            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
       // Hide pagination in kanban view
       document.getElementById('leadPagination').innerHTML = '';
@@ -1455,12 +1726,30 @@
     // =====================
     // Utilities
     // =====================
+    function getMapboxToken() {
+      // Public token for static map images
+      return '***REMOVED***';
+    }
+
     function formatDate(dateString) {
       const date = new Date(dateString);
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
-    function formatStatus(status) {
+    function formatStatus(status, abbreviated = false) {
+      // Abbreviations for kanban board headers
+      const abbreviations = {
+        'appointment_scheduled': 'Appt. Scheduled',
+        'appointment_set': 'Appt. Set',
+        'not_interested': 'Not Interested',
+        'left_voicemail': 'Left VM',
+        'insurance_claim': 'Ins. Claim',
+        'job_scheduled': 'Job Sched.'
+      };
+
+      if (abbreviated && abbreviations[status]) {
+        return abbreviations[status];
+      }
       return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
 
