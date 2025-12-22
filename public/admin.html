@@ -787,7 +787,7 @@
     }
 
     function populateTagFilters() {
-      const options = allTags.map(t => `<option value="${t.value}">${t.display_value}</option>`).join('');
+      const options = allTags.map(t => `<option value="${t.value}">${t.display_value || t.displayValue || t.value}</option>`).join('');
 
       document.getElementById('addressTagFilter').innerHTML = '<option value="">All Tags</option>' + options;
       document.getElementById('prospectTagFilter').innerHTML = '<option value="">All Tags</option>' + options;
@@ -967,7 +967,7 @@
       } else {
         tbody.innerHTML = addresses.map(addr => {
           const thumb = addr.featureImage?.find(img => img.type === 'thumbnail')?.url || addr.featureImage?.[0]?.url;
-          const tags = (addr.tags || []).map(t => `<div class="badge badge-sm">${t.display_value}</div>`).join(' ');
+          const tags = (addr.tags || []).map(t => `<div class="badge badge-sm">${t.display_value || t.displayValue || t.value}</div>`).join(' ');
           const created = addr.ccCreatedAt ? formatDate(addr.ccCreatedAt) : '-';
           const isSelected = selectedAddressId === addr.id;
 
@@ -1040,7 +1040,7 @@
             <div class="space-y-2">
               <h5 class="text-xs font-semibold text-base-content/60 uppercase">Tags</h5>
               <div class="flex flex-wrap gap-1">
-                ${addr.tags.map(t => `<div class="badge badge-sm">${t.display_value}</div>`).join('')}
+                ${addr.tags.map(t => `<div class="badge badge-sm">${t.display_value || t.displayValue || t.value}</div>`).join('')}
               </div>
             </div>
           ` : ''}
@@ -2147,7 +2147,7 @@
           addresses.forEach(addr => {
             if (Array.isArray(addr.tags)) {
               addr.tags.forEach(t => {
-                const name = t.display_value || t.value || t;
+                const name = t.display_value || t.displayValue || t.value || t;
                 tagCounts[name] = (tagCounts[name] || 0) + 1;
               });
             }
@@ -2172,7 +2172,7 @@
           if (hasTagsOnly && !hasTags) return false;
           if (selectedTag) {
             if (!hasTags) return false;
-            const tagNames = addr.tags.map(t => t.display_value || t.value || t);
+            const tagNames = addr.tags.map(t => t.display_value || t.displayValue || t.value || t);
             if (!tagNames.includes(selectedTag)) return false;
           }
           return true;
@@ -2365,7 +2365,7 @@
 
       // Get tags
       const tags = address.tags || [];
-      const tagBadges = tags.map(t => `<span class="badge badge-outline badge-xs">${t.value || t}</span>`).join(' ');
+      const tagBadges = tags.map(t => `<span class="badge badge-outline badge-xs">${t.display_value || t.displayValue || t.value || t}</span>`).join(' ');
 
       content.innerHTML = `
         <div class="space-y-3">
