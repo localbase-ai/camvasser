@@ -1746,13 +1746,15 @@
         const isCollapsed = collapsedColumns.includes(status);
         const count = grouped[status].length;
 
+        const color = getStatusColor(status);
+
         if (isCollapsed) {
           // Collapsed column - thin vertical bar with label at top
           return `
-            <div class="bg-base-200 w-10 flex flex-col h-full cursor-pointer hover:bg-base-300 flex-shrink-0" onclick="toggleColumnCollapse('${status}')">
+            <div class="w-10 flex flex-col h-full cursor-pointer flex-shrink-0" style="background-color: ${color.bg};" onclick="toggleColumnCollapse('${status}')">
               <div class="flex flex-col items-center pt-2 pb-4">
-                <span class="badge badge-xs mb-2">${count}</span>
-                <span class="text-xs font-semibold" style="writing-mode: vertical-rl; transform: rotate(180deg);">${formatStatus(status, true)}</span>
+                <span class="badge badge-xs mb-2" style="background-color: rgba(255,255,255,0.2); color: ${color.text};">${count}</span>
+                <span class="text-xs font-semibold" style="writing-mode: vertical-rl; transform: rotate(180deg); color: ${color.text};">${formatStatus(status, true)}</span>
               </div>
             </div>
           `;
@@ -1761,17 +1763,17 @@
         // Expanded column
         return `
           <div class="bg-base-100 flex-1 min-w-[140px] flex flex-col h-full">
-            <div class="p-2 border-b border-base-300 flex-shrink-0">
-              <h3 class="font-semibold text-xs flex items-center justify-between whitespace-nowrap">
+            <div class="p-2 flex-shrink-0" style="background-color: ${color.bg};">
+              <h3 class="font-semibold text-xs flex items-center justify-between whitespace-nowrap" style="color: ${color.text};">
                 <span class="flex items-center gap-1">
-                  <button onclick="event.stopPropagation(); toggleColumnCollapse('${status}')" class="btn btn-ghost btn-xs p-0 h-4 min-h-0 w-4">
+                  <button onclick="event.stopPropagation(); toggleColumnCollapse('${status}')" class="btn btn-ghost btn-xs p-0 h-4 min-h-0 w-4" style="color: ${color.text};">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                     </svg>
                   </button>
                   ${formatStatus(status, true)}
                 </span>
-                <span class="badge badge-xs ml-1">${count}</span>
+                <span class="badge badge-xs ml-1" style="background-color: rgba(255,255,255,0.2); color: ${color.text};">${count}</span>
               </h3>
             </div>
             <div class="p-2 space-y-1 overflow-y-auto flex-1">
