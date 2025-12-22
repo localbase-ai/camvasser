@@ -9,6 +9,7 @@
     "build:css": "npx @tailwindcss/cli -i public/styles/input.css -o public/styles/output.css --minify",
     "watch:css": "npx @tailwindcss/cli -i public/styles/input.css -o public/styles/output.css --watch",
     "postinstall": "npx prisma generate",
+    "prepare": "git config core.hooksPath .githooks",
     "deploy": "netlify deploy --prod",
     "test": "vitest",
     "test:ui": "vitest --ui",
