@@ -1,5 +1,13 @@
 # Camvasser TODO
 
+# Bugs
+- [ ] status filter dropdown doesn't work in leads list view
+- [ ] board view columns should have status filters
+
+# Map Features
+- [ ] filter leads by 'lead-status'
+- [ ] remove the 'lead' status it's redundant
+
 ## Mobile App
 - [ ] Set up Capacitor for iOS app
 - [ ] Native camera access for photo capture
@@ -9,8 +17,8 @@
 
 ## CompanyCam Integration
 - [ ] Get OAuth write access (fill out form) or find alternative
-- [ ] Clean up tags in CC and resync to local DB
-- [ ] Script to bulk remove/rename tags
+- [x] Clean up tags in CC and resync to local DB
+- [x] Script to bulk remove/rename tags
 
 ## Data Cleanup
 - [ ] Delete 71 junk leads (address-only records with no contact info)

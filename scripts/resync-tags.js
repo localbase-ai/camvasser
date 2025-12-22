@@ -14,24 +14,32 @@ if (!API_TOKEN) {
   process.exit(1);
 }
 
-async function fetchProjectLabels(projectId) {
-  try {
-    const response = await axios.get(
-      `https://api.companycam.com/v2/projects/${projectId}/labels`,
-      {
-        headers: {
-          'Authorization': `Bearer ${API_TOKEN}`,
-          'Accept': 'application/json'
-        },
-        timeout: 10000
+async function fetchProjectLabels(projectId, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await axios.get(
+        `https://api.companycam.com/v2/projects/${projectId}/labels`,
+        {
+          headers: {
+            'Authorization': `Bearer ${API_TOKEN}`,
+            'Accept': 'application/json'
+          },
+          timeout: 10000
+        }
+      );
+      return response.data || [];
+    } catch (error) {
+      if (error.response?.status === 404) {
+        return [];
       }
-    );
-    return response.data || [];
-  } catch (error) {
-    if (error.response?.status === 404) {
-      return [];
+      if (error.response?.status === 429 && attempt < retries) {
+        const waitTime = Math.pow(2, attempt) * 5000; // 10s, 20s, 40s
+        console.log(`  Rate limited, waiting ${waitTime/1000}s...`);
+        await new Promise(r => setTimeout(r, waitTime));
+        continue;
+      }
+      throw error;
     }
-    throw error;
   }
 }
 
@@ -100,8 +108,8 @@ async function main() {
         unchanged++;
       }
 
-      // Rate limit - small delay between requests
-      await new Promise(r => setTimeout(r, 100));
+      // Rate limit - 250ms delay between requests
+      await new Promise(r => setTimeout(r, 250));
 
     } catch (error) {
       console.error(`${progress} Error syncing ${project.id}:`, error.message);
