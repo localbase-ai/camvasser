@@ -1,7 +1,7 @@
 # Camvasser TODO
 
 # Bugs
-- [ ] status filter dropdown doesn't work in leads list view
+- [x] status filter dropdown doesn't work in leads list view
 - [ ] board view columns should have status filters
 
 # Map Features
@@ -42,7 +42,7 @@
 - [ ] "Select all matching" (all records matching current search, not just visible)
 - [x] Bulk delete with confirmation modal
 - [x] Bulk delete API endpoints (leads)
-- [ ] Delete contact (single + bulk)
+- [x] Delete contact (single + bulk)
 - [ ] Delete address/project (single + bulk)
 
 ## Data Models
