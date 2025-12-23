@@ -4540,6 +4540,10 @@
         if (data.success) {
           closeScheduleModal();
           showInfoModal('success', 'Appointment Created', `Appointment scheduled for ${new Date(data.event.start.dateTime).toLocaleString()}`);
+          // Refresh appointments list
+          if (selectedLeadId) {
+            loadLeadAppointments(selectedLeadId);
+          }
         } else {
           throw new Error(data.error || 'Failed to create appointment');
         }
