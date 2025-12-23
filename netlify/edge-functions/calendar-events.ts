@@ -45,10 +45,20 @@ async function verifyAuthToken(authHeader: string | null): Promise<{ tenant: str
 
 // Convert PEM private key to CryptoKey
 async function importPrivateKey(pem: string): Promise<CryptoKey> {
+  // Debug: log key info
+  console.log("Key length:", pem.length);
+  console.log("Key starts with:", pem.substring(0, 50));
+  console.log("Key ends with:", pem.substring(pem.length - 50));
+  console.log("Has BEGIN marker:", pem.includes("-----BEGIN PRIVATE KEY-----"));
+  console.log("Has END marker:", pem.includes("-----END PRIVATE KEY-----"));
+
   const pemContents = pem
     .replace("-----BEGIN PRIVATE KEY-----", "")
     .replace("-----END PRIVATE KEY-----", "")
     .replace(/\s/g, "");
+
+  console.log("Base64 content length:", pemContents.length);
+  console.log("Base64 first 50 chars:", pemContents.substring(0, 50));
 
   const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
 
