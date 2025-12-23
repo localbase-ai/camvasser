@@ -1,10 +1,7 @@
+import { PrismaClient } from '@prisma/client';
 import { verifyToken } from './lib/auth.js';
-import Database from 'better-sqlite3';
-import path from 'path';
 
-// Path to roofr_proposals.db - relative to user's Work directory
-const PROPOSALS_DB_PATH = process.env.PROPOSALS_DB_PATH ||
-  path.join(process.env.HOME || '/Users/ryanriggin', 'Work/renu/data/roofr/roofr_proposals.db');
+const prisma = new PrismaClient();
 
 export async function handler(event) {
   // Only allow DELETE
@@ -39,16 +36,15 @@ export async function handler(event) {
       };
     }
 
-    // Open SQLite database (writable)
-    const db = new Database(PROPOSALS_DB_PATH);
+    // Delete the proposal (only if it belongs to user's tenant)
+    const deleted = await prisma.proposal.deleteMany({
+      where: {
+        proposalId: id,
+        tenant: user.tenant
+      }
+    });
 
-    // Delete the proposal
-    const stmt = db.prepare('DELETE FROM proposals WHERE proposal_id = ?');
-    const result = stmt.run(id);
-
-    db.close();
-
-    if (result.changes === 0) {
+    if (deleted.count === 0) {
       return {
         statusCode: 404,
         headers: { 'Content-Type': 'application/json' },

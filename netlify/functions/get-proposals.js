@@ -1,10 +1,7 @@
+import { PrismaClient } from '@prisma/client';
 import { verifyToken } from './lib/auth.js';
-import Database from 'better-sqlite3';
-import path from 'path';
 
-// Path to roofr_proposals.db - relative to user's Work directory
-const PROPOSALS_DB_PATH = process.env.PROPOSALS_DB_PATH ||
-  path.join(process.env.HOME || '/Users/ryanriggin', 'Work/renu/data/roofr/roofr_proposals.db');
+const prisma = new PrismaClient();
 
 export async function handler(event) {
   // Only allow GET
@@ -29,30 +26,27 @@ export async function handler(event) {
   }
 
   try {
-    const { email, name, all } = event.queryStringParameters || {};
-
-    // Open SQLite database
-    const db = new Database(PROPOSALS_DB_PATH, { readonly: true });
+    const { email, name, all, tenant } = event.queryStringParameters || {};
+    const tenantFilter = tenant || user.tenant;
 
     let proposals = [];
 
-    // If 'all' param is set, fetch all proposals
+    // If 'all' param is set, fetch all proposals for this tenant
     if (all === 'true') {
-      const stmt = db.prepare(`
-        SELECT
-          proposal_id,
-          customer_name,
-          customer_email,
-          proposal_amount,
-          sent_date,
-          signed_date,
-          status
-        FROM proposals
-        ORDER BY sent_date DESC
-      `);
-      proposals = stmt.all();
+      proposals = await prisma.proposal.findMany({
+        where: { tenant: tenantFilter },
+        orderBy: { sentDate: 'desc' },
+        select: {
+          proposalId: true,
+          customerName: true,
+          customerEmail: true,
+          proposalAmount: true,
+          sentDate: true,
+          signedDate: true,
+          status: true
+        }
+      });
     } else if (!email && !name) {
-      db.close();
       return {
         statusCode: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -61,49 +55,62 @@ export async function handler(event) {
     } else {
       // Try email match first (more reliable)
       if (email) {
-        const stmt = db.prepare(`
-          SELECT
-            proposal_id,
-            customer_name,
-            customer_email,
-            proposal_amount,
-            sent_date,
-            signed_date,
-            status
-          FROM proposals
-          WHERE LOWER(customer_email) = LOWER(?)
-          ORDER BY sent_date DESC
-        `);
-        proposals = stmt.all(email);
+        proposals = await prisma.proposal.findMany({
+          where: {
+            tenant: tenantFilter,
+            customerEmail: { equals: email, mode: 'insensitive' }
+          },
+          orderBy: { sentDate: 'desc' },
+          select: {
+            proposalId: true,
+            customerName: true,
+            customerEmail: true,
+            proposalAmount: true,
+            sentDate: true,
+            signedDate: true,
+            status: true
+          }
+        });
       }
 
       // If no email matches and name provided, try name match
       if (proposals.length === 0 && name) {
-        const stmt = db.prepare(`
-          SELECT
-            proposal_id,
-            customer_name,
-            customer_email,
-            proposal_amount,
-            sent_date,
-            signed_date,
-            status
-          FROM proposals
-          WHERE LOWER(customer_name) LIKE LOWER(?)
-          ORDER BY sent_date DESC
-        `);
-        proposals = stmt.all(`%${name}%`);
+        proposals = await prisma.proposal.findMany({
+          where: {
+            tenant: tenantFilter,
+            customerName: { contains: name, mode: 'insensitive' }
+          },
+          orderBy: { sentDate: 'desc' },
+          select: {
+            proposalId: true,
+            customerName: true,
+            customerEmail: true,
+            proposalAmount: true,
+            sentDate: true,
+            signedDate: true,
+            status: true
+          }
+        });
       }
     }
 
-    db.close();
+    // Transform to match expected format (snake_case for frontend compatibility)
+    const formattedProposals = proposals.map(p => ({
+      proposal_id: p.proposalId,
+      customer_name: p.customerName,
+      customer_email: p.customerEmail,
+      proposal_amount: p.proposalAmount,
+      sent_date: p.sentDate,
+      signed_date: p.signedDate,
+      status: p.status
+    }));
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        count: proposals.length,
-        proposals
+        count: formattedProposals.length,
+        proposals: formattedProposals
       })
     };
 

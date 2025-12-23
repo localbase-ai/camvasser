@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -12,96 +9,81 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// Leads (people who have contacted us / inbound inquiries)
 model Lead {
-  id        String   @id @default(cuid())
-  firstName String
-  lastName  String
-  email     String?
-  phone     String?
-  address   String?  // The address they searched for
-  projectId String?  // CompanyCam project ID they viewed (optional)
-  tenant    String   // Which business this lead belongs to (e.g., "budroofing")
-  status    String?  // Call status
-  campaign  String?  // Campaign name: winter_promo, etc.
-  notes     String?  // Call notes
-  callDate  DateTime? // Date of call
-  createdAt DateTime @default(now())
+  id            String                   @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  address       String?
+  projectId     String?
+  tenant        String
+  createdAt     DateTime                 @default(now())
+  callDate      DateTime?
+  campaign      String?
+  notes         String?
+  status        String?
+  flowData      Json?
+  flowSlug      String?
+  flowType      String?
+  qualifyScore  String?
+  source        String?
+  urgencyLevel  String?
+  utmCampaign   String?
+  utmMedium     String?
+  utmSource     String?
+  search_vector Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((((((((COALESCE(\"firstName\", ''::text) || ' '::text) || COALESCE(\"lastName\", ''::text)) || ' '::text) || COALESCE(email, ''::text)) || ' '::text) || COALESCE(phone, ''::text)) || ' '::text) || COALESCE(address, ''::text)))"))
+  coordinates   Json?
 
-  // Flow/source tracking
-  source      String?  // gallery, flow, manual, etc.
-  flowType    String?  // qualify, emergency, educate, address_search
-  flowSlug    String?  // roof-claim-denial, roof-leak-emergency, etc.
-  flowData    Json?    // Quiz answers and other flow-specific data
-
-  // Computed/qualification fields
-  urgencyLevel  String?  // high, medium, low, unknown
-  qualifyScore  String?  // strong, moderate, unknown
-
-  // UTM tracking
-  utmSource   String?
-  utmMedium   String?
-  utmCampaign String?
-
-  // Location
-  coordinates Json?    // {lat, lon} for map display
-
-  @@map("User") // Keep using existing User table
   @@index([tenant])
   @@index([createdAt])
   @@index([campaign])
   @@index([source])
   @@index([flowType])
+  @@index([search_vector], map: "lead_search_idx", type: Gin)
+  @@map("User")
 }
 
-// Tenant (a business/brand that uses Camvasser)
 model Tenant {
-  id          String   @id @default(cuid())
-  slug        String   @unique  // URL slug like "budroofing"
-  name        String   // Display name like "Bud Roofing"
-  domain      String?  // Their website domain
-  logoUrl     String?  // Logo URL
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  users       UserTenant[]
+  id        String       @id @default(cuid())
+  slug      String       @unique
+  name      String
+  domain    String?
+  logoUrl   String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  users     UserTenant[]
 
   @@index([slug])
 }
 
-// Join table: Users can belong to multiple tenants
 model UserTenant {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   userId    String
   tenantId  String
-  role      String   @default("member")  // admin, member, viewer
-  createdAt DateTime @default(now())
-
-  user      BusinessUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String       @default("member")
+  createdAt DateTime     @default(now())
   tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      BusinessUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, tenantId])
   @@index([userId])
   @@index([tenantId])
 }
 
-// Business users (people who use Camvasser)
 model BusinessUser {
-  id           String   @id @default(cuid())
-  name         String   // Person's name
-  email        String   @unique
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
   phone        String?
-  companyName  String?  // Legacy field, kept for backwards compat
-  domain       String?  // Legacy field
-  slug         String?  @unique // Legacy field - default tenant slug
-  status       String   @default("pending") // pending, approved, rejected
-  passwordHash String?  // Hashed password for login
-  isAdmin      Boolean  @default(false)  // Super admin can see all tenants
-  createdAt    DateTime @default(now())
+  companyName  String?
+  domain       String?
+  slug         String?      @unique
+  createdAt    DateTime     @default(now())
   approvedAt   DateTime?
-
-  // Relations
+  status       String       @default("pending")
+  passwordHash String?
+  isAdmin      Boolean      @default(false)
   tenants      UserTenant[]
 
   @@index([createdAt])
@@ -109,69 +91,47 @@ model BusinessUser {
   @@index([email])
 }
 
-// CompanyCam project data (synced from API)
 model Project {
-  id                    String   @id  // CompanyCam project ID
-  tenant                String?  // Which business (e.g., "budroofing") - optional for global sync
-
-  // CompanyCam identifiers
-  companyId             String?
-  creatorId             String?
-  creatorType           String?
-  creatorName           String?
-
-  // Status
-  status                String?  // active, deleted, etc
-  archived              Boolean  @default(false)
-  public                Boolean  @default(true)
-
-  // Project info
-  name                  String?
-
-  // Address fields
-  address               String?  // street_address_1
-  streetAddress2        String?
-  city                  String?
-  state                 String?
-  postalCode            String?
-  country               String?
-
-  // URLs and identifiers
-  slug                  String?
-  projectUrl            String?
-  publicUrl             String?
-  embeddedProjectUrl    String?
-
-  // Location
-  coordinates           Json?    // {lat, lon}
-  geofence              Json?    // Array of coordinates
-
-  // Media
-  featureImage          Json?    // Array of image objects (original, web, thumbnail)
-  photoCount            Int      @default(0)
-  photos                Json?    // Array of photo objects from API
-  videos                Json?    // Array of video objects from API
-  documents             Json?    // Array of document objects from API
-
-  // Integrations & metadata
-  integrations          Json?    // Array of integration objects
-  primaryContact        Json?
-  notepad               String?
-  tags                  Json?    // Array of tag/label objects from API
-
-  // Timestamps from CompanyCam
-  ccCreatedAt           DateTime?  // created_at from API
-  ccUpdatedAt           DateTime?  // updated_at from API
-
-  // Sync tracking
-  lastSyncedAt          DateTime @default(now())
-  whitepagesEnrichedAt  DateTime?  // When prospects were fetched from Whitepages
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  // Relations
-  labels                ProjectLabel[]
-  prospects             Prospect[]
+  id                   String                   @id
+  tenant               String?
+  companyId            String?
+  creatorId            String?
+  creatorType          String?
+  creatorName          String?
+  status               String?
+  archived             Boolean                  @default(false)
+  public               Boolean                  @default(true)
+  name                 String?
+  address              String?
+  streetAddress2       String?
+  city                 String?
+  state                String?
+  postalCode           String?
+  country              String?
+  slug                 String?
+  projectUrl           String?
+  publicUrl            String?
+  embeddedProjectUrl   String?
+  coordinates          Json?
+  geofence             Json?
+  featureImage         Json?
+  photoCount           Int                      @default(0)
+  photos               Json?
+  videos               Json?
+  documents            Json?
+  integrations         Json?
+  primaryContact       Json?
+  notepad              String?
+  lastSyncedAt         DateTime                 @default(now())
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  tags                 Json?
+  ccCreatedAt          DateTime?
+  ccUpdatedAt          DateTime?
+  whitepagesEnrichedAt DateTime?
+  search_vector        Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((((((((((COALESCE(address, ''::text) || ' '::text) || COALESCE(city, ''::text)) || ' '::text) || COALESCE(state, ''::text)) || ' '::text) || COALESCE(\"postalCode\", ''::text)) || ' '::text) || COALESCE(name, ''::text)) || ' '::text) || COALESCE(notepad, ''::text)))"))
+  labels               ProjectLabel[]
+  prospects            Prospect[]
 
   @@index([tenant])
   @@index([address])
@@ -179,103 +139,93 @@ model Project {
   @@index([status])
   @@index([ccUpdatedAt])
   @@index([lastSyncedAt])
+  @@index([search_vector], map: "project_search_idx", type: Gin)
 }
 
-// Prospects discovered via Whitepages reverse address lookup
 model Prospect {
-  id                    String   @id @default(cuid())
-
-  // Whitepages identifiers
-  whitepagesId          String   @unique  // Whitepages person ID (e.g., "PX3vb4nlq3k")
-
-  // Link to project (the address we looked up)
-  projectId             String?
-  project               Project? @relation(fields: [projectId], references: [id])
-
-  // Basic info
-  name                  String
-  aliases               Json?    // Array of alternate names
-  isDead                Boolean  @default(false)
-  dateOfBirth           String?  // Format: "1991-10-04" or partial "1915-00-00"
-
-  // Contact info (arrays with metadata)
-  phones                Json?    // [{number, type, score}, ...]
-  emails                Json?    // ["email1@x.com", "email2@y.com"]
-
-  // Addresses
-  currentAddresses      Json?    // [{id, address}, ...]
-  historicAddresses     Json?    // [{id, address}, ...]
-  ownedProperties       Json?    // [{id, address}, ...] - indicates property ownership
-
-  // Professional info
-  linkedinUrl           String?
-  companyName           String?
-  jobTitle              String?
-
-  // Relationships
-  relatives             Json?    // [{id, name}, ...]
-
-  // Flags
-  isHomeowner           Boolean  @default(false)  // Computed: has owned_properties at lookup address
-  isCurrentResident     Boolean  @default(false)  // Computed: current_addresses includes lookup address
-
-  // Call status tracking
-  status                String?  // Call status: left_voicemail, hung_up, wrong_number, callback, appointment_set, bad_number, follow_up_email_sent, roof_replaced, not_interested, no_need, no_answer, wants_quote_phone, follow_up_sms_sent
-  campaign              String?  // Campaign name: door_hanger, winter_promo, etc.
-  notes                 String?  // Call notes
-
-  // Tracking
-  lookupAddress         String?  // The address we used to find this prospect
-  tenant                String?  // Which business tenant this belongs to
-
-  // Timestamps
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                String                   @id @default(cuid())
+  whitepagesId      String                   @unique
+  projectId         String?
+  name              String
+  aliases           Json?
+  isDead            Boolean                  @default(false)
+  dateOfBirth       String?
+  phones            Json?
+  emails            Json?
+  currentAddresses  Json?
+  historicAddresses Json?
+  ownedProperties   Json?
+  linkedinUrl       String?
+  companyName       String?
+  jobTitle          String?
+  relatives         Json?
+  isHomeowner       Boolean                  @default(false)
+  isCurrentResident Boolean                  @default(false)
+  lookupAddress     String?
+  tenant            String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  status            String?
+  campaign          String?
+  notes             String?
+  search_vector     Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((((COALESCE(name, ''::text) || ' '::text) || COALESCE(\"companyName\", ''::text)) || ' '::text) || COALESCE(\"jobTitle\", ''::text)))"))
+  project           Project?                 @relation(fields: [projectId], references: [id])
 
   @@index([projectId])
   @@index([tenant])
   @@index([isHomeowner])
   @@index([isCurrentResident])
   @@index([name])
+  @@index([search_vector], map: "prospect_search_idx", type: Gin)
 }
 
-// Project labels (tags/statuses from CompanyCam)
 model ProjectLabel {
   id           String   @id @default(cuid())
-  projectId    String   // Links to Project
-  labelId      String   // CompanyCam label ID
-  displayValue String   // "Door Hanger"
-  value        String   // "door hanger"
-  tagType      String   // "project"
-
+  projectId    String
+  labelId      String
+  displayValue String
+  value        String
+  tagType      String
   createdAt    DateTime @default(now())
-
   project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@index([value])
 }
 
-// Notes (polymorphic - can attach to Lead, Prospect, or Project)
 model Note {
-  id          String   @id @default(cuid())
-  content     String   // The note text
-
-  // Polymorphic relation - one of these will be set
-  entityType  String   // "lead", "prospect", or "project"
-  entityId    String   // ID of the related entity
-
-  // Tenant for multi-tenancy
-  tenant      String
-
-  // Author tracking (optional - for when we have user auth)
-  authorId    String?
-  authorName  String?
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  content    String
+  entityType String
+  entityId   String
+  tenant     String
+  authorId   String?
+  authorName String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
 
   @@index([entityType, entityId])
   @@index([tenant])
   @@index([createdAt])
+}
+
+// Proposals from Roofr (quotes sent to customers)
+model Proposal {
+  id             String    @id @default(cuid())
+  proposalId     String    @unique // Roofr proposal ID
+  customerName   String?
+  customerEmail  String?
+  proposalAmount Float?
+  sentDate       DateTime?
+  signedDate     DateTime?
+  status         String?   // sent, signed, etc.
+  tenant         String    // Which business this belongs to
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenant])
+  @@index([customerEmail])
+  @@index([customerName])
+  @@index([status])
 }
