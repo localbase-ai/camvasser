@@ -49,8 +49,8 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
   console.log("Raw key first 60:", pem.substring(0, 60));
 
   const pemContents = pem
-    .replace(/-+BEGIN PRIVATE KEY-+/g, "")
-    .replace(/-+END PRIVATE KEY-+/g, "")
+    .replace(/-+\s*BEGIN\s+PRIVATE\s+KEY\s*-+/gi, "")
+    .replace(/-+\s*END\s+PRIVATE\s+KEY\s*-+/gi, "")
     .replace(/\s/g, "");
 
   console.log("Cleaned base64 length:", pemContents.length);
