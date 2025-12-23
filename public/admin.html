@@ -131,6 +131,7 @@
         <div class="sticky top-0 bg-base-100 z-10 py-2">
           <div class="flex justify-between items-center gap-4">
             <h2 class="text-lg font-bold">Addresses</h2>
+            <span id="addressCountLabel" class="text-xs text-base-content/60"></span>
             <div class="flex flex-wrap gap-2 items-center flex-1">
               <input type="text" id="addressSearch" placeholder="Search addresses..." class="input input-bordered input-sm flex-1 min-w-[200px]">
               <select id="addressTagFilter" class="select select-bordered select-sm">
@@ -209,6 +210,7 @@
           <div class="flex justify-between items-center gap-4">
             <div class="flex items-center gap-2">
               <h2 class="text-lg font-bold">Contacts</h2>
+              <span id="prospectCountLabel" class="text-xs text-base-content/60"></span>
               <!-- Address Filter Badge (when viewing from address) -->
               <div id="prospectAddressFilter" class="hidden">
                 <span id="prospectAddressFilterText" class="text-xs text-base-content/70">Filtering by address...</span>
@@ -296,6 +298,7 @@
         <div class="sticky top-0 bg-base-100 z-10 py-2">
           <div class="flex justify-between items-center gap-4">
             <h2 class="text-lg font-bold">Leads</h2>
+            <span id="leadCountLabel" class="text-xs text-base-content/60"></span>
             <div class="flex flex-wrap gap-2 items-center flex-1">
               <input type="text" id="leadSearch" placeholder="Search leads..." class="input input-bordered input-sm flex-1 min-w-[200px]">
               <select id="leadStatusFilter" class="select select-bordered select-sm">
@@ -837,6 +840,7 @@
 
         // Update sidebar count with total
         document.getElementById('addressCount').textContent = addressTotal;
+        document.getElementById('addressCountLabel').textContent = `${addressTotal.toLocaleString()} records`;
 
         renderAddresses();
       } catch (error) {
@@ -875,6 +879,7 @@
 
         // Update sidebar count with total
         document.getElementById('prospectCount').textContent = prospectTotal;
+        document.getElementById('prospectCountLabel').textContent = `${prospectTotal.toLocaleString()} records`;
 
         renderProspects();
       } catch (error) {
@@ -908,6 +913,7 @@
 
         // Update sidebar count with total
         document.getElementById('leadCount').textContent = leadTotal;
+        document.getElementById('leadCountLabel').textContent = `${leadTotal.toLocaleString()} records`;
 
         // Populate status filter (only on first load)
         if (document.getElementById('leadStatusFilter').options.length <= 1) {
@@ -1031,6 +1037,7 @@
         allAddresses = data.projects || [];
         addressTotal = data.total || 0;
         addressTotalPages = data.totalPages || 1;
+        document.getElementById('addressCountLabel').textContent = `${addressTotal.toLocaleString()} records`;
         renderAddresses();
       } catch (error) {
         console.error('Error searching addresses:', error);
@@ -1066,6 +1073,7 @@
         allProspects = data.prospects || [];
         prospectTotal = data.total || 0;
         prospectTotalPages = data.totalPages || 1;
+        document.getElementById('prospectCountLabel').textContent = `${prospectTotal.toLocaleString()} records`;
         renderProspects();
       } catch (error) {
         console.error('Error searching prospects:', error);
@@ -1098,6 +1106,7 @@
         allLeads = data.leads || [];
         leadTotal = data.total || 0;
         leadTotalPages = data.totalPages || 1;
+        document.getElementById('leadCountLabel').textContent = `${leadTotal.toLocaleString()} records`;
         renderLeads();
       } catch (error) {
         console.error('Error searching leads:', error);
@@ -1793,6 +1802,31 @@
             </div>
           </div>
 
+          <!-- QuickBooks Integration -->
+          <div class="space-y-2">
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">QuickBooks</h5>
+            ${lead.flowData?.quickbooks_customer_id ? `
+              <a href="https://app.qbo.intuit.com/app/customerdetail?nameId=${lead.flowData.quickbooks_customer_id}"
+                 target="_blank"
+                 class="btn btn-sm btn-success gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                ${lead.flowData.quickbooks_display_name || 'View in QuickBooks'}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            ` : `
+              <button id="createQBCustomerBtn" onclick="createQuickBooksCustomer('${lead.id}')" class="btn btn-sm btn-outline gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+                Create QB Customer
+              </button>
+            `}
+          </div>
+
           <!-- Contact Info -->
           <div class="space-y-2">
             <h5 class="text-xs font-semibold text-base-content/60 uppercase">Contact</h5>
@@ -2130,6 +2164,45 @@
       }
     }
 
+    // Show info/success modal
+    function showInfoModal(title, message, type = 'success') {
+      document.getElementById('infoModalTitle').textContent = title;
+      document.getElementById('infoModalMessage').textContent = message;
+
+      const iconEl = document.getElementById('infoModalIcon');
+      if (type === 'success') {
+        iconEl.innerHTML = `
+          <div class="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        `;
+      } else if (type === 'error') {
+        iconEl.innerHTML = `
+          <div class="w-10 h-10 bg-error/20 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+        `;
+      } else {
+        iconEl.innerHTML = `
+          <div class="w-10 h-10 bg-info/20 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        `;
+      }
+
+      document.getElementById('infoModal').showModal();
+    }
+
+    function closeInfoModal() {
+      document.getElementById('infoModal').close();
+    }
+
     async function updateLeadStatus(leadId, status) {
       const select = document.getElementById('leadStatusSelect');
       const originalValue = select.dataset.originalValue || '';
@@ -2171,6 +2244,73 @@
     // Format status for dropdown display
     function formatStatusLabel(status) {
       return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+
+    // Create QuickBooks customer from lead
+    async function createQuickBooksCustomer(leadId) {
+      const btn = document.getElementById('createQBCustomerBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Creating...';
+      }
+
+      try {
+        const response = await fetch('/.netlify/functions/create-quickbooks-customer', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ leadId })
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Update local lead data
+          const lead = allLeads.find(l => l.id === leadId);
+          if (lead) {
+            lead.flowData = lead.flowData || {};
+            lead.flowData.quickbooks_customer_id = data.customer.id;
+            lead.flowData.quickbooks_display_name = data.customer.displayName;
+          }
+
+          // Refresh the detail pane
+          showLeadDetail(leadId);
+
+          // Show success message
+          const title = data.action === 'linked' ? 'Customer Linked' : 'Customer Created';
+          const message = data.action === 'linked'
+            ? `Linked to existing QuickBooks customer: ${data.customer.displayName}`
+            : `Created new QuickBooks customer: ${data.customer.displayName}`;
+          showInfoModal(title, message, 'success');
+        } else {
+          showInfoModal('Error', 'Failed to create QB customer: ' + (data.error || 'Unknown error'), 'error');
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              Create QB Customer
+            `;
+          }
+        }
+      } catch (error) {
+        console.error('Error creating QB customer:', error);
+        showInfoModal('Error', 'Failed to create QuickBooks customer', 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            Create QB Customer
+          `;
+        }
+      }
     }
 
     async function deleteLead(leadId) {
@@ -3581,6 +3721,25 @@
     </div>
     <form method="dialog" class="modal-backdrop bg-black/50">
       <button onclick="closeConfirmModal(false)">close</button>
+    </form>
+  </dialog>
+
+  <!-- Info/Success Modal -->
+  <dialog id="infoModal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-base-100" style="padding: 24px;">
+      <div class="flex items-start gap-3">
+        <div id="infoModalIcon" class="flex-shrink-0"></div>
+        <div class="flex-1">
+          <h3 class="font-bold text-lg" style="margin-bottom: 8px;" id="infoModalTitle">Info</h3>
+          <p style="padding: 8px 0;" id="infoModalMessage"></p>
+        </div>
+      </div>
+      <div class="modal-action" style="margin-top: 16px;">
+        <button class="btn btn-primary" onclick="closeInfoModal()">OK</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-black/50">
+      <button onclick="closeInfoModal()">close</button>
     </form>
   </dialog>
 </body>
