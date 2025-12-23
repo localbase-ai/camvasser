@@ -3681,6 +3681,21 @@
         }
       }
 
+      // Escape to close detail panes
+      if (e.key === 'Escape') {
+        const leadPane = document.getElementById('leadDetailPane');
+        const addressPane = document.getElementById('addressDetailPane');
+        const contactPane = document.getElementById('prospectDetailPane');
+
+        if (leadPane && !leadPane.classList.contains('hidden')) {
+          closeLeadDetail();
+        } else if (addressPane && !addressPane.classList.contains('hidden')) {
+          closeAddressDetail();
+        } else if (contactPane && !contactPane.classList.contains('hidden')) {
+          closeProspectDetail();
+        }
+      }
+
       // Map view keyboard shortcuts (when not in an input)
       if (currentView === 'map' && map && !e.target.matches('input, textarea')) {
         // + or = to zoom in
