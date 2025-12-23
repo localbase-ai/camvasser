@@ -36,8 +36,8 @@
 - [ ] TestFlight distribution for crews
 
 ## Admin Features - Calendar
-- [🎯] Create appointment on Google Calendar (Edge Functions)
-- [ ] Read-only calendar list view in Camvasser
+- [✅] Create appointment on Google Calendar (Edge Functions)
+- [✅] Read-only calendar list view in Camvasser
 - [ ] Sync GCal to tenant
 
 ## Admin Features - Instant Estimator
