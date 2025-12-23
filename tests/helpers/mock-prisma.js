@@ -58,6 +58,15 @@ export function createMockPrisma() {
       delete: vi.fn(),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 })
     },
+    appointment: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      count: vi.fn().mockResolvedValue(0),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 })
+    },
     $queryRaw: vi.fn().mockResolvedValue([]),
     $queryRawUnsafe: vi.fn().mockResolvedValue([]),
     $disconnect: vi.fn()
@@ -154,6 +163,25 @@ export const factories = {
     tenant: 'acme',
     authorId: 'user_123',
     authorName: 'Test User',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides
+  }),
+
+  appointment: (overrides = {}) => ({
+    id: 'appt_123',
+    leadId: 'lead_123',
+    tenant: 'acme',
+    googleEventId: 'google_event_abc123',
+    summary: 'Appointment: John Doe',
+    startTime: new Date('2025-12-25T10:00:00Z'),
+    endTime: new Date('2025-12-25T11:00:00Z'),
+    durationMinutes: 60,
+    location: '123 Main St, Denver, CO',
+    notes: 'Test appointment notes',
+    status: 'scheduled',
+    createdById: 'user_123',
+    createdByName: 'Test User',
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides

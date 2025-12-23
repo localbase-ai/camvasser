@@ -2033,6 +2033,9 @@
               </svg>
               Schedule Appointment
             </button>
+            <div id="leadAppointmentsList" class="mt-2">
+              <div class="text-sm text-base-content/40 italic">Loading appointments...</div>
+            </div>
           </div>
 
           <!-- Contact Info -->
@@ -2167,6 +2170,9 @@
       // Load notes for this lead
       loadLeadNotes(leadId);
 
+      // Load appointments for this lead
+      loadLeadAppointments(leadId);
+
       // Load proposals for this lead (by email or name)
       loadLeadProposals(lead);
 
@@ -2218,6 +2224,53 @@
       } catch (error) {
         console.error('Error loading notes:', error);
         container.innerHTML = '<div class="text-sm text-error">Failed to load notes</div>';
+      }
+    }
+
+    // Load appointments for a lead
+    async function loadLeadAppointments(leadId) {
+      const container = document.getElementById('leadAppointmentsList');
+      if (!container) return;
+
+      try {
+        const params = new URLSearchParams({ leadId });
+        const response = await fetch(`/.netlify/functions/get-appointments?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to load appointments');
+
+        const data = await response.json();
+
+        if (!data.appointments || data.appointments.length === 0) {
+          container.innerHTML = '<div class="text-sm text-base-content/40 italic">No appointments scheduled</div>';
+        } else {
+          container.innerHTML = data.appointments.map(appt => {
+            const startDate = new Date(appt.startTime);
+            const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            const timeStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            const statusBadge = appt.status === 'scheduled'
+              ? '<span class="badge badge-info badge-xs">Scheduled</span>'
+              : appt.status === 'completed'
+              ? '<span class="badge badge-success badge-xs">Completed</span>'
+              : '<span class="badge badge-ghost badge-xs">' + appt.status + '</span>';
+
+            return `
+              <div class="bg-base-200 p-2 rounded text-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="font-medium">${dateStr} at ${timeStr}</div>
+                    ${appt.notes ? `<div class="text-xs text-base-content/60 mt-1">${escapeHtml(appt.notes)}</div>` : ''}
+                  </div>
+                  ${statusBadge}
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (error) {
+        console.error('Error loading appointments:', error);
+        container.innerHTML = '<div class="text-sm text-error">Failed to load appointments</div>';
       }
     }
 
@@ -2418,9 +2471,18 @@
     }
 
     // Show info/success modal
-    function showInfoModal(title, message, type = 'success') {
+    function showInfoModal(type, title, message, link = null) {
       document.getElementById('infoModalTitle').textContent = title;
       document.getElementById('infoModalMessage').textContent = message;
+
+      // Handle optional link
+      const linkEl = document.getElementById('infoModalLink');
+      if (link) {
+        linkEl.href = link;
+        linkEl.style.display = 'block';
+      } else {
+        linkEl.style.display = 'none';
+      }
 
       const iconEl = document.getElementById('infoModalIcon');
       if (type === 'success') {
@@ -2538,9 +2600,9 @@
           const message = data.action === 'linked'
             ? `Linked to existing QuickBooks customer: ${data.customer.displayName}`
             : `Created new QuickBooks customer: ${data.customer.displayName}`;
-          showInfoModal(title, message, 'success');
+          showInfoModal('success', title, message);
         } else {
-          showInfoModal('Error', 'Failed to create QB customer: ' + (data.error || 'Unknown error'), 'error');
+          showInfoModal('error', 'Error', 'Failed to create QB customer: ' + (data.error || 'Unknown error'));
           if (btn) {
             btn.disabled = false;
             btn.innerHTML = `
@@ -2553,7 +2615,7 @@
         }
       } catch (error) {
         console.error('Error creating QB customer:', error);
-        showInfoModal('Error', 'Failed to create QuickBooks customer', 'error');
+        showInfoModal('error', 'Error', 'Failed to create QuickBooks customer');
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = `
@@ -4356,9 +4418,12 @@
         <div>
           <h3 class="font-bold text-lg" id="infoModalTitle">Info</h3>
           <p class="mt-2 text-base-content/70" id="infoModalMessage"></p>
+          <a id="infoModalLink" href="#" target="_blank" class="hidden mt-3 text-primary hover:underline" style="display: none;">
+            <span style="display: inline-flex; align-items: center; gap: 4px;">View in Google Calendar <svg xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg></span>
+          </a>
         </div>
       </div>
-      <div class="modal-action justify-center" style="margin-top: 20px;">
+      <div class="modal-action" style="margin-top: 20px; justify-content: center;">
         <button class="btn btn-primary" onclick="closeInfoModal()">OK</button>
       </div>
     </div>

@@ -49,6 +49,7 @@ async function exportTable(tableName, query) {
   await exportTable('projects', prisma.project.findMany());
   await exportTable('business_users', prisma.businessUser.findMany());
   await exportTable('project_labels', prisma.projectLabel.findMany());
+  await exportTable('appointments', prisma.appointment.findMany());
   db.close();
   await prisma.$disconnect();
   console.log('Done!');
