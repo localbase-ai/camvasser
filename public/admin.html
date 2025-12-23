@@ -2289,7 +2289,8 @@
 
     // Delete an appointment
     async function deleteAppointment(appointmentId, googleEventId) {
-      if (!confirm('Delete this appointment? This will also remove it from Google Calendar.')) return;
+      const confirmed = await showConfirmModal('Delete Appointment', 'Delete this appointment? This will also remove it from Google Calendar.');
+      if (!confirmed) return;
 
       try {
         const params = new URLSearchParams({ id: appointmentId });
