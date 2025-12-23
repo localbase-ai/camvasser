@@ -53,8 +53,8 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
   console.log("Has END marker:", pem.includes("-----END PRIVATE KEY-----"));
 
   const pemContents = pem
-    .replace("-----BEGIN PRIVATE KEY-----", "")
-    .replace("-----END PRIVATE KEY-----", "")
+    .replace(/-+BEGIN PRIVATE KEY-+/g, "")
+    .replace(/-+END PRIVATE KEY-+/g, "")
     .replace(/\s/g, "");
 
   console.log("Base64 content length:", pemContents.length);
