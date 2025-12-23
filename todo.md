@@ -4,9 +4,14 @@
 - [ ] set up a test account with white pages and source data for a test list
 
 ## Show Job Values on 'Lead Object'
-- [ ] show on cards in board view
+- [🎯] show on cards in board view
 - [ ] show totals in column headers in board view
-- [ ] show job value on records in lead list view
+- [ ] show job value on records in lead list view-
+- [ ] Delete a proposal from a lead object
+
+## Scorecard / Dashboard Views
+- [ ] make a daily scorecard view
+- [ ] make a dashboard with key stats `or leave this to localbase?`
 
 ## Quickbooks Integration
 - [✅] create customer record from lead detail view in camvasser
@@ -19,8 +24,7 @@
 ## Features 
 - [ ] Add HOA object (link to address/project)
 - [ ] Add Company object (for HOA management companies, etc.)
-- [🎯] show totals on list views for leads, contacts, addresses
-
+- [✅] show totals on list views for leads, contacts, addresses
 
 ## Mobile App
 - [ ] Set up Capacitor for iOS app

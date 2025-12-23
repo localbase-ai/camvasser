@@ -304,6 +304,10 @@
               <select id="leadStatusFilter" class="select select-bordered select-sm">
                 <option value="">All Statuses</option>
               </select>
+              <label class="label cursor-pointer gap-2">
+                <input type="checkbox" id="leadHasValueFilter" class="checkbox checkbox-sm checkbox-success">
+                <span class="label-text text-sm">Has Value</span>
+              </label>
             </div>
             <div class="btn-group">
               <button class="btn btn-sm btn-active" id="leadsListBtn" onclick="setLeadsView('list')">List</button>
@@ -339,6 +343,7 @@
                     <th>Phone</th>
                     <th>Address</th>
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortLeads('status')">Status</th>
+                    <th>Value</th>
                   </tr>
                 </thead>
                 <tbody id="leadTableBody">
@@ -576,6 +581,33 @@
     let allProspects = [];
     let allLeads = [];
     let allTags = [];
+
+    // Proposals lookup map (keyed by email and name)
+    let proposalsLookup = { byEmail: {}, byName: {} };
+
+    // Get proposals for a lead from the lookup
+    function getLeadProposals(lead) {
+      const email = (lead.email || '').toLowerCase();
+      const name = `${lead.firstName || ''} ${lead.lastName || ''}`.trim().toLowerCase();
+
+      // Try email first
+      if (email && proposalsLookup.byEmail[email]) {
+        return proposalsLookup.byEmail[email];
+      }
+      // Fall back to name
+      if (name && proposalsLookup.byName[name]) {
+        return proposalsLookup.byName[name];
+      }
+      return [];
+    }
+
+    // Get total job value for a lead
+    function getLeadJobValue(lead) {
+      const proposals = getLeadProposals(lead);
+      if (proposals.length === 0) return null;
+      // Sum all proposal amounts
+      return proposals.reduce((sum, p) => sum + (p.proposal_amount || 0), 0);
+    }
 
     // Search indexes
     let addressSearchIndex = null;
@@ -1001,6 +1033,7 @@
         leadSearchTimeout = setTimeout(() => { leadPage = 1; searchLeads(); }, 300);
       });
       document.getElementById('leadStatusFilter').addEventListener('change', () => { leadPage = 1; searchLeads(); });
+      document.getElementById('leadHasValueFilter').addEventListener('change', () => { leadPage = 1; searchLeads(); });
     }
 
     // =====================
@@ -1081,12 +1114,25 @@
     }
 
     async function searchLeads() {
-      const searchQuery = document.getElementById('leadSearch').value.trim();
+      let searchQuery = document.getElementById('leadSearch').value.trim();
       const statusFilter = document.getElementById('leadStatusFilter').value;
 
+      // Check for has:value or no:value in search query (handled client-side)
+      const hasValueInSearch = /\bhas:value\b/i.test(searchQuery);
+      const noValueInSearch = /\bno:value\b/i.test(searchQuery);
+      // Check for sort:value, sort:value:asc, or sort:value:desc
+      const sortValueMatch = searchQuery.match(/\bsort:value(?::(asc|desc))?\b/i);
+      const sortByValue = sortValueMatch !== null;
+      const sortValueDir = sortValueMatch ? (sortValueMatch[1]?.toLowerCase() || 'desc') : null;
+      // Remove has:value/no:value/sort:value from query before sending to server
+      searchQuery = searchQuery.replace(/\b(has|no):value\b/gi, '').replace(/\bsort:value(?::(asc|desc))?\b/gi, '').trim();
+
+      // If filtering or sorting by value, we need all leads to process client-side
+      const needsClientFilter = hasValueInSearch || noValueInSearch || sortByValue || document.getElementById('leadHasValueFilter').checked;
+
       const params = new URLSearchParams({
-        limit: PAGE_SIZE.toString(),
-        page: leadPage.toString(),
+        limit: needsClientFilter ? '10000' : PAGE_SIZE.toString(),
+        page: needsClientFilter ? '1' : leadPage.toString(),
         sortBy: leadSort.column,
         sortDir: leadSort.direction
       });
@@ -1096,16 +1142,60 @@
       if (statusFilter) params.set('status', statusFilter);
 
       try {
-        const response = await fetch(`/.netlify/functions/get-leads?${params}`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
+        // Fetch leads and proposals in parallel
+        const [leadsResponse, proposalsResponse] = await Promise.all([
+          fetch(`/.netlify/functions/get-leads?${params}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          }),
+          fetch('/.netlify/functions/get-proposals?all=true', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          })
+        ]);
 
-        if (response.status === 401) { logout(); return; }
+        if (leadsResponse.status === 401) { logout(); return; }
 
-        const data = await response.json();
+        const data = await leadsResponse.json();
         allLeads = data.leads || [];
         leadTotal = data.total || 0;
         leadTotalPages = data.totalPages || 1;
+
+        // Build proposals lookup if not already populated
+        if (proposalsResponse.ok) {
+          const proposalsData = await proposalsResponse.json();
+          proposalsLookup = { byEmail: {}, byName: {} };
+          for (const p of proposalsData.proposals || []) {
+            if (p.customer_email) {
+              const email = p.customer_email.toLowerCase();
+              if (!proposalsLookup.byEmail[email]) proposalsLookup.byEmail[email] = [];
+              proposalsLookup.byEmail[email].push(p);
+            }
+            if (p.customer_name) {
+              const name = p.customer_name.toLowerCase();
+              if (!proposalsLookup.byName[name]) proposalsLookup.byName[name] = [];
+              proposalsLookup.byName[name].push(p);
+            }
+          }
+        }
+
+        // Apply "Has Value" filter client-side (after proposals are loaded)
+        const hasValueFilter = document.getElementById('leadHasValueFilter').checked;
+        if (hasValueFilter || hasValueInSearch) {
+          allLeads = allLeads.filter(lead => getLeadJobValue(lead) !== null);
+          leadTotal = allLeads.length;
+        } else if (noValueInSearch) {
+          allLeads = allLeads.filter(lead => getLeadJobValue(lead) === null);
+          leadTotal = allLeads.length;
+        }
+
+        // Apply sort:value sorting client-side
+        if (sortByValue) {
+          allLeads.sort((a, b) => {
+            const valA = getLeadJobValue(a) || 0;
+            const valB = getLeadJobValue(b) || 0;
+            return sortValueDir === 'asc' ? valA - valB : valB - valA;
+          });
+        }
+
         document.getElementById('leadCountLabel').textContent = `${leadTotal.toLocaleString()} records`;
         renderLeads();
       } catch (error) {
@@ -1746,12 +1836,14 @@
       const tbody = document.getElementById('leadTableBody');
 
       if (leads.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-base-content/60">No leads found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-base-content/60">No leads found</td></tr>`;
       } else {
         tbody.innerHTML = leads.map(lead => {
           const created = lead.createdAt ? formatDate(lead.createdAt) : '-';
           const status = lead.status ? getStatusBadge(lead.status) : '-';
           const isSelected = selectedLeadId === lead.id;
+          const jobValue = getLeadJobValue(lead);
+          const jobValueDisplay = jobValue ? `$${jobValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '-';
 
           return `
             <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''}">
@@ -1764,6 +1856,7 @@
               <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.phone || '-'}</td>
               <td class="text-sm max-w-[200px] truncate" onclick="showLeadDetail('${lead.id}')">${lead.address || '-'}</td>
               <td onclick="showLeadDetail('${lead.id}')">${status}</td>
+              <td class="text-sm text-success font-medium" onclick="showLeadDetail('${lead.id}')">${jobValueDisplay}</td>
             </tr>
           `;
         }).join('');
@@ -2763,6 +2856,13 @@
         const isCollapsed = collapsedColumns.includes(status);
         const count = grouped[status].length;
 
+        // Calculate total job value for this column
+        const columnTotal = grouped[status].reduce((sum, lead) => {
+          const jobValue = getLeadJobValue(lead);
+          return sum + (jobValue || 0);
+        }, 0);
+        const columnTotalDisplay = columnTotal > 0 ? `$${columnTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
+
         const color = getStatusColor(status);
 
         if (isCollapsed) {
@@ -2779,7 +2879,7 @@
 
         // Expanded column
         return `
-          <div class="bg-base-100 flex-1 min-w-[140px] flex flex-col h-full">
+          <div class="bg-base-100 flex-1 min-w-[180px] flex flex-col h-full">
             <div class="p-2 flex-shrink-0" style="background-color: ${color.bg};">
               <h3 class="font-semibold text-xs flex items-center justify-between whitespace-nowrap" style="color: ${color.text};">
                 <span class="flex items-center gap-1">
@@ -2790,16 +2890,25 @@
                   </button>
                   ${formatStatus(status, true)}
                 </span>
-                <span class="badge badge-xs ml-1" style="background-color: rgba(255,255,255,0.2); color: ${color.text};">${count}</span>
+                <span class="flex items-center gap-1">
+                  ${columnTotalDisplay ? `<span class="text-[9px] font-normal opacity-70 ml-1">${columnTotalDisplay}</span>` : ''}
+                  <span class="badge badge-xs ml-1" style="background-color: rgba(255,255,255,0.2); color: ${color.text};">${count}</span>
+                </span>
               </h3>
             </div>
-            <div class="p-2 space-y-1 overflow-y-auto flex-1">
-              ${grouped[status].map(lead => `
-                <div class="bg-base-200 p-2 text-xs cursor-pointer hover:bg-base-300" onclick="showLeadDetail('${lead.id}')">
-                  <div class="font-medium truncate">${lead.firstName || ''} ${lead.lastName || ''}</div>
+            <div class="space-y-1 overflow-y-auto flex-1 pt-1">
+              ${grouped[status].map(lead => {
+                const jobValue = getLeadJobValue(lead);
+                const jobValueDisplay = jobValue ? `$${jobValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
+                return `
+                <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300" onclick="showLeadDetail('${lead.id}')">
+                  <div class="flex justify-between items-start">
+                    <div class="font-medium truncate">${lead.firstName || ''} ${lead.lastName || ''}</div>
+                    ${jobValueDisplay ? `<div class="text-success font-semibold italic whitespace-nowrap">${jobValueDisplay}</div>` : ''}
+                  </div>
                   <div class="text-base-content/60 truncate">${lead.phone || lead.email || '-'}</div>
                 </div>
-              `).join('')}
+              `}).join('')}
               ${count === 0 ? '<p class="text-center text-xs text-base-content/40 py-2">Empty</p>' : ''}
             </div>
           </div>
@@ -2939,15 +3048,45 @@
       if (currentTenant) params.set('tenant', currentTenant);
 
       try {
-        const response = await fetch(`/.netlify/functions/get-leads?${params}`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
+        // Fetch leads and proposals in parallel
+        const [leadsResponse, proposalsResponse] = await Promise.all([
+          fetch(`/.netlify/functions/get-leads?${params}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          }),
+          fetch('/.netlify/functions/get-proposals?all=true', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          })
+        ]);
 
-        if (response.status === 401) { logout(); return; }
+        if (leadsResponse.status === 401) { logout(); return; }
 
-        const data = await response.json();
-        // Store in allLeads so showLeadDetail can find them
-        allLeads = data.leads || [];
+        const leadsData = await leadsResponse.json();
+        allLeads = leadsData.leads || [];
+
+        // Build proposals lookup maps
+        proposalsLookup = { byEmail: {}, byName: {} };
+        if (proposalsResponse.ok) {
+          const proposalsData = await proposalsResponse.json();
+          for (const p of proposalsData.proposals || []) {
+            // Index by email (lowercase)
+            if (p.customer_email) {
+              const email = p.customer_email.toLowerCase();
+              if (!proposalsLookup.byEmail[email]) {
+                proposalsLookup.byEmail[email] = [];
+              }
+              proposalsLookup.byEmail[email].push(p);
+            }
+            // Index by name (lowercase)
+            if (p.customer_name) {
+              const name = p.customer_name.toLowerCase();
+              if (!proposalsLookup.byName[name]) {
+                proposalsLookup.byName[name] = [];
+              }
+              proposalsLookup.byName[name].push(p);
+            }
+          }
+        }
+
         renderLeadsKanban(allLeads);
       } catch (error) {
         console.error('Error fetching leads for kanban:', error);

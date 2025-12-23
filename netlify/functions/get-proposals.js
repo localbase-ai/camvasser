@@ -29,23 +29,15 @@ export async function handler(event) {
   }
 
   try {
-    const { email, name } = event.queryStringParameters || {};
-
-    if (!email && !name) {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'email or name parameter required' })
-      };
-    }
+    const { email, name, all } = event.queryStringParameters || {};
 
     // Open SQLite database
     const db = new Database(PROPOSALS_DB_PATH, { readonly: true });
 
     let proposals = [];
 
-    // Try email match first (more reliable)
-    if (email) {
+    // If 'all' param is set, fetch all proposals
+    if (all === 'true') {
       const stmt = db.prepare(`
         SELECT
           proposal_id,
@@ -56,28 +48,52 @@ export async function handler(event) {
           signed_date,
           status
         FROM proposals
-        WHERE LOWER(customer_email) = LOWER(?)
         ORDER BY sent_date DESC
       `);
-      proposals = stmt.all(email);
-    }
+      proposals = stmt.all();
+    } else if (!email && !name) {
+      db.close();
+      return {
+        statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'email, name, or all=true parameter required' })
+      };
+    } else {
+      // Try email match first (more reliable)
+      if (email) {
+        const stmt = db.prepare(`
+          SELECT
+            proposal_id,
+            customer_name,
+            customer_email,
+            proposal_amount,
+            sent_date,
+            signed_date,
+            status
+          FROM proposals
+          WHERE LOWER(customer_email) = LOWER(?)
+          ORDER BY sent_date DESC
+        `);
+        proposals = stmt.all(email);
+      }
 
-    // If no email matches and name provided, try name match
-    if (proposals.length === 0 && name) {
-      const stmt = db.prepare(`
-        SELECT
-          proposal_id,
-          customer_name,
-          customer_email,
-          proposal_amount,
-          sent_date,
-          signed_date,
-          status
-        FROM proposals
-        WHERE LOWER(customer_name) LIKE LOWER(?)
-        ORDER BY sent_date DESC
-      `);
-      proposals = stmt.all(`%${name}%`);
+      // If no email matches and name provided, try name match
+      if (proposals.length === 0 && name) {
+        const stmt = db.prepare(`
+          SELECT
+            proposal_id,
+            customer_name,
+            customer_email,
+            proposal_amount,
+            sent_date,
+            signed_date,
+            status
+          FROM proposals
+          WHERE LOWER(customer_name) LIKE LOWER(?)
+          ORDER BY sent_date DESC
+        `);
+        proposals = stmt.all(`%${name}%`);
+      }
     }
 
     db.close();
