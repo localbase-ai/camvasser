@@ -9,6 +9,7 @@ const SERVICE_ACCOUNT_EMAIL = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_EMAIL");
 const PRIVATE_KEY = (Deno.env.get("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY") || "").replace(/\\n/g, "\n");
 const CALENDAR_ID = Deno.env.get("GOOGLE_CALENDAR_ID");
 const JWT_SECRET = Deno.env.get("JWT_SECRET");
+const IMPERSONATE_USER = Deno.env.get("GOOGLE_CALENDAR_USER"); // For domain-wide delegation
 
 const CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -71,13 +72,18 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
 async function createGoogleJWT(): Promise<string> {
   const header = { alg: "RS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
-  const payload = {
+  const payload: Record<string, unknown> = {
     iss: SERVICE_ACCOUNT_EMAIL,
     scope: "https://www.googleapis.com/auth/calendar",
     aud: TOKEN_URL,
     iat: now,
     exp: now + 3600,
   };
+
+  // Add subject for domain-wide delegation (impersonate user)
+  if (IMPERSONATE_USER) {
+    payload.sub = IMPERSONATE_USER;
+  }
 
   const encode = (obj: object) => btoa(JSON.stringify(obj)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
   const headerB64 = encode(header);
