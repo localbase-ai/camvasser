@@ -4350,15 +4350,15 @@
 
   <!-- Info/Success Modal -->
   <dialog id="infoModal" class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box bg-base-100" style="padding: 24px;">
-      <div class="flex items-start gap-3">
+    <div class="modal-box bg-base-100 w-11/12 max-w-md" style="padding: 24px;">
+      <div class="flex flex-col items-center text-center gap-4">
         <div id="infoModalIcon" class="flex-shrink-0"></div>
-        <div class="flex-1">
-          <h3 class="font-bold text-lg" style="margin-bottom: 8px;" id="infoModalTitle">Info</h3>
-          <p style="padding: 8px 0;" id="infoModalMessage"></p>
+        <div>
+          <h3 class="font-bold text-lg" id="infoModalTitle">Info</h3>
+          <p class="mt-2 text-base-content/70" id="infoModalMessage"></p>
         </div>
       </div>
-      <div class="modal-action" style="margin-top: 16px;">
+      <div class="modal-action justify-center" style="margin-top: 20px;">
         <button class="btn btn-primary" onclick="closeInfoModal()">OK</button>
       </div>
     </div>
