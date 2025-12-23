@@ -2,10 +2,6 @@
 
 # White Pages Test
 - [ ] set up a test account with white pages and source data for a test list
--
-# Fix up Home
-- [ ] make a simple video and publish on homepage
-- [ ] or get rid of the video for now and ship it as is
 
 ## Show Job Values on 'Lead Object'
 - [✅] show on cards in board view
@@ -40,10 +36,8 @@
 - [ ] TestFlight distribution for crews
 
 ## Admin Features - Calendar
-- [🎯] Create appointment on Google Calendar
-- [ ] Read-only calendar list view in Camvasser
+- [ ] Create appointment on Google Calendar
 - [ ] Sync GCal to tenant
-- [ ] connect events/appts created to localbase stats
 
 ## Admin Features - Instant Estimator
 - [ ] Instant Estimator 
