@@ -63,15 +63,29 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
   const paddedContent = pemContents + "=".repeat(padding);
   console.log("Padded length:", paddedContent.length);
 
-  const binaryDer = Uint8Array.from(atob(paddedContent), c => c.charCodeAt(0));
+  let binaryDer: Uint8Array;
+  try {
+    binaryDer = Uint8Array.from(atob(paddedContent), c => c.charCodeAt(0));
+    console.log("Binary DER length:", binaryDer.length);
+  } catch (e) {
+    console.error("atob failed:", e);
+    throw new Error("Failed to decode base64: " + String(e));
+  }
 
-  return crypto.subtle.importKey(
-    "pkcs8",
-    binaryDer,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
+  try {
+    const key = await crypto.subtle.importKey(
+      "pkcs8",
+      binaryDer,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    console.log("Key imported successfully");
+    return key;
+  } catch (e) {
+    console.error("importKey failed:", e);
+    throw new Error("Failed to import key: " + String(e));
+  }
 }
 
 // Create JWT for Google API
