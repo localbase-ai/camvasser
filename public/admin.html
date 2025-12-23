@@ -2268,7 +2268,14 @@
                     <div class="font-medium">${dateStr} at ${timeStr}</div>
                     ${appt.notes ? `<div class="text-xs text-base-content/60 mt-1">${escapeHtml(appt.notes)}</div>` : ''}
                   </div>
-                  ${statusBadge}
+                  <div class="flex items-center gap-2">
+                    ${statusBadge}
+                    <button onclick="deleteAppointment('${appt.id}', '${appt.googleEventId || ''}')" class="btn btn-ghost btn-xs text-error" title="Delete appointment">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             `;
@@ -2277,6 +2284,34 @@
       } catch (error) {
         console.error('Error loading appointments:', error);
         container.innerHTML = '<div class="text-sm text-error">Failed to load appointments</div>';
+      }
+    }
+
+    // Delete an appointment
+    async function deleteAppointment(appointmentId, googleEventId) {
+      if (!confirm('Delete this appointment? This will also remove it from Google Calendar.')) return;
+
+      try {
+        const params = new URLSearchParams({ id: appointmentId });
+        if (googleEventId) params.set('googleEventId', googleEventId);
+
+        const response = await fetch(`/api/calendar/delete?${params}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to delete appointment');
+        }
+
+        // Reload appointments for the current lead
+        if (selectedLeadId) {
+          loadLeadAppointments(selectedLeadId);
+        }
+      } catch (error) {
+        console.error('Error deleting appointment:', error);
+        alert('Failed to delete appointment: ' + error.message);
       }
     }
 
