@@ -4496,6 +4496,9 @@
 
     function closeScheduleModal() {
       document.getElementById('scheduleModal').close();
+      // Reset to form view for next time
+      document.getElementById('scheduleFormView').classList.remove('hidden');
+      document.getElementById('scheduleSuccessView').classList.add('hidden');
     }
 
     async function submitScheduleAppointment(event) {
@@ -4538,8 +4541,11 @@
         const data = await response.json();
 
         if (data.success) {
-          closeScheduleModal();
-          showInfoModal('success', 'Appointment Created', `Appointment scheduled for ${new Date(data.event.start.dateTime).toLocaleString()}`);
+          // Show inline success view
+          document.getElementById('scheduleFormView').classList.add('hidden');
+          document.getElementById('scheduleSuccessView').classList.remove('hidden');
+          document.getElementById('scheduleSuccessMessage').textContent =
+            `Scheduled for ${new Date(data.event.start.dateTime).toLocaleString()}`;
           // Refresh appointments list
           if (selectedLeadId) {
             loadLeadAppointments(selectedLeadId);
@@ -4576,49 +4582,70 @@
   <!-- Schedule Appointment Modal -->
   <dialog id="scheduleModal" class="modal modal-bottom sm:modal-middle">
     <div class="modal-box bg-base-100" style="padding: 24px;">
-      <h3 class="font-bold text-lg" style="margin-bottom: 16px;">Schedule Appointment</h3>
-      <form id="scheduleForm" onsubmit="submitScheduleAppointment(event)">
-        <input type="hidden" id="scheduleLeadId">
-        <input type="hidden" id="scheduleLeadName">
-        <input type="hidden" id="scheduleLeadPhone">
-        <input type="hidden" id="scheduleLeadEmail">
-        <input type="hidden" id="scheduleLeadAddress">
+      <!-- Form View -->
+      <div id="scheduleFormView">
+        <h3 class="font-bold text-lg" style="margin-bottom: 16px;">Schedule Appointment</h3>
+        <form id="scheduleForm" onsubmit="submitScheduleAppointment(event)">
+          <input type="hidden" id="scheduleLeadId">
+          <input type="hidden" id="scheduleLeadName">
+          <input type="hidden" id="scheduleLeadPhone">
+          <input type="hidden" id="scheduleLeadEmail">
+          <input type="hidden" id="scheduleLeadAddress">
 
-        <div class="space-y-4">
-          <div>
-            <label class="label"><span class="label-text">Lead</span></label>
-            <p id="scheduleLeadInfo" class="text-sm text-base-content/70 bg-base-200 p-2 rounded"></p>
+          <div class="space-y-4">
+            <div>
+              <label class="label"><span class="label-text">Lead</span></label>
+              <p id="scheduleLeadInfo" class="text-sm text-base-content/70 bg-base-200 p-2 rounded"></p>
+            </div>
+
+            <div>
+              <label class="label"><span class="label-text">Date & Time</span></label>
+              <input type="datetime-local" id="scheduleDateTime" class="input input-bordered w-full" required>
+            </div>
+
+            <div>
+              <label class="label"><span class="label-text">Duration</span></label>
+              <select id="scheduleDuration" class="select select-bordered w-full">
+                <option value="30">30 minutes</option>
+                <option value="60" selected>1 hour</option>
+                <option value="90">1.5 hours</option>
+                <option value="120">2 hours</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="label"><span class="label-text">Notes (optional)</span></label>
+              <textarea id="scheduleNotes" class="textarea textarea-bordered w-full" rows="2" placeholder="Additional notes for the appointment..."></textarea>
+            </div>
           </div>
 
-          <div>
-            <label class="label"><span class="label-text">Date & Time</span></label>
-            <input type="datetime-local" id="scheduleDateTime" class="input input-bordered w-full" required>
+          <div class="modal-action" style="margin-top: 16px;">
+            <button type="button" class="btn" onclick="closeScheduleModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="scheduleSubmitBtn">
+              <span class="scheduleSubmitText">Create Appointment</span>
+              <span class="loading loading-spinner loading-sm hidden"></span>
+            </button>
           </div>
+        </form>
+      </div>
 
-          <div>
-            <label class="label"><span class="label-text">Duration</span></label>
-            <select id="scheduleDuration" class="select select-bordered w-full">
-              <option value="30">30 minutes</option>
-              <option value="60" selected>1 hour</option>
-              <option value="90">1.5 hours</option>
-              <option value="120">2 hours</option>
-            </select>
+      <!-- Success View -->
+      <div id="scheduleSuccessView" class="hidden">
+        <div class="flex flex-col items-center text-center gap-4 py-4">
+          <div class="text-success">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
-
           <div>
-            <label class="label"><span class="label-text">Notes (optional)</span></label>
-            <textarea id="scheduleNotes" class="textarea textarea-bordered w-full" rows="2" placeholder="Additional notes for the appointment..."></textarea>
+            <h3 class="font-bold text-lg">Appointment Created</h3>
+            <p class="mt-2 text-base-content/70" id="scheduleSuccessMessage"></p>
           </div>
         </div>
-
-        <div class="modal-action" style="margin-top: 16px;">
-          <button type="button" class="btn" onclick="closeScheduleModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="scheduleSubmitBtn">
-            <span class="scheduleSubmitText">Create Appointment</span>
-            <span class="loading loading-spinner loading-sm hidden"></span>
-          </button>
+        <div class="modal-action" style="margin-top: 16px; display: flex; justify-content: center;">
+          <button class="btn btn-primary btn-wide" onclick="closeScheduleModal()">OK</button>
         </div>
-      </form>
+      </div>
     </div>
     <form method="dialog" class="modal-backdrop bg-black/50">
       <button onclick="closeScheduleModal()">close</button>
