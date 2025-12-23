@@ -13,3 +13,6 @@ tmp/
 /generated/prisma
 docs/
 prisma/camvasser_local.db
+# Google service account keys
+*-gcal-*.json
+*-service-account*.json

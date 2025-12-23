@@ -84,6 +84,14 @@
             </a>
           </li>
           <li>
+            <a href="#calendar" class="nav-link" data-view="calendar">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span class="nav-text">Calendar</span>
+            </a>
+          </li>
+          <li>
             <a href="#integrations" class="nav-link" data-view="integrations">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -425,6 +433,23 @@
             </div>
             <div id="mapDetailContent" class="p-4">
               <!-- Map popup content will be rendered here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendar View -->
+      <div id="view-calendar" class="view hidden flex flex-col h-full">
+        <div class="py-4">
+          <h2 class="text-2xl font-bold mb-2">Calendar</h2>
+          <p class="text-base-content/60">Upcoming appointments from Google Calendar</p>
+        </div>
+
+        <div class="flex-1 overflow-auto">
+          <div id="calendarEvents" class="space-y-2">
+            <div class="text-center text-base-content/60 py-8">
+              <span class="loading loading-spinner loading-md"></span>
+              <p class="mt-2">Loading events...</p>
             </div>
           </div>
         </div>
@@ -827,6 +852,11 @@
       // Check integrations status when switching to integrations view
       if (view === 'integrations') {
         checkLocalBaseStatus();
+      }
+
+      // Load calendar events when switching to calendar view
+      if (view === 'calendar') {
+        loadCalendarEvents();
       }
     }
 
@@ -1920,6 +1950,17 @@
             `}
           </div>
 
+          <!-- Schedule Appointment -->
+          <div class="space-y-2">
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Appointment</h5>
+            <button onclick="openScheduleModal('${lead.id}')" class="btn btn-sm btn-outline btn-primary gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Schedule Appointment
+            </button>
+          </div>
+
           <!-- Contact Info -->
           <div class="space-y-2">
             <h5 class="text-xs font-semibold text-base-content/60 uppercase">Contact</h5>
@@ -2339,6 +2380,186 @@
 
     function closeInfoModal() {
       document.getElementById('infoModal').close();
+    }
+
+    // Schedule Appointment Modal Functions
+    function openScheduleModal(leadId) {
+      document.getElementById('scheduleLeadId').value = leadId;
+      // Set default datetime to tomorrow at 10am
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+      const localISOTime = new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      document.getElementById('scheduleDateTime').value = localISOTime;
+      document.getElementById('scheduleDuration').value = '60';
+      document.getElementById('scheduleNotes').value = '';
+      document.getElementById('scheduleModal').showModal();
+    }
+
+    function closeScheduleModal() {
+      document.getElementById('scheduleModal').close();
+    }
+
+    async function submitScheduleAppointment() {
+      const leadId = document.getElementById('scheduleLeadId').value;
+      const dateTime = document.getElementById('scheduleDateTime').value;
+      const duration = document.getElementById('scheduleDuration').value;
+      const notes = document.getElementById('scheduleNotes').value;
+
+      if (!dateTime) {
+        alert('Please select a date and time');
+        return;
+      }
+
+      const btn = document.getElementById('scheduleSubmitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Scheduling...';
+
+      try {
+        // Find the lead to get contact info
+        const lead = allLeads.find(l => l.id === leadId);
+        if (!lead) throw new Error('Lead not found');
+
+        const response = await fetch('/.netlify/functions/create-calendar-event', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            leadId,
+            leadName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
+            leadPhone: lead.phone,
+            leadEmail: lead.email,
+            leadAddress: lead.address,
+            startTime: new Date(dateTime).toISOString(),
+            durationMinutes: parseInt(duration, 10),
+            notes
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to create appointment');
+        }
+
+        const result = await response.json();
+        closeScheduleModal();
+
+        showInfoModal('Appointment Scheduled', `Appointment created for ${new Date(dateTime).toLocaleString()}`);
+
+        // Optionally open the Google Calendar event in a new tab
+        if (result.event?.htmlLink) {
+          window.open(result.event.htmlLink, '_blank');
+        }
+
+      } catch (error) {
+        console.error('Error scheduling appointment:', error);
+        alert('Failed to schedule appointment: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          Schedule
+        `;
+      }
+    }
+
+    // Load Calendar Events
+    async function loadCalendarEvents() {
+      const container = document.getElementById('calendarEvents');
+      container.innerHTML = `
+        <div class="text-center text-base-content/60 py-8">
+          <span class="loading loading-spinner loading-md"></span>
+          <p class="mt-2">Loading events...</p>
+        </div>
+      `;
+
+      try {
+        const response = await fetch('/.netlify/functions/get-calendar-events?days=14', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to load events');
+        }
+
+        const { events } = await response.json();
+
+        if (events.length === 0) {
+          container.innerHTML = `
+            <div class="text-center text-base-content/60 py-8">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p>No upcoming appointments</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Group events by day
+        const eventsByDay = {};
+        events.forEach(event => {
+          const date = new Date(event.start).toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'short',
+            day: 'numeric'
+          });
+          if (!eventsByDay[date]) eventsByDay[date] = [];
+          eventsByDay[date].push(event);
+        });
+
+        container.innerHTML = Object.entries(eventsByDay).map(([date, dayEvents]) => `
+          <div class="mb-4">
+            <h3 class="font-semibold text-sm text-base-content/60 mb-2">${date}</h3>
+            <div class="space-y-2">
+              ${dayEvents.map(event => {
+                const startTime = new Date(event.start).toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit'
+                });
+                const endTime = new Date(event.end).toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit'
+                });
+                return `
+                  <div class="card bg-base-200 shadow-sm">
+                    <div class="card-body p-3">
+                      <div class="flex items-start justify-between">
+                        <div>
+                          <h4 class="font-medium">${event.summary}</h4>
+                          <p class="text-sm text-base-content/60">${startTime} - ${endTime}</p>
+                          ${event.location ? `<p class="text-sm text-base-content/60">${event.location}</p>` : ''}
+                        </div>
+                        <a href="${event.htmlLink}" target="_blank" class="btn btn-ghost btn-xs">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `).join('');
+
+      } catch (error) {
+        console.error('Error loading calendar events:', error);
+        container.innerHTML = `
+          <div class="alert alert-error">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>${error.message}</span>
+          </div>
+        `;
+      }
     }
 
     async function updateLeadStatus(leadId, status) {
@@ -3939,6 +4160,49 @@
     </div>
     <form method="dialog" class="modal-backdrop bg-black/50">
       <button onclick="closeInfoModal()">close</button>
+    </form>
+  </dialog>
+
+  <!-- Schedule Appointment Modal -->
+  <dialog id="scheduleModal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-base-100" style="padding: 24px;">
+      <h3 class="font-bold text-lg mb-4">Schedule Appointment</h3>
+      <input type="hidden" id="scheduleLeadId">
+
+      <div class="space-y-4">
+        <div>
+          <label class="label"><span class="label-text">Date & Time</span></label>
+          <input type="datetime-local" id="scheduleDateTime" class="input input-bordered w-full">
+        </div>
+
+        <div>
+          <label class="label"><span class="label-text">Duration</span></label>
+          <select id="scheduleDuration" class="select select-bordered w-full">
+            <option value="30">30 minutes</option>
+            <option value="60" selected>1 hour</option>
+            <option value="90">1.5 hours</option>
+            <option value="120">2 hours</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="label"><span class="label-text">Notes (optional)</span></label>
+          <textarea id="scheduleNotes" class="textarea textarea-bordered w-full" rows="2" placeholder="Any additional notes..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-action" style="margin-top: 16px;">
+        <button onclick="closeScheduleModal()" class="btn">Cancel</button>
+        <button onclick="submitScheduleAppointment()" class="btn btn-primary" id="scheduleSubmitBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          Schedule
+        </button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-black/50">
+      <button onclick="closeScheduleModal()">close</button>
     </form>
   </dialog>
 </body>
