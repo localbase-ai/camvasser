@@ -18,10 +18,10 @@
 ## Quickbooks Integration
 - [✅] create customer record from lead detail view in camvasser
 
-# Next up Integrations: 
+# Next up Integrations:
 - [ ] Ring Central
 - [ ] Google Business Listings: figure out mapstacking
-- [ ] SmartLead: create email list from list in camvasser
+- [✅] SmartLead: CSV export for leads and contacts
 
 ## Features 
 - [ ] Add HOA object (link to address/project)
