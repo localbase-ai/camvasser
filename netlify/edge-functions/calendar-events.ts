@@ -46,22 +46,43 @@ async function verifyAuthToken(authHeader: string | null): Promise<{ tenant: str
 // Convert PEM private key to CryptoKey
 async function importPrivateKey(pem: string): Promise<CryptoKey> {
   console.log("Raw key length:", pem.length);
-  console.log("Raw key first 60:", pem.substring(0, 60));
+  console.log("Raw key first 100:", JSON.stringify(pem.substring(0, 100)));
+  console.log("Raw key last 100:", JSON.stringify(pem.substring(pem.length - 100)));
 
-  const pemContents = pem
-    .replace(/-+\s*BEGIN\s+PRIVATE\s+KEY\s*-+/gi, "")
-    .replace(/-+\s*END\s+PRIVATE\s+KEY\s*-+/gi, "")
-    .replace(/[^A-Za-z0-9+/=]/g, "");  // Keep only valid base64 chars
+  // Strip PEM headers/footers
+  const withoutHeaders = pem
+    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
+    .replace(/-----END PRIVATE KEY-----/g, "");
+
+  console.log("After header removal length:", withoutHeaders.length);
+
+  // Remove all whitespace (spaces, newlines, carriage returns, tabs)
+  const pemContents = withoutHeaders.replace(/\s/g, "");
 
   console.log("Cleaned base64 length:", pemContents.length);
   console.log("Cleaned first 50:", pemContents.substring(0, 50));
-  console.log("Cleaned last 20:", pemContents.substring(pemContents.length - 20));
-  console.log("Length mod 4:", pemContents.length % 4);
+  console.log("Cleaned last 30:", pemContents.substring(pemContents.length - 30));
 
-  // Pad to multiple of 4 if needed
-  const padding = (4 - (pemContents.length % 4)) % 4;
-  const paddedContent = pemContents + "=".repeat(padding);
-  console.log("Padded length:", paddedContent.length);
+  // Check for invalid characters
+  const invalidChars = pemContents.match(/[^A-Za-z0-9+/=]/g);
+  if (invalidChars) {
+    console.error("Invalid characters found:", JSON.stringify([...new Set(invalidChars)]));
+  }
+
+  // Validate it looks like proper base64
+  if (!/^[A-Za-z0-9+/]+=*$/.test(pemContents)) {
+    console.error("Base64 validation failed");
+  }
+
+  // Remove any existing padding first, then re-pad correctly
+  const withoutPadding = pemContents.replace(/=+$/, "");
+  console.log("Without padding length:", withoutPadding.length);
+  console.log("Without padding mod 4:", withoutPadding.length % 4);
+
+  const padding = (4 - (withoutPadding.length % 4)) % 4;
+  const paddedContent = withoutPadding + "=".repeat(padding);
+  console.log("Final padded length:", paddedContent.length);
+  console.log("Added padding chars:", padding);
 
   let binaryDer: Uint8Array;
   try {
@@ -82,9 +103,13 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
     );
     console.log("Key imported successfully");
     return key;
-  } catch (e) {
-    console.error("importKey failed:", e);
-    throw new Error("Failed to import key: " + String(e));
+  } catch (e: unknown) {
+    const err = e as Error;
+    console.error("importKey failed:", err?.message || err);
+    console.error("importKey error name:", err?.name);
+    // Log first few bytes to check ASN.1 structure
+    console.error("DER first 10 bytes:", Array.from(binaryDer.slice(0, 10)).map(b => b.toString(16).padStart(2, '0')).join(' '));
+    throw new Error("Failed to import key: " + (err?.message || err?.name || String(e)));
   }
 }
 
