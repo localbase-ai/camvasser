@@ -841,7 +841,7 @@
 
       // Check initial hash
       const initialHash = window.location.hash.slice(1);
-      if (initialHash && ['addresses', 'contacts', 'leads', 'map', 'integrations'].includes(initialHash)) {
+      if (initialHash && ['addresses', 'contacts', 'leads', 'map', 'calendar', 'integrations'].includes(initialHash)) {
         switchView(initialHash, false);
       }
     }
