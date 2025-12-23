@@ -1828,6 +1828,14 @@
             ` : ''}
           </div>
 
+          <!-- Proposals -->
+          <div class="space-y-2">
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Proposals</h5>
+            <div id="leadProposalsList" class="space-y-2">
+              <div class="text-sm text-base-content/40 italic">Loading proposals...</div>
+            </div>
+          </div>
+
           <!-- UTM Data -->
           ${(lead.utmSource || lead.utmMedium || lead.utmCampaign) ? `
             <div class="space-y-2">
@@ -1870,6 +1878,9 @@
 
       // Load notes for this lead
       loadLeadNotes(leadId);
+
+      // Load proposals for this lead (by email or name)
+      loadLeadProposals(lead);
 
       // Re-render to update selected state - respect current view mode
       if (leadsViewMode === 'kanban') {
@@ -1919,6 +1930,64 @@
       } catch (error) {
         console.error('Error loading notes:', error);
         container.innerHTML = '<div class="text-sm text-error">Failed to load notes</div>';
+      }
+    }
+
+    // Load proposals for a lead (from Roofr via localbase)
+    async function loadLeadProposals(lead) {
+      const container = document.getElementById('leadProposalsList');
+      if (!container) return;
+
+      try {
+        const params = new URLSearchParams();
+        if (lead.email) params.set('email', lead.email);
+        const fullName = `${lead.firstName || ''} ${lead.lastName || ''}`.trim();
+        if (fullName) params.set('name', fullName);
+
+        if (!lead.email && !fullName) {
+          container.innerHTML = '<div class="text-sm text-base-content/40 italic">No email or name to match</div>';
+          return;
+        }
+
+        const response = await fetch(`/.netlify/functions/get-proposals?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to load proposals');
+
+        const data = await response.json();
+
+        if (data.count === 0) {
+          container.innerHTML = '<div class="text-sm text-base-content/40 italic">No proposals found</div>';
+        } else {
+          container.innerHTML = data.proposals.map(p => {
+            const sentDate = p.sent_date ? new Date(p.sent_date).toLocaleDateString() : '-';
+            const signedDate = p.signed_date ? new Date(p.signed_date).toLocaleDateString() : null;
+            const amount = p.proposal_amount ? `$${p.proposal_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '-';
+            const statusBadge = p.status === 'signed'
+              ? '<span class="badge badge-success badge-xs">Signed</span>'
+              : '<span class="badge badge-warning badge-xs">Sent</span>';
+
+            return `
+              <div class="bg-base-200 p-3 rounded">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="font-medium text-sm">${amount}</div>
+                    <div class="text-xs text-base-content/60">Sent: ${sentDate}</div>
+                    ${signedDate ? `<div class="text-xs text-success">Signed: ${signedDate}</div>` : ''}
+                  </div>
+                  <div class="flex flex-col items-end gap-1">
+                    ${statusBadge}
+                    <span class="text-xs text-base-content/40">#${p.proposal_id}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (error) {
+        console.error('Error loading proposals:', error);
+        container.innerHTML = '<div class="text-sm text-error">Failed to load proposals</div>';
       }
     }
 
