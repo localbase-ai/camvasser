@@ -3,16 +3,24 @@
 # White Pages Test
 - [ ] set up a test account with white pages and source data for a test list
 
+## Show Job Values on 'Lead Object'
+- [ ] show on cards in board view
+- [ ] show totals in column headers in board view
+- [ ] show job value on records in lead list view
+
 ## Quickbooks Integration
 - [✅] create customer record from lead detail view in camvasser
 
 # Next up Integrations: 
 - [ ] Ring Central
 - [ ] Google Business Listings: figure out mapstacking
+- [ ] SmartLead: create email list from list in camvasser
 
 ## Features 
 - [ ] Add HOA object (link to address/project)
 - [ ] Add Company object (for HOA management companies, etc.)
+- [🎯] show totals on list views for leads, contacts, addresses
+
 
 ## Mobile App
 - [ ] Set up Capacitor for iOS app
@@ -24,6 +32,8 @@
 ## Admin Features - Calendar
 - [ ] Create appointment on Google Calendar
 - [ ] Sync GCal to tenant
+
+## Admin Features - Instant Estimator
 - [ ] Instant Estimator 
 
 # Bugs
@@ -44,6 +54,7 @@
 ## Data Cleanup
 - [✅] Delete 71 junk leads (address-only records with no contact info)
 - [ ] get pins from Cade's door hanging into the data somehow
+- [ ] go through all leads in system and make sure right status
 
 ## Connect Data Sources
 - [✅] Connect RoofMaxx API, sync new leads to Camvasser (via LocalBase integration)
