@@ -209,6 +209,31 @@ model Note {
   @@index([createdAt])
 }
 
+// Appointments scheduled from leads
+model Appointment {
+  id              String   @id @default(cuid())
+  leadId          String?
+  tenant          String
+  googleEventId   String?  // Google Calendar event ID
+  summary         String
+  startTime       DateTime
+  endTime         DateTime
+  durationMinutes Int      @default(60)
+  location        String?
+  notes           String?
+  status          String   @default("scheduled") // scheduled, completed, cancelled, no-show
+  createdById     String?  // User who created the appointment
+  createdByName   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenant])
+  @@index([leadId])
+  @@index([startTime])
+  @@index([status])
+  @@index([googleEventId])
+}
+
 // Proposals from Roofr (quotes sent to customers)
 model Proposal {
   id             String    @id @default(cuid())
