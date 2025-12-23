@@ -9,6 +9,7 @@
 - [✅] show job value on records in lead list view
 - [✅] has:value, no:value, sort:value search syntax
 - [🎯] Delete a proposal from a lead object
+- [ ] make a proposal generator? is this worth it?
 
 ## Scorecard / Dashboard Views
 - [ ] make a daily scorecard view

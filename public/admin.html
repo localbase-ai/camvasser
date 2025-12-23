@@ -2151,7 +2151,14 @@
                   </div>
                   <div class="flex flex-col items-end gap-1">
                     ${statusBadge}
-                    <span class="text-xs text-base-content/40">#${p.proposal_id}</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-base-content/40">#${p.proposal_id}</span>
+                      <button onclick="deleteProposal('${p.proposal_id}')" class="btn btn-ghost btn-xs text-error hover:bg-error/10" title="Delete proposal">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2161,6 +2168,44 @@
       } catch (error) {
         console.error('Error loading proposals:', error);
         container.innerHTML = '<div class="text-sm text-error">Failed to load proposals</div>';
+      }
+    }
+
+    // Delete a proposal
+    async function deleteProposal(proposalId) {
+      if (!confirm(`Delete proposal #${proposalId}? This cannot be undone.`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/.netlify/functions/delete-proposal?id=${proposalId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to delete proposal');
+        }
+
+        // Refresh proposals list for current lead
+        const lead = allLeads.find(l => l.id === selectedLeadId);
+        if (lead) {
+          loadLeadProposals(lead);
+        }
+
+        // Clear the proposals lookup cache so values update
+        proposalsLookup = { byEmail: {}, byName: {} };
+
+        // Refresh the main view to update job values
+        if (leadsViewMode === 'kanban') {
+          searchLeadsForKanban();
+        } else {
+          searchLeads();
+        }
+      } catch (error) {
+        console.error('Error deleting proposal:', error);
+        alert('Failed to delete proposal: ' + error.message);
       }
     }
 
