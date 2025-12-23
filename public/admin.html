@@ -2310,6 +2310,8 @@
         if (selectedLeadId) {
           loadLeadAppointments(selectedLeadId);
         }
+        // Also refresh calendar view if it's been loaded
+        loadCalendarEvents();
       } catch (error) {
         console.error('Error deleting appointment:', error);
         alert('Failed to delete appointment: ' + error.message);
