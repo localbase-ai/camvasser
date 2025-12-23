@@ -575,6 +575,52 @@
             </div>
           </div>
 
+          <!-- Google Calendar Integration -->
+          <div class="card bg-base-200 shadow-sm">
+            <div class="card-body">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-warning/20 rounded-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold">Google Calendar</h3>
+                    <p class="text-sm text-base-content/60">Schedule appointments from leads</p>
+                  </div>
+                </div>
+                <div id="gcalStatus" class="badge badge-ghost">Checking...</div>
+              </div>
+
+              <div class="divider my-2"></div>
+
+              <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Service Account</span>
+                  <span id="gcalServiceAccount" class="font-medium text-xs truncate max-w-[180px]">-</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Calendar</span>
+                  <span id="gcalCalendarId" class="font-medium text-xs truncate max-w-[180px]">-</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Upcoming Events</span>
+                  <span id="gcalEventCount" class="font-medium">-</span>
+                </div>
+              </div>
+
+              <div class="card-actions justify-end mt-4">
+                <button id="gcalTestBtn" onclick="testGoogleCalendar()" class="btn btn-primary btn-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Test Connection
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- QuickBooks Integration (Coming Soon) -->
           <div class="card bg-base-200 shadow-sm opacity-60">
             <div class="card-body">
@@ -872,6 +918,7 @@
       // Check integrations status when switching to integrations view
       if (view === 'integrations') {
         checkLocalBaseStatus();
+        checkGoogleCalendarStatus();
       }
 
       // Load calendar events when switching to calendar view
@@ -3972,6 +4019,102 @@
           </svg>
           Sync Now
         `;
+      }
+    }
+
+    // Test Google Calendar connection
+    async function testGoogleCalendar() {
+      const btn = document.getElementById('gcalTestBtn');
+      const statusEl = document.getElementById('gcalStatus');
+      const eventCountEl = document.getElementById('gcalEventCount');
+
+      btn.disabled = true;
+      btn.innerHTML = `
+        <span class="loading loading-spinner loading-xs"></span>
+        Testing...
+      `;
+
+      try {
+        const response = await fetch('/api/calendar/events?days=14', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+
+        if (response.status === 503) {
+          statusEl.className = 'badge badge-error';
+          statusEl.textContent = 'Not Configured';
+          eventCountEl.textContent = '-';
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Connection failed');
+        }
+
+        statusEl.className = 'badge badge-success';
+        statusEl.textContent = 'Connected';
+        eventCountEl.textContent = data.count + ' events';
+
+      } catch (error) {
+        console.error('Google Calendar test error:', error);
+        statusEl.className = 'badge badge-error';
+        statusEl.textContent = 'Error';
+        eventCountEl.textContent = '-';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Test Connection
+        `;
+      }
+    }
+
+    // Check Google Calendar status on page load
+    async function checkGoogleCalendarStatus() {
+      const statusEl = document.getElementById('gcalStatus');
+      const serviceAccountEl = document.getElementById('gcalServiceAccount');
+      const calendarIdEl = document.getElementById('gcalCalendarId');
+      const eventCountEl = document.getElementById('gcalEventCount');
+
+      try {
+        const response = await fetch('/api/calendar/events?days=14', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.status === 401) return;
+
+        const data = await response.json();
+
+        if (response.status === 503) {
+          statusEl.className = 'badge badge-warning';
+          statusEl.textContent = 'Not Configured';
+          serviceAccountEl.textContent = 'Not set';
+          calendarIdEl.textContent = 'Not set';
+          eventCountEl.textContent = '-';
+          return;
+        }
+
+        if (!response.ok) {
+          statusEl.className = 'badge badge-error';
+          statusEl.textContent = 'Error';
+          return;
+        }
+
+        statusEl.className = 'badge badge-success';
+        statusEl.textContent = 'Connected';
+        serviceAccountEl.textContent = 'Configured';
+        calendarIdEl.textContent = 'Configured';
+        eventCountEl.textContent = data.count + ' events';
+
+      } catch (error) {
+        console.error('Google Calendar status check error:', error);
+        statusEl.className = 'badge badge-error';
+        statusEl.textContent = 'Error';
       }
     }
 
