@@ -8,7 +8,7 @@
 - [✅] show totals in column headers in board view
 - [✅] show job value on records in lead list view
 - [✅] has:value, no:value, sort:value search syntax
-- [🎯] Delete a proposal from a lead object
+- [✅] Delete a proposal from a lead object
 - [ ] make a proposal generator? is this worth it?
 
 ## Scorecard / Dashboard Views
