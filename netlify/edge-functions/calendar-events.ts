@@ -38,7 +38,7 @@ async function verifyAuthToken(authHeader: string | null): Promise<{ tenant: str
     const valid = await crypto.subtle.verify("HMAC", key, signature, data);
     if (!valid || payload.exp < Date.now() / 1000) return null;
 
-    return { tenant: payload.tenant };
+    return { tenant: payload.tenant || payload.slug };
   } catch {
     return null;
   }
