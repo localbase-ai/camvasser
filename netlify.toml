@@ -6,6 +6,15 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Edge Functions for Google Calendar (Deno runtime, separate from serverless functions)
+[[edge_functions]]
+  path = "/api/calendar/create"
+  function = "calendar-create"
+
+[[edge_functions]]
+  path = "/api/calendar/events"
+  function = "calendar-events"
+
 # Dynamic tenant routing - handles all /:tenant and /:tenant/:page URLs
 [[redirects]]
   from = "/budroofing/*"

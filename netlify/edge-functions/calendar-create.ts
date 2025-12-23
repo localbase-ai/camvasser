@@ -212,4 +212,3 @@ export default async function handler(request: Request, context: Context) {
   }
 }
 
-export const config = { path: "/api/calendar/create" };
