@@ -45,20 +45,10 @@ async function verifyAuthToken(authHeader: string | null): Promise<{ tenant: str
 
 // Convert PEM private key to CryptoKey
 async function importPrivateKey(pem: string): Promise<CryptoKey> {
-  // Debug: log key info
-  console.log("Key length:", pem.length);
-  console.log("Key starts with:", pem.substring(0, 50));
-  console.log("Key ends with:", pem.substring(pem.length - 50));
-  console.log("Has BEGIN marker:", pem.includes("-----BEGIN PRIVATE KEY-----"));
-  console.log("Has END marker:", pem.includes("-----END PRIVATE KEY-----"));
-
   const pemContents = pem
     .replace(/-+BEGIN PRIVATE KEY-+/g, "")
     .replace(/-+END PRIVATE KEY-+/g, "")
     .replace(/\s/g, "");
-
-  console.log("Base64 content length:", pemContents.length);
-  console.log("Base64 first 50 chars:", pemContents.substring(0, 50));
 
   const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
 
@@ -138,14 +128,7 @@ export default async function handler(request: Request, context: Context) {
 
   // Check config
   if (!SERVICE_ACCOUNT_EMAIL || !PRIVATE_KEY || !CALENDAR_ID) {
-    return new Response(JSON.stringify({
-      error: "Google Calendar not configured",
-      debug: {
-        hasEmail: !!SERVICE_ACCOUNT_EMAIL,
-        hasKey: !!PRIVATE_KEY,
-        hasCalendarId: !!CALENDAR_ID,
-      }
-    }), {
+    return new Response(JSON.stringify({ error: "Google Calendar not configured" }), {
       status: 503,
       headers: { "Content-Type": "application/json" },
     });
