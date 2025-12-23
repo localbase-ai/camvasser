@@ -209,20 +209,19 @@ model Note {
   @@index([createdAt])
 }
 
-// Appointments scheduled from leads
 model Appointment {
   id              String   @id @default(cuid())
   leadId          String?
   tenant          String
-  googleEventId   String?  // Google Calendar event ID
+  googleEventId   String?
   summary         String
   startTime       DateTime
   endTime         DateTime
   durationMinutes Int      @default(60)
   location        String?
   notes           String?
-  status          String   @default("scheduled") // scheduled, completed, cancelled, no-show
-  createdById     String?  // User who created the appointment
+  status          String   @default("scheduled")
+  createdById     String?
   createdByName   String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -234,20 +233,18 @@ model Appointment {
   @@index([googleEventId])
 }
 
-// Proposals from Roofr (quotes sent to customers)
 model Proposal {
   id             String    @id @default(cuid())
-  proposalId     String    @unique // Roofr proposal ID
+  proposalId     String    @unique
   customerName   String?
   customerEmail  String?
   proposalAmount Float?
   sentDate       DateTime?
   signedDate     DateTime?
-  status         String?   // sent, signed, etc.
-  tenant         String    // Which business this belongs to
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status         String?
+  tenant         String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([tenant])
   @@index([customerEmail])

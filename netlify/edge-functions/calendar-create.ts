@@ -199,8 +199,13 @@ export default async function handler(request: Request, context: Context) {
     const createdEvent = await response.json();
 
     // Save appointment to database
+    let appointmentSaved = false;
+    let appointmentId = null;
     try {
-      const saveResponse = await fetch(new URL("/.netlify/functions/save-appointment", request.url).href, {
+      const saveUrl = new URL("/.netlify/functions/save-appointment", request.url).href;
+      console.log("Saving appointment to:", saveUrl);
+
+      const saveResponse = await fetch(saveUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -216,12 +221,17 @@ export default async function handler(request: Request, context: Context) {
         }),
       });
 
-      if (!saveResponse.ok) {
-        console.error("Failed to save appointment to database:", await saveResponse.text());
+      const saveResult = await saveResponse.json();
+      console.log("Save appointment response:", saveResponse.status, JSON.stringify(saveResult));
+
+      if (saveResponse.ok && saveResult.success) {
+        appointmentSaved = true;
+        appointmentId = saveResult.appointmentId;
+      } else {
+        console.error("Failed to save appointment:", saveResult);
       }
     } catch (saveError) {
       console.error("Error saving appointment to database:", saveError);
-      // Don't fail the whole request if database save fails - calendar event is already created
     }
 
     return new Response(JSON.stringify({
@@ -233,6 +243,8 @@ export default async function handler(request: Request, context: Context) {
         end: createdEvent.end,
         htmlLink: createdEvent.htmlLink,
       },
+      appointmentSaved,
+      appointmentId,
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
