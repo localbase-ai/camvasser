@@ -50,7 +50,11 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
     .replace(/-+\s*END\s+PRIVATE\s+KEY\s*-+/gi, "")
     .replace(/[^A-Za-z0-9+/=]/g, "");  // Keep only valid base64 chars
 
-  const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+  // Pad to multiple of 4 if needed
+  const padding = (4 - (pemContents.length % 4)) % 4;
+  const paddedContent = pemContents + "=".repeat(padding);
+
+  const binaryDer = Uint8Array.from(atob(paddedContent), c => c.charCodeAt(0));
 
   return crypto.subtle.importKey(
     "pkcs8",

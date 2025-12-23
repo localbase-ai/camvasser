@@ -55,8 +55,15 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
 
   console.log("Cleaned base64 length:", pemContents.length);
   console.log("Cleaned first 50:", pemContents.substring(0, 50));
+  console.log("Cleaned last 20:", pemContents.substring(pemContents.length - 20));
+  console.log("Length mod 4:", pemContents.length % 4);
 
-  const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+  // Pad to multiple of 4 if needed
+  const padding = (4 - (pemContents.length % 4)) % 4;
+  const paddedContent = pemContents + "=".repeat(padding);
+  console.log("Padded length:", paddedContent.length);
+
+  const binaryDer = Uint8Array.from(atob(paddedContent), c => c.charCodeAt(0));
 
   return crypto.subtle.importKey(
     "pkcs8",
