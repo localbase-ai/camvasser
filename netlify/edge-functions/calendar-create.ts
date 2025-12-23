@@ -205,20 +205,23 @@ export default async function handler(request: Request, context: Context) {
       const saveUrl = new URL("/.netlify/functions/save-appointment", request.url).href;
       console.log("Saving appointment to:", saveUrl);
 
+      const appointmentData = {
+        leadId,
+        tenant: user.tenant,
+        googleEventId: createdEvent.id,
+        summary,
+        startTime: start.toISOString(),
+        endTime: end.toISOString(),
+        durationMinutes,
+        location: leadAddress,
+        notes,
+      };
+      console.log("Appointment data:", JSON.stringify(appointmentData));
+
       const saveResponse = await fetch(saveUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leadId,
-          tenant: user.tenant,
-          googleEventId: createdEvent.id,
-          summary,
-          startTime: start.toISOString(),
-          endTime: end.toISOString(),
-          durationMinutes,
-          location: leadAddress,
-          notes,
-        }),
+        body: JSON.stringify(appointmentData),
       });
 
       const saveResult = await saveResponse.json();
