@@ -195,9 +195,12 @@ export default async function handler(request: Request, context: Context) {
 
   } catch (error) {
     console.error("Error fetching calendar events:", error);
+    console.error("Error type:", typeof error);
+    console.error("Error name:", error?.name);
+    console.error("Error string:", String(error));
     return new Response(JSON.stringify({
       error: "Failed to fetch calendar events",
-      details: error.message,
+      details: error?.message || String(error),
     }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
