@@ -128,7 +128,14 @@ export default async function handler(request: Request, context: Context) {
 
   // Check config
   if (!SERVICE_ACCOUNT_EMAIL || !PRIVATE_KEY || !CALENDAR_ID) {
-    return new Response(JSON.stringify({ error: "Google Calendar not configured" }), {
+    return new Response(JSON.stringify({
+      error: "Google Calendar not configured",
+      debug: {
+        hasEmail: !!SERVICE_ACCOUNT_EMAIL,
+        hasKey: !!PRIVATE_KEY,
+        hasCalendarId: !!CALENDAR_ID,
+      }
+    }), {
       status: 503,
       headers: { "Content-Type": "application/json" },
     });
