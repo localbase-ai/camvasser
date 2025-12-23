@@ -163,24 +163,29 @@ export default async function handler(request: Request, context: Context) {
       }
     }
 
-    // Delete from database
-    const deleteUrl = new URL("/.netlify/functions/delete-appointment", request.url).href;
-    const deleteResponse = await fetch(deleteUrl, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: appointmentId }),
-    });
+    // Delete from database (skip if this is a calendar-view-only delete)
+    let dbDeleted = false;
+    if (appointmentId !== 'calendar-view') {
+      const deleteUrl = new URL("/.netlify/functions/delete-appointment", request.url).href;
+      const deleteResponse = await fetch(deleteUrl, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: appointmentId }),
+      });
 
-    const deleteResult = await deleteResponse.json();
+      const deleteResult = await deleteResponse.json();
 
-    if (!deleteResponse.ok) {
-      throw new Error(deleteResult.error || "Failed to delete appointment");
+      // Only throw if not a 404 (appointment might not exist in DB)
+      if (!deleteResponse.ok && deleteResponse.status !== 404) {
+        throw new Error(deleteResult.error || "Failed to delete appointment");
+      }
+      dbDeleted = deleteResponse.ok;
     }
 
     return new Response(JSON.stringify({
       success: true,
       gcalDeleted,
-      dbDeleted: true,
+      dbDeleted,
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

@@ -4458,7 +4458,13 @@
                         </p>
                         ${event.location ? `<p class="text-sm text-base-content/60 mt-1">${escapeHtml(event.location)}</p>` : ''}
                       </div>
-                      ${event.htmlLink ? `<a href="${event.htmlLink}" target="_blank" class="btn btn-ghost btn-xs">View</a>` : ''}
+                      <div class="flex items-center gap-1">
+                        <button onclick="deleteCalendarEvent('${event.id}')" class="btn btn-ghost btn-xs text-error" title="Delete">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -4472,6 +4478,33 @@
         console.error('Error loading calendar events:', error);
         loading.classList.add('hidden');
         notConfigured.classList.remove('hidden');
+      }
+    }
+
+    // Delete a calendar event (from calendar view - no DB appointment record)
+    async function deleteCalendarEvent(googleEventId) {
+      const confirmed = await showConfirmModal('Delete Event', 'Delete this event from Google Calendar?');
+      if (!confirmed) return;
+
+      try {
+        // Use a dummy appointment ID since we're deleting from calendar view
+        const params = new URLSearchParams({ id: 'calendar-view', googleEventId });
+
+        const response = await fetch(`/api/calendar/delete?${params}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to delete event');
+        }
+
+        // Reload calendar events
+        loadCalendarEvents();
+      } catch (error) {
+        console.error('Error deleting calendar event:', error);
+        alert('Failed to delete event: ' + error.message);
       }
     }
 
