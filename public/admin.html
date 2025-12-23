@@ -83,6 +83,14 @@
               <span class="nav-text">Map</span>
             </a>
           </li>
+          <li>
+            <a href="#integrations" class="nav-link" data-view="integrations">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              <span class="nav-text">Integrations</span>
+            </a>
+          </li>
         </ul>
       </nav>
 
@@ -414,6 +422,92 @@
         </div>
       </div>
 
+      <!-- Integrations View -->
+      <div id="view-integrations" class="view hidden flex flex-col h-full">
+        <div class="py-4">
+          <h2 class="text-2xl font-bold mb-2">Integrations</h2>
+          <p class="text-base-content/60">Connect external data sources to sync leads automatically</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <!-- LocalBase / RoofMaxx Integration -->
+          <div class="card bg-base-200 shadow-sm">
+            <div class="card-body">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-success/20 rounded-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold">LocalBase</h3>
+                    <p class="text-sm text-base-content/60">RoofMaxx leads via LocalBase API</p>
+                  </div>
+                </div>
+                <div id="localbaseStatus" class="badge badge-ghost">Checking...</div>
+              </div>
+
+              <div class="divider my-2"></div>
+
+              <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">API Endpoint</span>
+                  <code id="localbaseEndpoint" class="text-xs bg-base-300 px-2 py-0.5 rounded">http://localhost:3000</code>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Last Sync</span>
+                  <span id="localbaseLastSync" class="font-medium">Never</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Leads Synced</span>
+                  <span id="localbaseLeadCount" class="font-medium">-</span>
+                </div>
+              </div>
+
+              <div class="card-actions justify-end mt-4">
+                <button id="localbaseSyncBtn" onclick="syncFromLocalBase()" class="btn btn-primary btn-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Sync Now
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- QuickBooks Integration (Coming Soon) -->
+          <div class="card bg-base-200 shadow-sm opacity-60">
+            <div class="card-body">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-info/20 rounded-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold">QuickBooks</h3>
+                    <p class="text-sm text-base-content/60">Create customers from leads</p>
+                  </div>
+                </div>
+                <div class="badge badge-ghost">Coming Soon</div>
+              </div>
+
+              <div class="divider my-2"></div>
+
+              <p class="text-sm text-base-content/60">
+                Push qualified leads to QuickBooks as customers when they reach the proposal stage.
+              </p>
+
+              <div class="card-actions justify-end mt-4">
+                <button class="btn btn-ghost btn-sm" disabled>Configure</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       </div><!-- end content area -->
     </main>
   </div>
@@ -621,7 +715,7 @@
 
       // Check initial hash
       const initialHash = window.location.hash.slice(1);
-      if (initialHash && ['addresses', 'contacts', 'leads', 'map'].includes(initialHash)) {
+      if (initialHash && ['addresses', 'contacts', 'leads', 'map', 'integrations'].includes(initialHash)) {
         switchView(initialHash, false);
       }
     }
@@ -647,6 +741,11 @@
       // Initialize map when switching to map view
       if (view === 'map') {
         initializeMap();
+      }
+
+      // Check integrations status when switching to integrations view
+      if (view === 'integrations') {
+        checkLocalBaseStatus();
       }
     }
 
@@ -1632,12 +1731,20 @@
       const content = document.getElementById('leadDetailContent');
 
       // Render lead details
+      const leadStatuses = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
+
       content.innerHTML = `
         <div class="space-y-4">
           <!-- Name & Status -->
           <div>
             <h4 class="text-lg font-semibold">${lead.firstName || ''} ${lead.lastName || ''}</h4>
-            ${lead.status ? getStatusBadge(lead.status) : ''}
+            <div class="mt-2">
+              <label class="text-xs font-semibold text-base-content/60 uppercase block mb-1">Status</label>
+              <select id="leadStatusSelect" class="select select-bordered select-sm w-full max-w-xs" onchange="updateLeadStatus('${lead.id}', this.value)">
+                <option value="">No status</option>
+                ${leadStatuses.map(s => `<option value="${s}" ${lead.status === s ? 'selected' : ''}>${formatStatusLabel(s)}</option>`).join('')}
+              </select>
+            </div>
           </div>
 
           <!-- Contact Info -->
@@ -1906,6 +2013,49 @@
         confirmResolve(result);
         confirmResolve = null;
       }
+    }
+
+    async function updateLeadStatus(leadId, status) {
+      const select = document.getElementById('leadStatusSelect');
+      const originalValue = select.dataset.originalValue || '';
+
+      try {
+        const response = await fetch('/.netlify/functions/update-lead-status', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ leadId, status: status || null })
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+        if (data.success) {
+          // Update local data
+          const lead = allLeads.find(l => l.id === leadId);
+          if (lead) {
+            lead.status = status || null;
+          }
+          // Save new value as original
+          select.dataset.originalValue = status;
+          // Refresh the list to show updated status
+          renderLeads();
+        } else {
+          alert('Failed to update status: ' + (data.error || 'Unknown error'));
+          select.value = originalValue;
+        }
+      } catch (error) {
+        console.error('Error updating lead status:', error);
+        alert('Failed to update status');
+        select.value = originalValue;
+      }
+    }
+
+    // Format status for dropdown display
+    function formatStatusLabel(status) {
+      return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     }
 
     async function deleteLead(leadId) {
@@ -3111,6 +3261,134 @@
         }
       }
     });
+
+    // =====================
+    // Integrations
+    // =====================
+    const LOCALBASE_URL = 'http://localhost:3000';
+
+    async function checkLocalBaseStatus() {
+      const statusEl = document.getElementById('localbaseStatus');
+      const lastSyncEl = document.getElementById('localbaseLastSync');
+      const leadCountEl = document.getElementById('localbaseLeadCount');
+
+      try {
+        const response = await fetch(`${LOCALBASE_URL}/health`, {
+          method: 'GET',
+          mode: 'cors'
+        });
+
+        if (response.ok) {
+          statusEl.className = 'badge badge-success';
+          statusEl.textContent = 'Connected';
+
+          // Get sync stats from our function
+          await loadLocalBaseSyncStats();
+        } else {
+          throw new Error('Health check failed');
+        }
+      } catch (error) {
+        console.error('LocalBase connection error:', error);
+        statusEl.className = 'badge badge-error';
+        statusEl.textContent = 'Offline';
+        lastSyncEl.textContent = '-';
+        leadCountEl.textContent = '-';
+      }
+    }
+
+    async function loadLocalBaseSyncStats() {
+      const lastSyncEl = document.getElementById('localbaseLastSync');
+      const leadCountEl = document.getElementById('localbaseLeadCount');
+
+      try {
+        // Get leads that came from LocalBase/RoofMaxx
+        const params = new URLSearchParams({ limit: '1', source: 'roofmaxx' });
+        if (currentTenant) params.set('tenant', currentTenant);
+
+        const response = await fetch(`/.netlify/functions/get-leads?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          leadCountEl.textContent = data.total || '0';
+
+          // Show last sync based on most recent RoofMaxx lead
+          if (data.leads && data.leads.length > 0) {
+            const lastLead = data.leads[0];
+            const date = new Date(lastLead.createdAt);
+            lastSyncEl.textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+          } else {
+            lastSyncEl.textContent = 'Never';
+          }
+        }
+      } catch (error) {
+        console.error('Error loading sync stats:', error);
+      }
+    }
+
+    async function syncFromLocalBase() {
+      const btn = document.getElementById('localbaseSyncBtn');
+      const statusEl = document.getElementById('localbaseStatus');
+
+      // Disable button and show loading
+      btn.disabled = true;
+      btn.innerHTML = `
+        <span class="loading loading-spinner loading-xs"></span>
+        Syncing...
+      `;
+
+      try {
+        const params = new URLSearchParams();
+        if (currentTenant) params.set('tenant', currentTenant);
+
+        const response = await fetch(`/.netlify/functions/sync-from-localbase?${params}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          statusEl.className = 'badge badge-success';
+          statusEl.textContent = 'Synced!';
+
+          // Refresh stats
+          await loadLocalBaseSyncStats();
+
+          // Reload leads if on leads view
+          if (currentView === 'leads') {
+            await loadLeads();
+          }
+
+          // Show success briefly
+          setTimeout(() => {
+            statusEl.textContent = 'Connected';
+          }, 3000);
+        } else {
+          throw new Error(result.error || 'Sync failed');
+        }
+      } catch (error) {
+        console.error('Sync error:', error);
+        statusEl.className = 'badge badge-error';
+        statusEl.textContent = 'Sync Failed';
+
+        setTimeout(() => {
+          checkLocalBaseStatus();
+        }, 3000);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Sync Now
+        `;
+      }
+    }
   </script>
 
   <!-- Confirmation Modal -->

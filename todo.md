@@ -10,6 +10,9 @@
 # Map Features
 - [✅] filter leads by 'lead-status'
 
+# Lead Management / Call Flow Features
+- [✅] Update status on lead (dropdown in detail view)
+
 ## Mobile App
 - [ ] Set up Capacitor for iOS app
 - [ ] Native camera access for photo capture
@@ -27,8 +30,9 @@
 - [ ] get pins from Cade's door hanging into the data somehow
 
 ## Connect Data Sources
-- [ ] Connect RoofMaxx API, sync new leads to Camvasser
+- [✅] Connect RoofMaxx API, sync new leads to Camvasser (via LocalBase integration)
 - [ ] Connect Bud Roofing website forms, push new submissions into Camvasser
+- [ ] Push qualified leads to QuickBooks as customers
 
 ## Admin Features - Notes
 - [✅] Add notes to lead
@@ -55,3 +59,8 @@
 ## Data Models
 - [ ] Add HOA object (link to address/project)
 - [ ] Add Company object (for HOA management companies, etc.)
+
+# Integrations: 
+- [ ] Ring Central
+- [ ] pull all proposals sent details into camvasser
+- [ ] add view in quickbooks or proposal data. 
