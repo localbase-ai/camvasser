@@ -4237,6 +4237,11 @@
       text.textContent = 'Creating...';
 
       try {
+        // Convert datetime-local to ISO string preserving local timezone
+        const localDateTime = document.getElementById('scheduleDateTime').value;
+        const startDate = new Date(localDateTime);
+        const startTimeISO = startDate.toISOString();
+
         const response = await fetch('/api/calendar/create', {
           method: 'POST',
           headers: {
@@ -4249,7 +4254,7 @@
             leadPhone: document.getElementById('scheduleLeadPhone').value,
             leadEmail: document.getElementById('scheduleLeadEmail').value,
             leadAddress: document.getElementById('scheduleLeadAddress').value,
-            startTime: document.getElementById('scheduleDateTime').value,
+            startTime: startTimeISO,
             durationMinutes: parseInt(document.getElementById('scheduleDuration').value, 10),
             notes: document.getElementById('scheduleNotes').value
           })

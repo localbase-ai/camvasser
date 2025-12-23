@@ -176,8 +176,8 @@ export default async function handler(request: Request, context: Context) {
       summary,
       description: descriptionParts.join("\n"),
       location: leadAddress,
-      start: { dateTime: start.toISOString(), timeZone: "America/New_York" },
-      end: { dateTime: end.toISOString(), timeZone: "America/New_York" },
+      start: { dateTime: start.toISOString() },
+      end: { dateTime: end.toISOString() },
     };
 
     // Create event
