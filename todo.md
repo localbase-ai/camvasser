@@ -38,8 +38,10 @@
 ## Admin Features - Calendar
 - [✅] Create appointment on Google Calendar (Edge Functions)
 - [✅] Read-only calendar list view in Camvasser
+- [✅] Store appointments in database (Appointment model)
+- [✅] Show appointments in lead detail view
 - [🎯] add event type
-- [ ] include lead details in the calanedar appt
+- [ ] include lead details in the calendar appt
 - [ ] Sync GCal to tenant
 
 ## Admin Features - Instant Estimator
