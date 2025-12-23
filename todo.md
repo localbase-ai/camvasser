@@ -41,8 +41,8 @@
 - [✅] Store appointments in database (Appointment model)
 - [✅] Show appointments in lead detail view
 - [🎯] add event type
-- [ ] include lead details in the calendar appt
-- [ ] Sync GCal to tenant
+- [ ] as tenant admin set up my gcal from ui (later)
+- [ ] change appointment status 
 
 ## Admin Features - Instant Estimator
 - [ ] Instant Estimator 

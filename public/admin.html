@@ -253,7 +253,10 @@
             <!-- Bulk Actions Bar -->
             <div id="prospectBulkActions" class="hidden bg-warning/10 rounded-lg px-3 py-2 my-2 flex items-center justify-between">
               <span class="text-sm"><strong id="prospectSelectedCount">0</strong> contact(s) selected</span>
-              <button onclick="deleteSelectedProspects()" class="btn btn-error btn-sm">Delete Selected</button>
+              <div class="flex gap-2">
+                <button onclick="exportSelectedProspects()" class="btn btn-primary btn-sm">Export CSV</button>
+                <button onclick="deleteSelectedProspects()" class="btn btn-error btn-sm">Delete Selected</button>
+              </div>
             </div>
             <div class="overflow-auto flex-1">
               <table class="table w-full">
@@ -337,7 +340,10 @@
                 </span>
                 <span id="allMatchingSelectedLeads" class="hidden text-sm text-success font-medium">· All matching selected</span>
               </div>
-              <button onclick="deleteSelectedLeads()" class="btn btn-error btn-sm">Delete Selected</button>
+              <div class="flex gap-2">
+                <button onclick="exportSelectedLeads()" class="btn btn-primary btn-sm">Export CSV</button>
+                <button onclick="deleteSelectedLeads()" class="btn btn-error btn-sm">Delete Selected</button>
+              </div>
             </div>
             <!-- List View -->
             <div id="leadsListView" class="overflow-auto flex-1">
@@ -2451,6 +2457,39 @@
       return div.innerHTML;
     }
 
+    // CSV export helpers
+    function escapeCSV(value) {
+      if (value == null) return '';
+      const str = String(value);
+      // If contains comma, quote, or newline, wrap in quotes and escape internal quotes
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    }
+
+    function generateCSV(data, columns) {
+      // Header row
+      const header = columns.map(col => escapeCSV(col.label)).join(',');
+      // Data rows
+      const rows = data.map(row =>
+        columns.map(col => escapeCSV(col.getValue(row))).join(',')
+      );
+      return [header, ...rows].join('\n');
+    }
+
+    function downloadCSV(csvContent, filename) {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
     // Custom confirm modal
     let confirmResolve = null;
 
@@ -2705,6 +2744,66 @@
       }
     }
 
+    async function exportSelectedLeads() {
+      let leadsToExport = [];
+
+      if (leadSelectAllMatching) {
+        // Fetch all matching leads
+        const params = new URLSearchParams({
+          tenant: leadCurrentFilters.tenant || currentUser.slug,
+          limit: '10000' // High limit to get all
+        });
+        if (leadCurrentFilters.search) params.append('search', leadCurrentFilters.search);
+        if (leadCurrentFilters.status) params.append('status', leadCurrentFilters.status);
+
+        try {
+          const response = await fetch(`/.netlify/functions/get-leads?${params}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (response.status === 401) { logout(); return; }
+          const data = await response.json();
+          leadsToExport = data.leads || [];
+        } catch (error) {
+          console.error('Error fetching leads for export:', error);
+          alert('Failed to fetch leads for export');
+          return;
+        }
+      } else {
+        // Get selected IDs and filter from cached data
+        const selectedIds = Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => cb.dataset.id);
+        if (selectedIds.length === 0) {
+          alert('No leads selected');
+          return;
+        }
+        // Use the leads from the current view
+        leadsToExport = allLeads.filter(lead => selectedIds.includes(lead.id));
+      }
+
+      if (leadsToExport.length === 0) {
+        alert('No leads to export');
+        return;
+      }
+
+      // Define SmartLead CSV columns
+      const columns = [
+        { label: 'first_name', getValue: row => row.firstName || '' },
+        { label: 'last_name', getValue: row => row.lastName || '' },
+        { label: 'email', getValue: row => row.email || '' },
+        { label: 'phone_number', getValue: row => row.phone || '' },
+        { label: 'location', getValue: row => row.address || '' },
+        { label: 'company_name', getValue: row => '' }, // Not available on Lead model
+        { label: 'website', getValue: row => '' }, // Not available on Lead model
+        { label: 'status', getValue: row => row.status || '' },
+        { label: 'source', getValue: row => row.source || '' }
+      ];
+
+      const csv = generateCSV(leadsToExport, columns);
+      const timestamp = new Date().toISOString().slice(0, 10);
+      downloadCSV(csv, `camvasser-leads-export-${timestamp}.csv`);
+
+      showInfoModal('success', 'Export Complete', `Exported ${leadsToExport.length} lead(s) to CSV`);
+    }
+
     function toggleAllLeads(checked) {
       document.querySelectorAll('.lead-checkbox').forEach(cb => cb.checked = checked);
       updateLeadSelectionUI();
@@ -2898,6 +2997,82 @@
         console.error('Error deleting contacts:', error);
         alert('Failed to delete contacts');
       }
+    }
+
+    async function exportSelectedProspects() {
+      const selectedIds = Array.from(document.querySelectorAll('.prospect-checkbox:checked')).map(cb => cb.dataset.id);
+
+      if (selectedIds.length === 0) {
+        alert('No contacts selected');
+        return;
+      }
+
+      // Filter prospects from cached data
+      const prospectsToExport = allProspects.filter(p => selectedIds.includes(p.id));
+
+      if (prospectsToExport.length === 0) {
+        alert('No contacts to export');
+        return;
+      }
+
+      // Helper to split name into first/last
+      const splitName = (name) => {
+        if (!name) return { first: '', last: '' };
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return { first: parts[0], last: '' };
+        return { first: parts[0], last: parts.slice(1).join(' ') };
+      };
+
+      // Helper to get first phone from JSON array
+      const getFirstPhone = (phones) => {
+        if (!phones || !Array.isArray(phones) || phones.length === 0) return '';
+        const phone = phones[0];
+        return phone.number || phone.phone || '';
+      };
+
+      // Helper to get first email from JSON array
+      const getFirstEmail = (emails) => {
+        if (!emails || !Array.isArray(emails) || emails.length === 0) return '';
+        const email = emails[0];
+        return email.address || email.email || '';
+      };
+
+      // Helper to build location from project or addresses
+      const getLocation = (prospect) => {
+        // Try project address first
+        if (prospect.project) {
+          const p = prospect.project;
+          const parts = [p.address, p.city, p.state, p.postalCode].filter(Boolean);
+          if (parts.length > 0) return parts.join(', ');
+        }
+        // Try currentAddresses
+        if (prospect.currentAddresses && Array.isArray(prospect.currentAddresses) && prospect.currentAddresses.length > 0) {
+          const addr = prospect.currentAddresses[0];
+          if (typeof addr === 'string') return addr;
+          const parts = [addr.street, addr.city, addr.state, addr.zip].filter(Boolean);
+          return parts.join(', ');
+        }
+        return '';
+      };
+
+      // Define SmartLead CSV columns
+      const columns = [
+        { label: 'first_name', getValue: row => splitName(row.name).first },
+        { label: 'last_name', getValue: row => splitName(row.name).last },
+        { label: 'email', getValue: row => getFirstEmail(row.emails) },
+        { label: 'phone_number', getValue: row => getFirstPhone(row.phones) },
+        { label: 'location', getValue: row => getLocation(row) },
+        { label: 'company_name', getValue: row => row.companyName || '' },
+        { label: 'website', getValue: row => row.linkedinUrl || '' },
+        { label: 'job_title', getValue: row => row.jobTitle || '' },
+        { label: 'status', getValue: row => row.status || '' }
+      ];
+
+      const csv = generateCSV(prospectsToExport, columns);
+      const timestamp = new Date().toISOString().slice(0, 10);
+      downloadCSV(csv, `camvasser-contacts-export-${timestamp}.csv`);
+
+      showInfoModal('success', 'Export Complete', `Exported ${prospectsToExport.length} contact(s) to CSV`);
     }
 
     function toggleAllProspects(checked) {
