@@ -51,7 +51,7 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
   const pemContents = pem
     .replace(/-+\s*BEGIN\s+PRIVATE\s+KEY\s*-+/gi, "")
     .replace(/-+\s*END\s+PRIVATE\s+KEY\s*-+/gi, "")
-    .replace(/\s/g, "");
+    .replace(/[^A-Za-z0-9+/=]/g, "");  // Keep only valid base64 chars
 
   console.log("Cleaned base64 length:", pemContents.length);
   console.log("Cleaned first 50:", pemContents.substring(0, 50));
