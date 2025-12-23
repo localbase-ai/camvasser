@@ -45,72 +45,26 @@ async function verifyAuthToken(authHeader: string | null): Promise<{ tenant: str
 
 // Convert PEM private key to CryptoKey
 async function importPrivateKey(pem: string): Promise<CryptoKey> {
-  console.log("Raw key length:", pem.length);
-  console.log("Raw key first 100:", JSON.stringify(pem.substring(0, 100)));
-  console.log("Raw key last 100:", JSON.stringify(pem.substring(pem.length - 100)));
-
-  // Strip PEM headers/footers
-  const withoutHeaders = pem
+  // Strip PEM headers/footers and whitespace
+  const pemContents = pem
     .replace(/-----BEGIN PRIVATE KEY-----/g, "")
-    .replace(/-----END PRIVATE KEY-----/g, "");
+    .replace(/-----END PRIVATE KEY-----/g, "")
+    .replace(/\s/g, "");
 
-  console.log("After header removal length:", withoutHeaders.length);
-
-  // Remove all whitespace (spaces, newlines, carriage returns, tabs)
-  const pemContents = withoutHeaders.replace(/\s/g, "");
-
-  console.log("Cleaned base64 length:", pemContents.length);
-  console.log("Cleaned first 50:", pemContents.substring(0, 50));
-  console.log("Cleaned last 30:", pemContents.substring(pemContents.length - 30));
-
-  // Check for invalid characters
-  const invalidChars = pemContents.match(/[^A-Za-z0-9+/=]/g);
-  if (invalidChars) {
-    console.error("Invalid characters found:", JSON.stringify([...new Set(invalidChars)]));
-  }
-
-  // Validate it looks like proper base64
-  if (!/^[A-Za-z0-9+/]+=*$/.test(pemContents)) {
-    console.error("Base64 validation failed");
-  }
-
-  // Remove any existing padding first, then re-pad correctly
+  // Ensure proper base64 padding
   const withoutPadding = pemContents.replace(/=+$/, "");
-  console.log("Without padding length:", withoutPadding.length);
-  console.log("Without padding mod 4:", withoutPadding.length % 4);
-
   const padding = (4 - (withoutPadding.length % 4)) % 4;
   const paddedContent = withoutPadding + "=".repeat(padding);
-  console.log("Final padded length:", paddedContent.length);
-  console.log("Added padding chars:", padding);
 
-  let binaryDer: Uint8Array;
-  try {
-    binaryDer = Uint8Array.from(atob(paddedContent), c => c.charCodeAt(0));
-    console.log("Binary DER length:", binaryDer.length);
-  } catch (e) {
-    console.error("atob failed:", e);
-    throw new Error("Failed to decode base64: " + String(e));
-  }
+  const binaryDer = Uint8Array.from(atob(paddedContent), c => c.charCodeAt(0));
 
-  try {
-    const key = await crypto.subtle.importKey(
-      "pkcs8",
-      binaryDer,
-      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-    console.log("Key imported successfully");
-    return key;
-  } catch (e: unknown) {
-    const err = e as Error;
-    console.error("importKey failed:", err?.message || err);
-    console.error("importKey error name:", err?.name);
-    // Log first few bytes to check ASN.1 structure
-    console.error("DER first 10 bytes:", Array.from(binaryDer.slice(0, 10)).map(b => b.toString(16).padStart(2, '0')).join(' '));
-    throw new Error("Failed to import key: " + (err?.message || err?.name || String(e)));
-  }
+  return crypto.subtle.importKey(
+    "pkcs8",
+    binaryDer,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
 }
 
 // Create JWT for Google API
@@ -234,9 +188,6 @@ export default async function handler(request: Request, context: Context) {
 
   } catch (error) {
     console.error("Error fetching calendar events:", error);
-    console.error("Error type:", typeof error);
-    console.error("Error name:", error?.name);
-    console.error("Error string:", String(error));
     return new Response(JSON.stringify({
       error: "Failed to fetch calendar events",
       details: error?.message || String(error),
