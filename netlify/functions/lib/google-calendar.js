@@ -1,5 +1,6 @@
 /**
  * Google Calendar API client using Service Account authentication
+ * Uses google-auth-library (lightweight) instead of googleapis
  *
  * Required env vars:
  *   GOOGLE_SERVICE_ACCOUNT_EMAIL - Service account email
@@ -7,29 +8,56 @@
  *   GOOGLE_CALENDAR_ID - Calendar ID to read/write events
  */
 
-import { google } from 'googleapis';
+import { GoogleAuth } from 'google-auth-library';
 
 // Get credentials from env
 const SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
 const PRIVATE_KEY = (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '').replace(/\\n/g, '\n');
 const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID;
 
+const CALENDAR_API_BASE = 'https://www.googleapis.com/calendar/v3';
+
 /**
- * Create authenticated Google Calendar client
+ * Get authenticated client for Google APIs
  */
-function getCalendarClient() {
+function getAuthClient() {
   if (!SERVICE_ACCOUNT_EMAIL || !PRIVATE_KEY) {
     throw new Error('Google Calendar credentials not configured');
   }
 
-  const auth = new google.auth.JWT(
-    SERVICE_ACCOUNT_EMAIL,
-    null,
-    PRIVATE_KEY,
-    ['https://www.googleapis.com/auth/calendar']
-  );
+  return new GoogleAuth({
+    credentials: {
+      client_email: SERVICE_ACCOUNT_EMAIL,
+      private_key: PRIVATE_KEY
+    },
+    scopes: ['https://www.googleapis.com/auth/calendar']
+  });
+}
 
-  return google.calendar({ version: 'v3', auth });
+/**
+ * Make authenticated request to Google Calendar API
+ */
+async function calendarFetch(path, options = {}) {
+  const auth = getAuthClient();
+  const client = await auth.getClient();
+  const token = await client.getAccessToken();
+
+  const url = `${CALENDAR_API_BASE}${path}`;
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${token.token}`,
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error?.message || `Calendar API error: ${response.status}`);
+  }
+
+  return response.json();
 }
 
 /**
@@ -51,8 +79,6 @@ export async function createEvent({
   durationMinutes = 60,
   calendarId = CALENDAR_ID
 }) {
-  const calendar = getCalendarClient();
-
   const start = new Date(startTime);
   const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
 
@@ -70,12 +96,10 @@ export async function createEvent({
     }
   };
 
-  const response = await calendar.events.insert({
-    calendarId,
-    resource: event
+  return calendarFetch(`/calendars/${encodeURIComponent(calendarId)}/events`, {
+    method: 'POST',
+    body: JSON.stringify(event)
   });
-
-  return response.data;
 }
 
 /**
@@ -93,23 +117,19 @@ export async function getEvents({
   timeMax,
   calendarId = CALENDAR_ID
 } = {}) {
-  const calendar = getCalendarClient();
-
-  const params = {
-    calendarId,
-    maxResults,
+  const params = new URLSearchParams({
+    maxResults: String(maxResults),
     timeMin: new Date(timeMin).toISOString(),
-    singleEvents: true,
+    singleEvents: 'true',
     orderBy: 'startTime'
-  };
+  });
 
   if (timeMax) {
-    params.timeMax = new Date(timeMax).toISOString();
+    params.set('timeMax', new Date(timeMax).toISOString());
   }
 
-  const response = await calendar.events.list(params);
-
-  return response.data.items || [];
+  const data = await calendarFetch(`/calendars/${encodeURIComponent(calendarId)}/events?${params}`);
+  return data.items || [];
 }
 
 /**
@@ -118,12 +138,22 @@ export async function getEvents({
  * @param {string} calendarId - Override calendar ID (optional)
  */
 export async function deleteEvent(eventId, calendarId = CALENDAR_ID) {
-  const calendar = getCalendarClient();
+  const auth = getAuthClient();
+  const client = await auth.getClient();
+  const token = await client.getAccessToken();
 
-  await calendar.events.delete({
-    calendarId,
-    eventId
+  const url = `${CALENDAR_API_BASE}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`;
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token.token}`
+    }
   });
+
+  if (!response.ok && response.status !== 204) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error?.message || `Calendar API error: ${response.status}`);
+  }
 }
 
 /**
