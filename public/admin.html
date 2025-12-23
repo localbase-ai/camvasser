@@ -476,6 +476,52 @@
             </div>
           </div>
 
+          <!-- Bud Roofing Website Integration -->
+          <div class="card bg-base-200 shadow-sm">
+            <div class="card-body">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold">Bud Roofing Website</h3>
+                    <p class="text-sm text-base-content/60">Contact form submissions</p>
+                  </div>
+                </div>
+                <div id="budroofingStatus" class="badge badge-success">Connected</div>
+              </div>
+
+              <div class="divider my-2"></div>
+
+              <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Database</span>
+                  <code class="text-xs bg-base-300 px-2 py-0.5 rounded">Neon PostgreSQL</code>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Last Sync</span>
+                  <span id="budroofingLastSync" class="font-medium">Never</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Leads Synced</span>
+                  <span id="budroofingLeadCount" class="font-medium">-</span>
+                </div>
+              </div>
+
+              <div class="card-actions justify-end mt-4">
+                <button id="budroofingSyncBtn" onclick="syncFromBudRoofing()" class="btn btn-primary btn-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Sync Now
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- QuickBooks Integration (Coming Soon) -->
           <div class="card bg-base-200 shadow-sm opacity-60">
             <div class="card-body">
@@ -3447,6 +3493,69 @@
 
         setTimeout(() => {
           checkLocalBaseStatus();
+        }, 3000);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Sync Now
+        `;
+      }
+    }
+
+    // Sync leads from Bud Roofing website (Neon database)
+    async function syncFromBudRoofing() {
+      const btn = document.getElementById('budroofingSyncBtn');
+      const statusEl = document.getElementById('budroofingStatus');
+      const lastSyncEl = document.getElementById('budroofingLastSync');
+      const leadCountEl = document.getElementById('budroofingLeadCount');
+
+      // Disable button and show loading
+      btn.disabled = true;
+      btn.innerHTML = `
+        <span class="loading loading-spinner loading-xs"></span>
+        Syncing...
+      `;
+
+      try {
+        const response = await fetch('/.netlify/functions/sync-budroofing-leads', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          statusEl.className = 'badge badge-success';
+          statusEl.textContent = 'Synced!';
+          lastSyncEl.textContent = new Date().toLocaleString();
+          leadCountEl.textContent = result.synced + ' new';
+
+          // Reload leads if on leads view
+          if (currentView === 'leads') {
+            await loadLeads();
+          }
+
+          // Show success briefly then reset
+          setTimeout(() => {
+            statusEl.textContent = 'Connected';
+          }, 3000);
+        } else {
+          throw new Error(result.error || 'Sync failed');
+        }
+      } catch (error) {
+        console.error('Bud Roofing sync error:', error);
+        statusEl.className = 'badge badge-error';
+        statusEl.textContent = 'Sync Failed';
+
+        setTimeout(() => {
+          statusEl.className = 'badge badge-success';
+          statusEl.textContent = 'Connected';
         }, 3000);
       } finally {
         btn.disabled = false;
