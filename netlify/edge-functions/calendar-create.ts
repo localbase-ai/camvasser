@@ -148,7 +148,7 @@ export default async function handler(request: Request, context: Context) {
 
   try {
     const body = await request.json();
-    const { leadId, leadName, leadPhone, leadEmail, leadAddress, startTime, durationMinutes = 60, notes } = body;
+    const { leadId, leadName, leadPhone, leadEmail, leadAddress, startTime, durationMinutes = 60, notes, eventType = 'sales' } = body;
 
     if (!startTime) {
       return new Response(JSON.stringify({ error: "startTime is required" }), {
@@ -158,7 +158,8 @@ export default async function handler(request: Request, context: Context) {
     }
 
     // Build event
-    const summary = `Appointment: ${leadName || "Unknown"}`;
+    const eventTypeLabel = eventType === 'job' ? 'Job' : 'Sales';
+    const summary = `[${eventTypeLabel}] ${leadName || "Unknown"}`;
     const descriptionParts = [];
     if (leadName) descriptionParts.push(`Name: ${leadName}`);
     if (leadPhone) descriptionParts.push(`Phone: ${leadPhone}`);
@@ -215,6 +216,7 @@ export default async function handler(request: Request, context: Context) {
         durationMinutes,
         location: leadAddress,
         notes,
+        eventType,
       };
       console.log("Appointment data:", JSON.stringify(appointmentData));
 

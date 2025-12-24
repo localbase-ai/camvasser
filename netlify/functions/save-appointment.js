@@ -24,6 +24,7 @@ export async function handler(event) {
       durationMinutes,
       location,
       notes,
+      eventType,
       createdById,
       createdByName
     } = data;
@@ -53,6 +54,7 @@ export async function handler(event) {
         location: location || null,
         notes: notes || null,
         status: 'scheduled',
+        eventType: eventType || 'sales',
         createdById: createdById || null,
         createdByName: createdByName || null
       }

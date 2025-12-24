@@ -250,6 +250,53 @@ describe('save-appointment API', () => {
       );
     });
 
+    it('should default eventType to sales', async () => {
+      mockPrisma.appointment.create.mockResolvedValue(factories.appointment());
+
+      const event = createMockEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({
+          tenant: 'acme',
+          summary: 'Test Appointment',
+          startTime: '2025-12-25T10:00:00Z',
+          endTime: '2025-12-25T11:00:00Z'
+        })
+      });
+      await handler(event);
+
+      expect(mockPrisma.appointment.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: 'sales'
+          })
+        })
+      );
+    });
+
+    it('should save eventType when provided', async () => {
+      mockPrisma.appointment.create.mockResolvedValue(factories.appointment({ eventType: 'job' }));
+
+      const event = createMockEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({
+          tenant: 'acme',
+          summary: 'Test Appointment',
+          startTime: '2025-12-25T10:00:00Z',
+          endTime: '2025-12-25T11:00:00Z',
+          eventType: 'job'
+        })
+      });
+      await handler(event);
+
+      expect(mockPrisma.appointment.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: 'job'
+          })
+        })
+      );
+    });
+
     it('should convert startTime string to Date', async () => {
       mockPrisma.appointment.create.mockResolvedValue(factories.appointment());
 

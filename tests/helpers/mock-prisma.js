@@ -180,6 +180,7 @@ export const factories = {
     location: '123 Main St, Denver, CO',
     notes: 'Test appointment notes',
     status: 'scheduled',
+    eventType: 'sales',
     createdById: 'user_123',
     createdByName: 'Test User',
     createdAt: new Date(),

@@ -4566,6 +4566,7 @@
             leadEmail: document.getElementById('scheduleLeadEmail').value,
             leadAddress: document.getElementById('scheduleLeadAddress').value,
             startTime: startTimeISO,
+            eventType: document.getElementById('scheduleEventType').value,
             durationMinutes: parseInt(document.getElementById('scheduleDuration').value, 10),
             notes: document.getElementById('scheduleNotes').value
           })
@@ -4636,6 +4637,14 @@
             <div>
               <label class="label"><span class="label-text">Date & Time</span></label>
               <input type="datetime-local" id="scheduleDateTime" class="input input-bordered w-full" required>
+            </div>
+
+            <div>
+              <label class="label"><span class="label-text">Event Type</span></label>
+              <select id="scheduleEventType" class="select select-bordered w-full">
+                <option value="sales" selected>Sales Appointment</option>
+                <option value="job">Job/Work</option>
+              </select>
             </div>
 
             <div>
