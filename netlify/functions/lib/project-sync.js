@@ -4,6 +4,48 @@ import { fetchProjectLabels } from './companycam-api.js';
 const prisma = new PrismaClient();
 
 /**
+ * Geocode an address using Google Maps API
+ * @param {Object} address - Address object with street_address_1, city, state, postal_code
+ * @returns {Promise<Object|null>} Coordinates {lat, lon} or null
+ */
+async function geocodeAddress(address) {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  if (!apiKey) {
+    console.warn('GOOGLE_MAPS_API_KEY not configured, skipping geocoding');
+    return null;
+  }
+
+  const fullAddress = [
+    address?.street_address_1,
+    address?.city,
+    address?.state,
+    address?.postal_code
+  ].filter(Boolean).join(', ');
+
+  if (!fullAddress) {
+    return null;
+  }
+
+  try {
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${apiKey}`;
+    const response = await fetch(geocodeUrl);
+    const data = await response.json();
+
+    if (data.status === 'OK' && data.results[0]) {
+      const location = data.results[0].geometry.location;
+      return {
+        lat: location.lat,
+        lon: location.lng
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    return null;
+  }
+}
+
+/**
  * Sync a CompanyCam project to the local database
  * @param {Object} projectData - Raw project data from CompanyCam API
  * @param {string} tenant - Tenant identifier (e.g., "budroofing")
@@ -14,6 +56,9 @@ export async function syncProject(projectData, tenant, apiToken) {
   try {
     // Fetch labels for this project
     const labels = await fetchProjectLabels(projectData.id, apiToken);
+
+    // Geocode the address using Google Maps for accurate coordinates
+    const coordinates = await geocodeAddress(projectData.address);
 
     // Upsert project data
     const project = await prisma.project.upsert({
@@ -28,10 +73,7 @@ export async function syncProject(projectData, tenant, apiToken) {
         status: projectData.status,
         photoCount: projectData.photo_count || 0,
         publicUrl: projectData.public_url,
-        coordinates: projectData.coordinates ? {
-          lat: projectData.coordinates.lat,
-          lon: projectData.coordinates.lon
-        } : null,
+        coordinates,
         lastSyncedAt: new Date()
       },
       create: {
@@ -45,10 +87,7 @@ export async function syncProject(projectData, tenant, apiToken) {
         status: projectData.status,
         photoCount: projectData.photo_count || 0,
         publicUrl: projectData.public_url,
-        coordinates: projectData.coordinates ? {
-          lat: projectData.coordinates.lat,
-          lon: projectData.coordinates.lon
-        } : null,
+        coordinates,
         lastSyncedAt: new Date(),
         createdAt: new Date()
       }
