@@ -3,9 +3,12 @@ import { verifyToken } from './lib/auth.js';
 
 const prisma = new PrismaClient();
 
+const BATCH_SIZE = 100; // Process 100 at a time to stay under timeout
+
 /**
- * Re-geocode all projects using Google Maps API
+ * Re-geocode projects using Google Maps API (in batches)
  * This fixes coordinates that were originally from CompanyCam (often inaccurate)
+ * Use ?offset=0 to start, then ?offset=100, ?offset=200, etc.
  */
 export async function handler(event) {
   // Only allow POST
@@ -39,7 +42,8 @@ export async function handler(event) {
   }
 
   try {
-    const { tenant } = event.queryStringParameters || {};
+    const { tenant, offset } = event.queryStringParameters || {};
+    const offsetNum = parseInt(offset) || 0;
 
     if (!tenant) {
       return {
@@ -49,7 +53,15 @@ export async function handler(event) {
       };
     }
 
-    // Get all projects with addresses for this tenant
+    // Get total count first
+    const totalCount = await prisma.project.count({
+      where: {
+        tenant,
+        address: { not: null }
+      }
+    });
+
+    // Get batch of projects
     const projects = await prisma.project.findMany({
       where: {
         tenant,
@@ -62,10 +74,13 @@ export async function handler(event) {
         state: true,
         postalCode: true,
         coordinates: true
-      }
+      },
+      skip: offsetNum,
+      take: BATCH_SIZE,
+      orderBy: { id: 'asc' }
     });
 
-    console.log(`[regeocode] Found ${projects.length} projects for tenant ${tenant}`);
+    console.log(`[regeocode] Processing batch: offset=${offsetNum}, count=${projects.length}, total=${totalCount}`);
 
     let updated = 0;
     let failed = 0;
@@ -105,18 +120,13 @@ export async function handler(event) {
           });
 
           updated++;
-
-          // Log progress every 50 projects
-          if (updated % 50 === 0) {
-            console.log(`[regeocode] Progress: ${updated} updated`);
-          }
         } else {
           console.warn(`[regeocode] Could not geocode: ${fullAddress} - ${data.status}`);
           failed++;
         }
 
-        // Small delay to avoid rate limiting (50ms between requests)
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 30));
 
       } catch (err) {
         console.error(`[regeocode] Error geocoding ${project.id}:`, err.message);
@@ -124,18 +134,27 @@ export async function handler(event) {
       }
     }
 
-    console.log(`[regeocode] Complete: ${updated} updated, ${failed} failed, ${skipped} skipped`);
+    const nextOffset = offsetNum + BATCH_SIZE;
+    const hasMore = nextOffset < totalCount;
+
+    console.log(`[regeocode] Batch complete: ${updated} updated, ${failed} failed, ${skipped} skipped. hasMore=${hasMore}`);
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         success: true,
-        total: projects.length,
+        total: totalCount,
+        batchSize: projects.length,
+        offset: offsetNum,
+        nextOffset: hasMore ? nextOffset : null,
+        hasMore,
         updated,
         failed,
         skipped,
-        message: `Re-geocoded ${updated} projects`
+        message: hasMore
+          ? `Processed ${offsetNum + projects.length} of ${totalCount}. Run again with offset=${nextOffset}`
+          : `Complete! Processed all ${totalCount} projects.`
       })
     };
 

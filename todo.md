@@ -1,7 +1,6 @@
 # Camvasser TODO
 
 # Bugs
-- fix ayas apppointment bug
 
 # White Pages Test
 - [ ] set up a test account with white pages and source data for a test list
@@ -43,7 +42,7 @@
 - [✅] Read-only calendar list view in Camvasser
 - [✅] Store appointments in database (Appointment model)
 - [✅] Show appointments in lead detail view
-- [ ] add event type
+- [✅] add event type
 - [ ] as tenant admin set up my gcal from ui (later)
 - [ ] change appointment status 
 
