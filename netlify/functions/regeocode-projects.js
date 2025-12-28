@@ -42,7 +42,7 @@ export async function handler(event) {
   }
 
   try {
-    const { tenant, offset } = event.queryStringParameters || {};
+    const { tenant, offset, prefix } = event.queryStringParameters || {};
     const offsetNum = parseInt(offset) || 0;
 
     if (!tenant) {
@@ -53,20 +53,25 @@ export async function handler(event) {
       };
     }
 
+    // Build where clause
+    const whereClause = {
+      tenant,
+      address: { not: null }
+    };
+
+    // Optional prefix filter (e.g., 'clay_')
+    if (prefix) {
+      whereClause.id = { startsWith: prefix };
+    }
+
     // Get total count first
     const totalCount = await prisma.project.count({
-      where: {
-        tenant,
-        address: { not: null }
-      }
+      where: whereClause
     });
 
     // Get batch of projects
     const projects = await prisma.project.findMany({
-      where: {
-        tenant,
-        address: { not: null }
-      },
+      where: whereClause,
       select: {
         id: true,
         address: true,
