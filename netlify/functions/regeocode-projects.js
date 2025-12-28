@@ -107,7 +107,10 @@ export async function handler(event) {
         const data = await response.json();
 
         if (data.status === 'OK' && data.results[0]) {
-          const location = data.results[0].geometry.location;
+          // Prefer ROOFTOP precision, fall back to others
+          const rooftopResult = data.results.find(r => r.geometry.location_type === 'ROOFTOP');
+          const result = rooftopResult || data.results[0];
+          const location = result.geometry.location;
 
           await prisma.project.update({
             where: { id: project.id },
