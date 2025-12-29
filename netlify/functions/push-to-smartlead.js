@@ -68,16 +68,69 @@ export const handler = async (event) => {
       where.campaign = campaign;
     }
 
-    // Search filter
+    // Search filter - handle special field queries like has:email, no:phone
     if (search) {
-      const searchLower = search.toLowerCase();
-      where.AND = where.AND || [];
-      where.AND.push({
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { emails: { array_contains: searchLower } }
-        ]
-      });
+      let searchText = search.trim();
+
+      // Parse special field queries from search
+      const fieldFilters = [];
+      const fieldQueryPattern = /(no:\w+|has:\w+|\w+:empty)/gi;
+      searchText = searchText.replace(fieldQueryPattern, (match) => {
+        const lower = match.trim().toLowerCase();
+        if (lower.startsWith('no:')) {
+          const field = lower.substring(3);
+          fieldFilters.push({ field, isEmpty: true });
+        } else if (lower.startsWith('has:')) {
+          const field = lower.substring(4);
+          fieldFilters.push({ field, isEmpty: false });
+        } else if (lower.endsWith(':empty')) {
+          const field = lower.replace(':empty', '');
+          fieldFilters.push({ field, isEmpty: true });
+        }
+        return '';
+      }).trim();
+
+      // Map field names to database columns
+      const fieldMap = {
+        email: 'emails',
+        emails: 'emails',
+        phone: 'phones',
+        phones: 'phones',
+        name: 'name'
+      };
+
+      // Apply field filters
+      for (const filter of fieldFilters) {
+        const dbField = fieldMap[filter.field];
+        if (!dbField) continue;
+
+        if (dbField === 'emails' || dbField === 'phones') {
+          if (filter.isEmpty) {
+            where.AND = where.AND || [];
+            where.AND.push({
+              OR: [
+                { [dbField]: null },
+                { [dbField]: { equals: [] } }
+              ]
+            });
+          } else {
+            where.AND = where.AND || [];
+            where.AND.push({ [dbField]: { not: null } });
+          }
+        }
+      }
+
+      // Handle remaining search text as name/email search
+      if (searchText) {
+        const searchLower = searchText.toLowerCase();
+        where.AND = where.AND || [];
+        where.AND.push({
+          OR: [
+            { name: { contains: searchText, mode: 'insensitive' } },
+            { emails: { array_contains: searchLower } }
+          ]
+        });
+      }
     }
 
     // Fetch prospects with emails
