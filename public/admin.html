@@ -233,14 +233,23 @@
               <select id="prospectStatusFilter" class="select select-bordered select-sm">
                 <option value="">All Statuses</option>
                 <option value="no_status">No Status</option>
-                <option value="new_lead">New lead</option>
-                <option value="left_voicemail">Left voicemail</option>
-                <option value="no_answer">No answer</option>
-                <option value="callback">Callback</option>
-                <option value="appointment_set">Appointment set</option>
-                <option value="not_interested">Not interested</option>
-                <option value="wrong_number">Wrong number</option>
-                <option value="bad_number">Bad number</option>
+                <optgroup label="Calling">
+                  <option value="new_lead">New lead</option>
+                  <option value="left_voicemail">Left voicemail</option>
+                  <option value="no_answer">No answer</option>
+                  <option value="callback">Callback</option>
+                  <option value="appointment_set">Appointment set</option>
+                  <option value="not_interested">Not interested</option>
+                  <option value="wrong_number">Wrong number</option>
+                  <option value="bad_number">Bad number</option>
+                </optgroup>
+                <optgroup label="Email">
+                  <option value="emailed">Emailed</option>
+                  <option value="opened">Opened</option>
+                  <option value="clicked">Clicked</option>
+                  <option value="replied">Replied</option>
+                  <option value="bounced">Bounced</option>
+                </optgroup>
               </select>
               <select id="prospectCampaignFilter" class="select select-bordered select-sm">
                 <option value="">All Campaigns</option>
