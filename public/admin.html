@@ -403,7 +403,25 @@
         <!-- Sticky Header -->
         <div class="sticky top-0 bg-base-100 z-10 py-2">
           <div class="flex justify-between items-center gap-4">
-            <h2 class="text-lg font-bold">Map</h2>
+            <div class="flex items-center gap-4">
+              <h2 class="text-lg font-bold">Map</h2>
+              <!-- Add Pin Controls -->
+              <div class="flex items-center gap-2">
+                <button id="addPinBtn" onclick="toggleAddPinMode()" class="btn btn-sm btn-outline gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Pin
+                </button>
+                <div class="relative">
+                  <input type="text" id="addressSearchInput" placeholder="Search address..."
+                    class="input input-sm input-bordered w-64"
+                    onkeydown="if(event.key==='Enter') searchAndAddAddress()">
+                  <div id="addressSuggestions" class="hidden absolute top-full left-0 right-0 mt-1 bg-base-100 border border-base-300 shadow-lg max-h-60 overflow-y-auto z-50">
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="flex flex-wrap gap-2 items-center">
               <span id="mapAddressCount" class="text-sm text-base-content/60">Loading...</span>
               <label class="flex items-center gap-2 cursor-pointer ml-4">
@@ -3813,6 +3831,201 @@
       loadMapData(true); // Use cached data with new filters
     }
 
+    // ===== Add Pin Functionality =====
+    let addPinMode = false;
+    let addPinClickHandler = null;
+
+    function toggleAddPinMode() {
+      addPinMode = !addPinMode;
+      const btn = document.getElementById('addPinBtn');
+
+      if (addPinMode) {
+        btn.classList.remove('btn-outline');
+        btn.classList.add('btn-primary');
+        btn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          Cancel
+        `;
+
+        // Change cursor on map
+        document.getElementById('mapContainer').style.cursor = 'crosshair';
+
+        // Add click handler
+        addPinClickHandler = async function(e) {
+          const { lat, lng } = e.latlng;
+          await reverseGeocodeAndShowModal(lat, lng);
+        };
+        map.on('click', addPinClickHandler);
+
+      } else {
+        btn.classList.add('btn-outline');
+        btn.classList.remove('btn-primary');
+        btn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Add Pin
+        `;
+
+        // Reset cursor
+        document.getElementById('mapContainer').style.cursor = '';
+
+        // Remove click handler
+        if (addPinClickHandler) {
+          map.off('click', addPinClickHandler);
+          addPinClickHandler = null;
+        }
+      }
+    }
+
+    async function reverseGeocodeAndShowModal(lat, lon) {
+      // Reverse geocode to get address
+      try {
+        const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=AIzaSyCZ5lvfGnhxr5d5IYAwMcp9a6Gn1rgUxi8`);
+        const data = await response.json();
+
+        if (data.status === 'OK' && data.results[0]) {
+          const result = data.results[0];
+          const components = {};
+
+          result.address_components.forEach(c => {
+            if (c.types.includes('street_number')) components.streetNumber = c.short_name;
+            if (c.types.includes('route')) components.route = c.short_name;
+            if (c.types.includes('locality')) components.city = c.short_name;
+            if (c.types.includes('administrative_area_level_1')) components.state = c.short_name;
+            if (c.types.includes('postal_code')) components.zip = c.short_name;
+          });
+
+          document.getElementById('addPinAddress').value = components.streetNumber && components.route
+            ? `${components.streetNumber} ${components.route}`
+            : '';
+          document.getElementById('addPinCity').value = components.city || '';
+          document.getElementById('addPinState').value = components.state || 'MO';
+          document.getElementById('addPinZip').value = components.zip || '';
+          document.getElementById('addPinLat').value = lat;
+          document.getElementById('addPinLon').value = lon;
+        } else {
+          // No results, just populate lat/lon
+          document.getElementById('addPinAddress').value = '';
+          document.getElementById('addPinCity').value = '';
+          document.getElementById('addPinState').value = 'MO';
+          document.getElementById('addPinZip').value = '';
+          document.getElementById('addPinLat').value = lat;
+          document.getElementById('addPinLon').value = lon;
+        }
+      } catch (err) {
+        console.error('Reverse geocode error:', err);
+        document.getElementById('addPinLat').value = lat;
+        document.getElementById('addPinLon').value = lon;
+      }
+
+      // Show modal
+      document.getElementById('addPinModal').showModal();
+
+      // Exit add pin mode
+      toggleAddPinMode();
+    }
+
+    async function searchAndAddAddress() {
+      const searchInput = document.getElementById('addressSearchInput');
+      const address = searchInput.value.trim();
+
+      if (!address) return;
+
+      // Clear lat/lon since this is a search, not a click
+      document.getElementById('addPinLat').value = '';
+      document.getElementById('addPinLon').value = '';
+
+      // Try to parse the address
+      // Simple approach: assume format like "123 Main St, City, MO 64081"
+      const parts = address.split(',').map(s => s.trim());
+
+      document.getElementById('addPinAddress').value = parts[0] || '';
+      document.getElementById('addPinCity').value = parts[1] || '';
+
+      // Parse state and zip from third part if present
+      if (parts[2]) {
+        const stateZip = parts[2].trim().split(/\s+/);
+        document.getElementById('addPinState').value = stateZip[0] || 'MO';
+        document.getElementById('addPinZip').value = stateZip[1] || '';
+      } else {
+        document.getElementById('addPinState').value = 'MO';
+        document.getElementById('addPinZip').value = '';
+      }
+
+      document.getElementById('addPinTag').value = '';
+
+      // Show modal
+      document.getElementById('addPinModal').showModal();
+
+      // Clear search input
+      searchInput.value = '';
+    }
+
+    function closeAddPinModal() {
+      document.getElementById('addPinModal').close();
+    }
+
+    async function submitAddPin() {
+      const address = document.getElementById('addPinAddress').value.trim();
+      const city = document.getElementById('addPinCity').value.trim();
+      const state = document.getElementById('addPinState').value.trim();
+      const postalCode = document.getElementById('addPinZip').value.trim();
+      const tag = document.getElementById('addPinTag').value.trim();
+      const lat = document.getElementById('addPinLat').value;
+      const lon = document.getElementById('addPinLon').value;
+
+      if (!address) {
+        alert('Address is required');
+        return;
+      }
+
+      try {
+        const body = {
+          address,
+          city,
+          state,
+          postalCode,
+          tag: tag || undefined,
+          tenant: currentTenant
+        };
+
+        // Include lat/lon if we have them from click-to-add
+        if (lat && lon) {
+          body.lat = parseFloat(lat);
+          body.lon = parseFloat(lon);
+        }
+
+        const response = await fetch('/.netlify/functions/create-project', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          },
+          body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          closeAddPinModal();
+          // Reload map data to show new pin
+          loadMapData();
+          // Show success message
+          showInfoModal('success', 'Pin Added', `Successfully added ${address}, ${city}`);
+        } else if (response.status === 409) {
+          alert('A project already exists at this address');
+        } else {
+          alert(data.error || 'Failed to create project');
+        }
+      } catch (err) {
+        console.error('Error creating project:', err);
+        alert('Failed to create project: ' + err.message);
+      }
+    }
+
     function createClusterIcon(cluster, color) {
       const count = cluster.getChildCount();
       const size = count < 10 ? 30 : count < 50 ? 36 : 44;
@@ -4693,6 +4906,46 @@
     </div>
     <form method="dialog" class="modal-backdrop bg-black/50">
       <button onclick="closeScheduleModal()">close</button>
+    </form>
+  </dialog>
+
+  <!-- Add Pin Modal -->
+  <dialog id="addPinModal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-base-100 w-11/12 max-w-md" style="padding: 24px;">
+      <h3 class="font-bold text-lg mb-4">Add New Pin</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="label"><span class="label-text font-medium">Address</span></label>
+          <input type="text" id="addPinAddress" class="input input-bordered w-full" placeholder="123 Main St">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="label"><span class="label-text font-medium">City</span></label>
+            <input type="text" id="addPinCity" class="input input-bordered w-full" placeholder="Kansas City">
+          </div>
+          <div>
+            <label class="label"><span class="label-text font-medium">State</span></label>
+            <input type="text" id="addPinState" class="input input-bordered w-full" placeholder="MO" value="MO">
+          </div>
+        </div>
+        <div>
+          <label class="label"><span class="label-text font-medium">Zip Code</span></label>
+          <input type="text" id="addPinZip" class="input input-bordered w-full" placeholder="64081">
+        </div>
+        <div>
+          <label class="label"><span class="label-text font-medium">Tag (optional)</span></label>
+          <input type="text" id="addPinTag" class="input input-bordered w-full" placeholder="e.g., Winterset, Door Hanger">
+        </div>
+        <input type="hidden" id="addPinLat">
+        <input type="hidden" id="addPinLon">
+      </div>
+      <div class="modal-action mt-6">
+        <button class="btn btn-ghost" onclick="closeAddPinModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitAddPin()">Add Pin</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-black/50">
+      <button onclick="closeAddPinModal()">close</button>
     </form>
   </dialog>
 
