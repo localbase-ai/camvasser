@@ -3450,9 +3450,9 @@
                 const jobValueDisplay = jobValue ? `$${jobValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
                 return `
                 <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300" onclick="showLeadDetail('${lead.id}')">
-                  <div class="flex justify-between items-start">
-                    <div class="font-medium truncate">${lead.firstName || ''} ${lead.lastName || ''}</div>
-                    ${jobValueDisplay ? `<div class="badge badge-sm bg-green-50 text-green-600 border-green-200 px-2 min-w-fit">💰 ${jobValueDisplay}</div>` : ''}
+                  <div class="flex justify-between items-start gap-1">
+                    <div class="font-medium truncate flex-1 min-w-0">${lead.firstName || ''} ${lead.lastName || ''}</div>
+                    ${jobValueDisplay ? `<div class="badge badge-sm bg-green-50 text-green-600 border-green-200 px-2 flex-shrink-0 whitespace-nowrap">💰 ${jobValueDisplay}</div>` : ''}
                   </div>
                   <div class="text-base-content/60 truncate">${lead.phone || lead.email || '-'}</div>
                 </div>

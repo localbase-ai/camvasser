@@ -28,7 +28,8 @@ model Lead {
   flowSlug      String?
   flowType      String?
   qualifyScore  String?
-  source        String?
+  dataSource    String?   @map("source")
+  leadSource    String?
   urgencyLevel  String?
   utmCampaign   String?
   utmMedium     String?
@@ -40,7 +41,8 @@ model Lead {
   @@index([tenant])
   @@index([createdAt])
   @@index([campaign])
-  @@index([source])
+  @@index([dataSource])
+  @@index([leadSource])
   @@index([flowType])
   @@index([prospectId])
   @@index([search_vector], map: "lead_search_idx", type: Gin)

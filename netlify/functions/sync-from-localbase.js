@@ -82,7 +82,7 @@ export async function handler(event) {
     const existingLeads = await prisma.lead.findMany({
       where: {
         tenant,
-        source: 'roofmaxx'
+        dataSource: 'roofmaxx'
       },
       select: {
         id: true,
@@ -125,7 +125,7 @@ export async function handler(event) {
             phone: deal.customer_phone || null,
             address: fullAddress || null,
             tenant,
-            source: 'roofmaxx',
+            dataSource: 'roofmaxx',
             flowType: 'sync',
             campaign: deal.lead_source || 'roofmaxx',
             status: 'new',

@@ -146,7 +146,7 @@ async function main() {
             phone: customer.phone || null,
             address: customer.primary_address || null,
             tenant: 'budroofing',
-            source: 'localbase',
+            dataSource: 'localbase',
             status: 'imported',
             notes: customer.notes || null,
             flowData: {
