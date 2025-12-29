@@ -269,16 +269,11 @@ export const handler = async (event) => {
         success: true,
         campaignId,
         campaignName,
-        dbTotal: totalCount,
-        fetched: prospects.length,
         totalContacts: leadsToUpload.length,
         uploaded: totalUploaded,
         duplicates,
         invalid,
-        uploadErrors: uploadErrors.length > 0 ? uploadErrors : undefined,
-        createResponse: createData, // Campaign creation response
-        rawResponses: results.slice(0, 2), // Include first 2 raw responses for debugging
-        smartleadUrl: `https://app.smartlead.ai/app/email-campaign/${campaignId}/leads`
+        smartleadUrl: `https://app.smartlead.ai/app/email-campaign/${campaignId}/analytics`
       })
     };
 

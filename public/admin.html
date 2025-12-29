@@ -2763,15 +2763,11 @@
           throw new Error(data.error || 'Failed to push to SmartLead');
         }
 
-        // Show success with debug info
-        console.log('SmartLead full response:', data);
+        // Show success
         document.getElementById('smartleadSuccessText').innerHTML = `
-          Campaign created! <strong>${data.uploaded}</strong> contacts uploaded.
-          ${data.duplicates > 0 ? ` (${data.duplicates} duplicates)` : ''}
-          ${data.invalid > 0 ? ` (${data.invalid} invalid)` : ''}
-          ${data.uploadErrors ? `<br><span class="text-error text-xs">Errors: ${data.uploadErrors.join(', ')}</span>` : ''}
-          <br><small class="text-xs opacity-60">DB: ${data.dbTotal || '?'} → Fetched: ${data.fetched || '?'} → Valid: ${data.totalContacts || '?'}</small>
-          <br><small class="text-xs opacity-60">Campaign ID: ${data.campaignId} (from: ${JSON.stringify(data.createResponse).substring(0, 80)})</small>
+          Campaign "<strong>${data.campaignName}</strong>" created with ${data.uploaded} contacts.
+          ${data.duplicates > 0 ? ` (${data.duplicates} duplicates skipped)` : ''}
+          ${data.invalid > 0 ? ` (${data.invalid} invalid emails)` : ''}
           <br><a href="${data.smartleadUrl}" target="_blank" class="link link-primary">Open in SmartLead →</a>
         `;
         document.getElementById('smartleadSuccess').classList.remove('hidden');
