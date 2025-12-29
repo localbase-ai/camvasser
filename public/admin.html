@@ -674,6 +674,99 @@
               </div>
             </div>
           </div>
+
+          <!-- CompanyCam Integration -->
+          <div class="card bg-base-200 shadow-sm">
+            <div class="card-body">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold">CompanyCam</h3>
+                    <p class="text-sm text-base-content/60">Project photos and addresses</p>
+                  </div>
+                </div>
+                <div id="companycamStatus" class="badge badge-ghost">Checking...</div>
+              </div>
+
+              <div class="divider my-2"></div>
+
+              <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Projects Synced</span>
+                  <span id="companycamProjectCount" class="font-medium">-</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Last Sync</span>
+                  <span id="companycamLastSync" class="font-medium">-</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Total Photos</span>
+                  <span id="companycamPhotoCount" class="font-medium">-</span>
+                </div>
+              </div>
+
+              <div class="card-actions justify-end mt-4">
+                <button id="companycamSyncBtn" onclick="syncCompanyCam()" class="btn btn-primary btn-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Sync Now
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SmartLead Integration -->
+          <div class="card bg-base-200 shadow-sm">
+            <div class="card-body">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold">SmartLead</h3>
+                    <p class="text-sm text-base-content/60">Email outreach campaigns</p>
+                  </div>
+                </div>
+                <div id="smartleadStatus" class="badge badge-ghost">Checking...</div>
+              </div>
+
+              <div class="divider my-2"></div>
+
+              <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Campaigns</span>
+                  <span id="smartleadCampaignCount" class="font-medium">-</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Email Accounts</span>
+                  <span id="smartleadEmailAccounts" class="font-medium">-</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Active Campaigns</span>
+                  <span id="smartleadActiveCampaigns" class="font-medium">-</span>
+                </div>
+              </div>
+
+              <div class="card-actions justify-end mt-4">
+                <button id="smartleadTestBtn" onclick="testSmartLead()" class="btn btn-primary btn-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Test Connection
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -943,6 +1036,8 @@
       if (view === 'integrations') {
         checkLocalBaseStatus();
         checkGoogleCalendarStatus();
+        checkCompanyCamStatus();
+        checkSmartLeadStatus();
       }
 
       // Load calendar events when switching to calendar view
@@ -4613,6 +4708,174 @@
         console.error('Google Calendar status check error:', error);
         statusEl.className = 'badge badge-error';
         statusEl.textContent = 'Error';
+      }
+    }
+
+    // =====================
+    // CompanyCam Integration
+    // =====================
+    async function checkCompanyCamStatus() {
+      const statusEl = document.getElementById('companycamStatus');
+      const projectCountEl = document.getElementById('companycamProjectCount');
+      const lastSyncEl = document.getElementById('companycamLastSync');
+      const photoCountEl = document.getElementById('companycamPhotoCount');
+
+      try {
+        // Use allAddresses data if already loaded, otherwise fetch stats
+        if (allAddresses.length > 0) {
+          statusEl.className = 'badge badge-success';
+          statusEl.textContent = 'Connected';
+          projectCountEl.textContent = allAddresses.length.toLocaleString();
+
+          const totalPhotos = allAddresses.reduce((sum, p) => sum + (p.photoCount || 0), 0);
+          photoCountEl.textContent = totalPhotos.toLocaleString();
+
+          const lastSync = allAddresses.reduce((latest, p) => {
+            const syncDate = p.lastSyncedAt ? new Date(p.lastSyncedAt) : null;
+            return syncDate && (!latest || syncDate > latest) ? syncDate : latest;
+          }, null);
+          lastSyncEl.textContent = lastSync ? lastSync.toLocaleDateString() : 'Unknown';
+        } else {
+          // Fetch from stats endpoint
+          const response = await fetch(`/.netlify/functions/get-stats?type=projects&tenant=${currentTenant}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+
+          if (response.status === 401) return;
+
+          const data = await response.json();
+
+          if (response.ok) {
+            statusEl.className = 'badge badge-success';
+            statusEl.textContent = 'Connected';
+            projectCountEl.textContent = (data.total || 0).toLocaleString();
+            photoCountEl.textContent = '-';
+            lastSyncEl.textContent = 'Unknown';
+          } else {
+            statusEl.className = 'badge badge-error';
+            statusEl.textContent = 'Error';
+          }
+        }
+      } catch (error) {
+        console.error('CompanyCam status check error:', error);
+        statusEl.className = 'badge badge-error';
+        statusEl.textContent = 'Error';
+      }
+    }
+
+    async function syncCompanyCam() {
+      const btn = document.getElementById('companycamSyncBtn');
+      const statusEl = document.getElementById('companycamStatus');
+
+      btn.disabled = true;
+      btn.innerHTML = `
+        <span class="loading loading-spinner loading-xs"></span>
+        Syncing...
+      `;
+
+      try {
+        // This would trigger a full CompanyCam sync
+        // For now just refresh the stats
+        await checkCompanyCamStatus();
+        statusEl.className = 'badge badge-success';
+        statusEl.textContent = 'Connected';
+      } catch (error) {
+        console.error('CompanyCam sync error:', error);
+        statusEl.className = 'badge badge-error';
+        statusEl.textContent = 'Error';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Sync Now
+        `;
+      }
+    }
+
+    // =====================
+    // SmartLead Integration
+    // =====================
+    async function checkSmartLeadStatus() {
+      const statusEl = document.getElementById('smartleadStatus');
+      const campaignCountEl = document.getElementById('smartleadCampaignCount');
+      const emailAccountsEl = document.getElementById('smartleadEmailAccounts');
+      const activeCampaignsEl = document.getElementById('smartleadActiveCampaigns');
+
+      try {
+        const response = await fetch('/.netlify/functions/smartlead-status', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.status === 401) return;
+
+        const data = await response.json();
+
+        if (response.ok && data.connected) {
+          statusEl.className = 'badge badge-success';
+          statusEl.textContent = 'Connected';
+          campaignCountEl.textContent = data.campaignCount || 0;
+          emailAccountsEl.textContent = data.emailAccountCount || 0;
+          activeCampaignsEl.textContent = data.activeCampaignCount || 0;
+        } else {
+          statusEl.className = 'badge badge-warning';
+          statusEl.textContent = 'Not Configured';
+          campaignCountEl.textContent = '-';
+          emailAccountsEl.textContent = '-';
+          activeCampaignsEl.textContent = '-';
+        }
+      } catch (error) {
+        console.error('SmartLead status check error:', error);
+        statusEl.className = 'badge badge-error';
+        statusEl.textContent = 'Error';
+      }
+    }
+
+    async function testSmartLead() {
+      const btn = document.getElementById('smartleadTestBtn');
+      const statusEl = document.getElementById('smartleadStatus');
+      const campaignCountEl = document.getElementById('smartleadCampaignCount');
+      const emailAccountsEl = document.getElementById('smartleadEmailAccounts');
+      const activeCampaignsEl = document.getElementById('smartleadActiveCampaigns');
+
+      btn.disabled = true;
+      btn.innerHTML = `
+        <span class="loading loading-spinner loading-xs"></span>
+        Testing...
+      `;
+
+      try {
+        const response = await fetch('/.netlify/functions/smartlead-status', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+
+        if (response.ok && data.connected) {
+          statusEl.className = 'badge badge-success';
+          statusEl.textContent = 'Connected';
+          campaignCountEl.textContent = data.campaignCount || 0;
+          emailAccountsEl.textContent = data.emailAccountCount || 0;
+          activeCampaignsEl.textContent = data.activeCampaignCount || 0;
+        } else {
+          statusEl.className = 'badge badge-error';
+          statusEl.textContent = data.error || 'Not Configured';
+        }
+      } catch (error) {
+        console.error('SmartLead test error:', error);
+        statusEl.className = 'badge badge-error';
+        statusEl.textContent = 'Error';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Test Connection
+        `;
       }
     }
 

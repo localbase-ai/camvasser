@@ -17,6 +17,7 @@ model Lead {
   phone         String?
   address       String?
   projectId     String?
+  prospectId    String?
   tenant        String
   createdAt     DateTime                 @default(now())
   callDate      DateTime?
@@ -34,12 +35,14 @@ model Lead {
   utmSource     String?
   search_vector Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((((((((COALESCE(\"firstName\", ''::text) || ' '::text) || COALESCE(\"lastName\", ''::text)) || ' '::text) || COALESCE(email, ''::text)) || ' '::text) || COALESCE(phone, ''::text)) || ' '::text) || COALESCE(address, ''::text)))"))
   coordinates   Json?
+  prospect      Prospect?                @relation(fields: [prospectId], references: [id])
 
   @@index([tenant])
   @@index([createdAt])
   @@index([campaign])
   @@index([source])
   @@index([flowType])
+  @@index([prospectId])
   @@index([search_vector], map: "lead_search_idx", type: Gin)
   @@map("User")
 }
@@ -170,6 +173,7 @@ model Prospect {
   notes             String?
   search_vector     Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((((COALESCE(name, ''::text) || ' '::text) || COALESCE(\"companyName\", ''::text)) || ' '::text) || COALESCE(\"jobTitle\", ''::text)))"))
   project           Project?                 @relation(fields: [projectId], references: [id])
+  leads             Lead[]
 
   @@index([projectId])
   @@index([tenant])
