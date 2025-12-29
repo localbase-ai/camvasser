@@ -215,22 +215,28 @@ export const handler = async (event) => {
 
     const campaignId = createData.id;
 
-    // Upload leads in batches of 100
-    const batchSize = 100;
+    // Upload leads in larger batches (SmartLead supports up to 1000) and in parallel
+    const batchSize = 500;
     let totalUploaded = 0;
     let duplicates = 0;
     let invalid = 0;
 
+    // Create all batch upload promises
+    const uploadPromises = [];
     for (let i = 0; i < leadsToUpload.length; i += batchSize) {
       const batch = leadsToUpload.slice(i, i + batchSize);
+      uploadPromises.push(
+        fetch(`${SMARTLEAD_BASE_URL}/campaigns/${campaignId}/leads?api_key=${SMARTLEAD_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lead_list: batch })
+        }).then(r => r.json()).catch(e => ({ ok: false, error: e.message }))
+      );
+    }
 
-      const uploadResponse = await fetch(`${SMARTLEAD_BASE_URL}/campaigns/${campaignId}/leads?api_key=${SMARTLEAD_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lead_list: batch })
-      });
-
-      const uploadData = await uploadResponse.json();
+    // Run all uploads in parallel
+    const results = await Promise.all(uploadPromises);
+    for (const uploadData of results) {
       if (uploadData.ok) {
         totalUploaded += uploadData.upload_count || 0;
         duplicates += uploadData.duplicate_count || 0;
