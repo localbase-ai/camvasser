@@ -63,7 +63,7 @@ export async function handler(event) {
       };
     }
 
-    // Verify the lead exists and belongs to this tenant
+    // Verify the lead exists
     const lead = await prisma.lead.findUnique({
       where: { id: leadId },
       select: { tenant: true }
@@ -77,7 +77,15 @@ export async function handler(event) {
       };
     }
 
-    if (lead.tenant !== user.slug) {
+    // Check if user has access to this tenant (via UserTenant membership or matching slug)
+    const hasAccess = lead.tenant === user.slug || await prisma.userTenant.findFirst({
+      where: {
+        userId: user.userId,
+        tenant: { slug: lead.tenant }
+      }
+    });
+
+    if (!hasAccess) {
       return {
         statusCode: 403,
         headers: { 'Content-Type': 'application/json' },

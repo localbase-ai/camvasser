@@ -5,8 +5,10 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  external_node_modules = ["@prisma/client", "prisma"]
-  included_files = ["node_modules/.prisma/**", "node_modules/@prisma/client/**"]
+
+[functions."*"]
+  external_node_modules = ["@prisma/client"]
+  included_files = ["node_modules/.prisma/**"]
 
 # Extend timeout for push-to-smartlead (max 26s on Pro plan)
 [functions."push-to-smartlead"]

@@ -77,7 +77,15 @@ export async function handler(event) {
       };
     }
 
-    if (prospect.tenant !== user.slug) {
+    // Check if user has access to this tenant (via UserTenant membership or matching slug)
+    const hasAccess = prospect.tenant === user.slug || await prisma.userTenant.findFirst({
+      where: {
+        userId: user.userId,
+        tenant: { slug: prospect.tenant }
+      }
+    });
+
+    if (!hasAccess) {
       return {
         statusCode: 403,
         headers: { 'Content-Type': 'application/json' },

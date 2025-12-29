@@ -47,7 +47,8 @@ export function createMockPrisma() {
     },
     userTenant: {
       findMany: vi.fn().mockResolvedValue([]),
-      findUnique: vi.fn().mockResolvedValue(null)
+      findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null)
     },
     note: {
       findMany: vi.fn().mockResolvedValue([]),
