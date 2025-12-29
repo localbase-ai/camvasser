@@ -3581,6 +3581,16 @@
 
       mapInitialized = true;
 
+      // Double-click to add pin
+      map.on('dblclick', async function(e) {
+        L.DomEvent.stopPropagation(e);
+        const { lat, lng } = e.latlng;
+        await reverseGeocodeAndShowModal(lat, lng);
+      });
+
+      // Disable default double-click zoom
+      map.doubleClickZoom.disable();
+
       // Track layer visibility changes (only set up once)
       // Only update visibility when user toggles, not during programmatic updates
       map.on('overlayadd', (e) => {
