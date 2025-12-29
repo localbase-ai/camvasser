@@ -272,6 +272,7 @@ export const handler = async (event) => {
         duplicates,
         invalid,
         uploadErrors: uploadErrors.length > 0 ? uploadErrors : undefined,
+        rawResponses: results.slice(0, 2), // Include first 2 raw responses for debugging
         smartleadUrl: `https://app.smartlead.ai/app/email-campaign/${campaignId}/leads`
       })
     };
