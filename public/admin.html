@@ -3668,11 +3668,31 @@
       // Create map centered on Kansas City metro area (~200 mile radius at zoom 7)
       map = L.map('mapContainer').setView([39.1, -94.6], 7);
 
-      // Add Google Maps tiles (best house number coverage)
-      L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      // Base layers
+      const streetLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
         attribution: '&copy; Google Maps',
         maxZoom: 22
-      }).addTo(map);
+      });
+
+      const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+        attribution: '&copy; Google Maps',
+        maxZoom: 22
+      });
+
+      const hybridLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        attribution: '&copy; Google Maps',
+        maxZoom: 22
+      });
+
+      // Add default layer
+      streetLayer.addTo(map);
+
+      // Layer control for base maps
+      L.control.layers({
+        'Street': streetLayer,
+        'Satellite': satelliteLayer,
+        'Hybrid': hybridLayer
+      }, null, { position: 'topright' }).addTo(map);
 
       mapInitialized = true;
 
