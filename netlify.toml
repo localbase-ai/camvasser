@@ -4,11 +4,7 @@
 
 [functions]
   directory = "netlify/functions"
-  node_bundler = "esbuild"
-
-[functions."*"]
-  external_node_modules = ["@prisma/client"]
-  included_files = ["node_modules/.prisma/**"]
+  node_bundler = "nft"
 
 # Extend timeout for push-to-smartlead (max 26s on Pro plan)
 [functions."push-to-smartlead"]
