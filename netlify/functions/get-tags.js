@@ -65,8 +65,8 @@ export async function handler(event) {
       where.tenant = tenant;
     }
 
-    // Fetch valid tags from CompanyCam (for filtering deleted tags)
-    const validTagIds = tenant ? await fetchValidTagsFromCompanyCam(tenant) : null;
+    // Skip CompanyCam validation - local tags are valid even if IDs changed in CompanyCam
+    const validTagIds = null;
 
     // Fetch projects with tags
     const projects = await prisma.project.findMany({
