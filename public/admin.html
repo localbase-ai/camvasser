@@ -254,6 +254,10 @@
               <select id="prospectCampaignFilter" class="select select-bordered select-sm">
                 <option value="">All Campaigns</option>
               </select>
+              <button onclick="showSmartLeadModal()" class="btn btn-sm btn-primary gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                Push to SmartLead
+              </button>
             </div>
           </div>
         </div>
@@ -2696,6 +2700,85 @@
       if (confirmResolve) {
         confirmResolve(result);
         confirmResolve = null;
+      }
+    }
+
+    // SmartLead Modal Functions
+    function showSmartLeadModal() {
+      // Reset state
+      document.getElementById('smartleadCampaignName').value = '';
+      document.getElementById('smartleadError').classList.add('hidden');
+      document.getElementById('smartleadSuccess').classList.add('hidden');
+      document.getElementById('smartleadSubmitBtn').disabled = false;
+      document.getElementById('smartleadBtnText').textContent = 'Create Campaign';
+      document.getElementById('smartleadSpinner').classList.add('hidden');
+
+      // Set contact count
+      document.getElementById('smartleadContactCount').textContent = prospectTotal.toLocaleString();
+
+      document.getElementById('smartleadModal').showModal();
+    }
+
+    function closeSmartLeadModal() {
+      document.getElementById('smartleadModal').close();
+    }
+
+    async function pushToSmartLead() {
+      const campaignName = document.getElementById('smartleadCampaignName').value.trim();
+      if (!campaignName) {
+        document.getElementById('smartleadErrorText').textContent = 'Please enter a campaign name';
+        document.getElementById('smartleadError').classList.remove('hidden');
+        return;
+      }
+
+      // Show loading
+      document.getElementById('smartleadError').classList.add('hidden');
+      document.getElementById('smartleadSuccess').classList.add('hidden');
+      document.getElementById('smartleadSubmitBtn').disabled = true;
+      document.getElementById('smartleadBtnText').textContent = 'Creating...';
+      document.getElementById('smartleadSpinner').classList.remove('hidden');
+
+      // Build filters from current UI state
+      const filters = {
+        tenant: currentTenant,
+        tag: document.getElementById('prospectTagFilter').value,
+        statusFilter: document.getElementById('prospectStatusFilter').value,
+        campaign: document.getElementById('prospectCampaignFilter').value,
+        search: document.getElementById('prospectSearch').value.trim()
+      };
+
+      try {
+        const response = await fetch('/.netlify/functions/push-to-smartlead', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ campaignName, filters })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to push to SmartLead');
+        }
+
+        // Show success
+        document.getElementById('smartleadSuccessText').innerHTML = `
+          Campaign created! <strong>${data.uploaded}</strong> contacts uploaded.
+          ${data.duplicates > 0 ? `(${data.duplicates} duplicates skipped)` : ''}
+          <br><a href="${data.smartleadUrl}" target="_blank" class="link link-primary">Open in SmartLead →</a>
+        `;
+        document.getElementById('smartleadSuccess').classList.remove('hidden');
+        document.getElementById('smartleadBtnText').textContent = 'Done!';
+        document.getElementById('smartleadSpinner').classList.add('hidden');
+
+      } catch (error) {
+        document.getElementById('smartleadErrorText').textContent = error.message;
+        document.getElementById('smartleadError').classList.remove('hidden');
+        document.getElementById('smartleadSubmitBtn').disabled = false;
+        document.getElementById('smartleadBtnText').textContent = 'Create Campaign';
+        document.getElementById('smartleadSpinner').classList.add('hidden');
       }
     }
 
@@ -5146,6 +5229,36 @@
   </script>
 
   <!-- Confirmation Modal -->
+  <!-- Push to SmartLead Modal -->
+  <dialog id="smartleadModal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-base-100" style="padding: 24px;">
+      <h3 class="font-bold text-lg" style="margin-bottom: 16px;">Push to SmartLead</h3>
+      <p class="text-sm text-base-content/70 mb-4">
+        This will create a new campaign in SmartLead with <strong id="smartleadContactCount">0</strong> contacts matching your current filters.
+      </p>
+      <div class="form-control mb-4">
+        <label class="label"><span class="label-text">Campaign Name</span></label>
+        <input type="text" id="smartleadCampaignName" class="input input-bordered" placeholder="e.g., January Outreach 2025">
+      </div>
+      <div id="smartleadError" class="alert alert-error hidden mb-4">
+        <span id="smartleadErrorText"></span>
+      </div>
+      <div id="smartleadSuccess" class="alert alert-success hidden mb-4">
+        <span id="smartleadSuccessText"></span>
+      </div>
+      <div class="modal-action" style="margin-top: 16px;">
+        <button class="btn" onclick="closeSmartLeadModal()">Cancel</button>
+        <button class="btn btn-primary" id="smartleadSubmitBtn" onclick="pushToSmartLead()">
+          <span id="smartleadBtnText">Create Campaign</span>
+          <span id="smartleadSpinner" class="loading loading-spinner loading-sm hidden"></span>
+        </button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-black/50">
+      <button onclick="closeSmartLeadModal()">close</button>
+    </form>
+  </dialog>
+
   <dialog id="confirmModal" class="modal modal-bottom sm:modal-middle">
     <div class="modal-box bg-base-100" style="padding: 24px;">
       <h3 class="font-bold text-lg" style="margin-bottom: 8px;" id="confirmModalTitle">Confirm</h3>
