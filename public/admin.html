@@ -2723,6 +2723,8 @@
       document.getElementById('smartleadModal').close();
     }
 
+    let smartleadPollInterval = null;
+
     async function pushToSmartLead() {
       const campaignName = document.getElementById('smartleadCampaignName').value.trim();
       if (!campaignName) {
@@ -2735,7 +2737,7 @@
       document.getElementById('smartleadError').classList.add('hidden');
       document.getElementById('smartleadSuccess').classList.add('hidden');
       document.getElementById('smartleadSubmitBtn').disabled = true;
-      document.getElementById('smartleadBtnText').textContent = 'Creating...';
+      document.getElementById('smartleadBtnText').textContent = 'Starting...';
       document.getElementById('smartleadSpinner').classList.remove('hidden');
 
       // Build filters from current UI state
@@ -2748,6 +2750,7 @@
       };
 
       try {
+        // Background function returns 202 immediately
         const response = await fetch('/.netlify/functions/push-to-smartlead', {
           method: 'POST',
           headers: {
@@ -2757,24 +2760,19 @@
           body: JSON.stringify({ campaignName, filters })
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to push to SmartLead');
+        // 202 = accepted for background processing
+        if (response.status === 202) {
+          document.getElementById('smartleadBtnText').textContent = 'Processing...';
+          // Poll for job completion
+          pollSmartLeadJob(currentTenant);
+        } else {
+          // Handle non-background response (shouldn't happen, but fallback)
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to push to SmartLead');
+          }
+          showSmartLeadSuccess(data);
         }
-
-        // Show success with debug info
-        console.log('SmartLead response:', data);
-        document.getElementById('smartleadSuccessText').innerHTML = `
-          Campaign "<strong>${data.campaignName}</strong>" created with ${data.uploaded} contacts.
-          ${data.duplicates > 0 ? ` (${data.duplicates} duplicates skipped)` : ''}
-          ${data.invalid > 0 ? ` (${data.invalid} invalid emails)` : ''}
-          <br><small class="text-xs opacity-60">Query: ${data.queryCount} → Fetched: ${data.fetchedCount} → Valid: ${data.validEmailCount}</small>
-          <br><a href="${data.smartleadUrl}" target="_blank" class="link link-primary">Open in SmartLead →</a>
-        `;
-        document.getElementById('smartleadSuccess').classList.remove('hidden');
-        document.getElementById('smartleadBtnText').textContent = 'Done!';
-        document.getElementById('smartleadSpinner').classList.add('hidden');
 
       } catch (error) {
         document.getElementById('smartleadErrorText').textContent = error.message;
@@ -2783,6 +2781,71 @@
         document.getElementById('smartleadBtnText').textContent = 'Create Campaign';
         document.getElementById('smartleadSpinner').classList.add('hidden');
       }
+    }
+
+    function pollSmartLeadJob(tenant) {
+      // Clear any existing poll
+      if (smartleadPollInterval) {
+        clearInterval(smartleadPollInterval);
+      }
+
+      let pollCount = 0;
+      const maxPolls = 180; // 15 minutes at 5 second intervals
+
+      smartleadPollInterval = setInterval(async () => {
+        pollCount++;
+        if (pollCount > maxPolls) {
+          clearInterval(smartleadPollInterval);
+          document.getElementById('smartleadErrorText').textContent = 'Job timed out. Please check SmartLead directly.';
+          document.getElementById('smartleadError').classList.remove('hidden');
+          document.getElementById('smartleadSubmitBtn').disabled = false;
+          document.getElementById('smartleadBtnText').textContent = 'Create Campaign';
+          document.getElementById('smartleadSpinner').classList.add('hidden');
+          return;
+        }
+
+        try {
+          const response = await fetch(`/.netlify/functions/get-job-status?type=push-to-smartlead&tenant=${tenant}`);
+          const data = await response.json();
+
+          if (data.jobs && data.jobs.length > 0) {
+            const job = data.jobs[0]; // Most recent job
+
+            // Update progress
+            if (job.progress > 0 && job.total > 0) {
+              document.getElementById('smartleadBtnText').textContent = `Processing ${job.progress}%...`;
+            }
+
+            if (job.status === 'completed') {
+              clearInterval(smartleadPollInterval);
+              showSmartLeadSuccess(job.result);
+            } else if (job.status === 'failed') {
+              clearInterval(smartleadPollInterval);
+              document.getElementById('smartleadErrorText').textContent = job.error || 'Job failed';
+              document.getElementById('smartleadError').classList.remove('hidden');
+              document.getElementById('smartleadSubmitBtn').disabled = false;
+              document.getElementById('smartleadBtnText').textContent = 'Create Campaign';
+              document.getElementById('smartleadSpinner').classList.add('hidden');
+            }
+          }
+        } catch (e) {
+          console.error('Error polling job status:', e);
+        }
+      }, 5000); // Poll every 5 seconds
+    }
+
+    function showSmartLeadSuccess(data) {
+      console.log('SmartLead response:', data);
+      document.getElementById('smartleadSuccessText').innerHTML = `
+        Campaign "<strong>${data.campaignName}</strong>" created with ${data.uploaded} contacts.
+        ${data.duplicates > 0 ? ` (${data.duplicates} duplicates skipped)` : ''}
+        ${data.invalid > 0 ? ` (${data.invalid} invalid emails)` : ''}
+        <br><small class="text-xs opacity-60">Query: ${data.queryCount} → Fetched: ${data.fetchedCount} → Valid: ${data.validEmailCount}</small>
+        <br><a href="${data.smartleadUrl}" target="_blank" class="link link-primary">Open in SmartLead →</a>
+      `;
+      document.getElementById('smartleadSuccess').classList.remove('hidden');
+      document.getElementById('smartleadBtnText').textContent = 'Done!';
+      document.getElementById('smartleadSpinner').classList.add('hidden');
     }
 
     // Show info/success modal

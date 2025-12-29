@@ -259,3 +259,22 @@ model Proposal {
   @@index([customerName])
   @@index([status])
 }
+
+model BackgroundJob {
+  id        String   @id @default(cuid())
+  type      String
+  status    String   @default("pending")
+  input     Json?
+  result    Json?
+  error     String?
+  progress  Int      @default(0)
+  total     Int      @default(0)
+  tenant    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([tenant])
+  @@index([createdAt])
+}

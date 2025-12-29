@@ -4,10 +4,17 @@ const prisma = new PrismaClient();
 const SMARTLEAD_API_KEY = process.env.SMARTLEAD_API_KEY || 'd5660b37-5572-4f17-b72d-18ccd7a01bf6_d867d1e';
 const SMARTLEAD_BASE_URL = 'https://server.smartlead.ai/api/v1';
 
+// Background function - can run up to 15 minutes
+export const config = {
+  type: 'background'
+};
+
 export const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
+
+  let jobId = null;
 
   try {
     const { campaignName, filters } = JSON.parse(event.body);
@@ -18,6 +25,18 @@ export const handler = async (event) => {
 
     const { tenant, tag, statusFilter, campaign, search } = filters || {};
 
+    // Create job record for tracking
+    const job = await prisma.backgroundJob.create({
+      data: {
+        type: 'push-to-smartlead',
+        status: 'running',
+        tenant,
+        input: { campaignName, filters }
+      }
+    });
+    jobId = job.id;
+
+    console.log('Created job:', jobId);
     console.log('Push to SmartLead filters:', { tenant, tag, statusFilter, campaign, search });
 
     // Build query matching get-prospects logic
@@ -30,7 +49,6 @@ export const handler = async (event) => {
     // Tag filter - find projects with matching tag, then filter prospects
     let projectIds = null;
     if (tag) {
-      // JSON has space after colon: "value": "tag" not "value":"tag"
       const tagPattern = `%"value": "${tag}"%`;
       let projectsWithTag;
       if (tenant) {
@@ -47,10 +65,11 @@ export const handler = async (event) => {
       }
       projectIds = projectsWithTag.map(p => p.id);
       if (projectIds.length === 0) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ error: `No projects found with tag "${tag}"` })
-        };
+        await prisma.backgroundJob.update({
+          where: { id: jobId },
+          data: { status: 'failed', error: `No projects found with tag "${tag}"` }
+        });
+        return;
       }
       where.projectId = { in: projectIds };
     }
@@ -73,7 +92,6 @@ export const handler = async (event) => {
     if (search) {
       let searchText = search.trim();
 
-      // Parse special field queries from search
       const fieldFilters = [];
       const fieldQueryPattern = /(no:\w+|has:\w+|\w+:empty)/gi;
       searchText = searchText.replace(fieldQueryPattern, (match) => {
@@ -91,7 +109,6 @@ export const handler = async (event) => {
         return '';
       }).trim();
 
-      // Map field names to database columns
       const fieldMap = {
         email: 'emails',
         emails: 'emails',
@@ -100,7 +117,6 @@ export const handler = async (event) => {
         name: 'name'
       };
 
-      // Apply field filters
       for (const filter of fieldFilters) {
         const dbField = fieldMap[filter.field];
         if (!dbField) continue;
@@ -121,7 +137,6 @@ export const handler = async (event) => {
         }
       }
 
-      // Handle remaining search text as name/email search
       if (searchText) {
         const searchLower = searchText.toLowerCase();
         where.AND = where.AND || [];
@@ -134,37 +149,53 @@ export const handler = async (event) => {
       }
     }
 
-    // Count first to verify
+    // Count first
     const totalCount = await prisma.prospect.count({ where });
     console.log('Total matching prospects:', totalCount);
 
-    // Fetch ALL prospects in parallel batches
-    const batchSize = 500;
-    const numBatches = Math.ceil(totalCount / batchSize);
+    await prisma.backgroundJob.update({
+      where: { id: jobId },
+      data: { total: totalCount }
+    });
 
-    const batchPromises = [];
-    for (let i = 0; i < numBatches; i++) {
-      batchPromises.push(
-        prisma.prospect.findMany({
-          where,
-          skip: i * batchSize,
-          take: batchSize,
-          select: {
-            id: true,
-            name: true,
-            emails: true,
-            companyName: true,
-            phones: true,
-            project: {
-              select: { address: true, city: true, state: true, postalCode: true }
-            }
-          }
-        })
-      );
+    // Fetch ALL prospects using cursor-based pagination (handles large datasets)
+    const allProspects = [];
+    let cursor = undefined;
+    const fetchBatchSize = 1000;
+
+    while (true) {
+      const batch = await prisma.prospect.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          emails: true,
+          companyName: true,
+          phones: true
+        },
+        take: fetchBatchSize,
+        skip: cursor ? 1 : 0,
+        cursor: cursor ? { id: cursor } : undefined,
+        orderBy: { id: 'asc' }
+      });
+
+      if (batch.length === 0) break;
+
+      allProspects.push(...batch);
+      cursor = batch[batch.length - 1].id;
+
+      console.log(`Fetched batch: ${batch.length}, total so far: ${allProspects.length}`);
+
+      // Update progress
+      await prisma.backgroundJob.update({
+        where: { id: jobId },
+        data: { progress: Math.floor((allProspects.length / totalCount) * 50) }
+      });
+
+      if (batch.length < fetchBatchSize) break;
     }
 
-    const batches = await Promise.all(batchPromises);
-    const prospects = batches.flat();
+    const prospects = allProspects;
     console.log('Actually fetched:', prospects.length);
 
     // Filter to only those with valid emails
@@ -181,18 +212,10 @@ export const handler = async (event) => {
       if (!email || seenEmails.has(email.toLowerCase())) continue;
       seenEmails.add(email.toLowerCase());
 
-      // Parse name
       const nameParts = (prospect.name || '').trim().split(' ');
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
-
-      // Get phone
       const phone = prospect.phones?.[0]?.number || '';
-
-      // Build address
-      const addr = prospect.project
-        ? [prospect.project.address, prospect.project.city, prospect.project.state, prospect.project.postalCode].filter(Boolean).join(', ')
-        : '';
 
       leadsToUpload.push({
         email: email.toLowerCase(),
@@ -200,20 +223,22 @@ export const handler = async (event) => {
         last_name: lastName,
         company_name: prospect.companyName || '',
         phone_number: phone,
-        location: addr
+        location: ''
       });
     }
 
     console.log('Found prospects:', prospects.length, 'With valid emails:', leadsToUpload.length);
 
     if (leadsToUpload.length === 0) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
+      await prisma.backgroundJob.update({
+        where: { id: jobId },
+        data: {
+          status: 'failed',
           error: 'No contacts with valid emails match the current filters',
-          debug: { prospectsFound: prospects.length, filters: { tenant, tag, statusFilter, campaign, search } }
-        })
-      };
+          result: { prospectsFound: prospects.length, filters: { tenant, tag, statusFilter, campaign, search } }
+        }
+      });
+      return;
     }
 
     // Create campaign in SmartLead
@@ -226,79 +251,98 @@ export const handler = async (event) => {
     const createData = await createResponse.json();
     console.log('SmartLead campaign creation response:', JSON.stringify(createData));
 
-    // SmartLead returns id directly, not nested
     const campaignId = createData.id;
     if (!campaignId) {
       console.error('SmartLead campaign creation failed:', createData);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: 'Failed to create SmartLead campaign', details: createData })
-      };
+      await prisma.backgroundJob.update({
+        where: { id: jobId },
+        data: {
+          status: 'failed',
+          error: 'Failed to create SmartLead campaign',
+          result: createData
+        }
+      });
+      return;
     }
 
     console.log('Created campaign ID:', campaignId);
 
-    // Upload leads in larger batches (SmartLead supports up to 1000) and in parallel
+    // Upload leads in batches sequentially (more reliable for large uploads)
     const batchSize = 500;
     let totalUploaded = 0;
     let duplicates = 0;
     let invalid = 0;
+    const uploadErrors = [];
 
-    // Create all batch upload promises
-    const uploadPromises = [];
     for (let i = 0; i < leadsToUpload.length; i += batchSize) {
       const batch = leadsToUpload.slice(i, i + batchSize);
-      uploadPromises.push(
-        fetch(`${SMARTLEAD_BASE_URL}/campaigns/${campaignId}/leads?api_key=${SMARTLEAD_API_KEY}`, {
+
+      try {
+        const uploadResponse = await fetch(`${SMARTLEAD_BASE_URL}/campaigns/${campaignId}/leads?api_key=${SMARTLEAD_API_KEY}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ lead_list: batch })
-        }).then(r => r.json()).catch(e => ({ ok: false, error: e.message }))
-      );
+        });
+
+        const uploadData = await uploadResponse.json();
+        console.log('SmartLead upload response:', JSON.stringify(uploadData));
+
+        if (uploadData.ok || uploadData.upload_count !== undefined) {
+          totalUploaded += uploadData.upload_count || 0;
+          duplicates += uploadData.duplicate_count || 0;
+          invalid += uploadData.invalid_email_count || 0;
+        } else {
+          uploadErrors.push(uploadData.error || uploadData.message || 'Unknown error');
+        }
+      } catch (e) {
+        uploadErrors.push(e.message);
+      }
+
+      // Update progress (50-100% for upload phase)
+      const uploadProgress = 50 + Math.floor(((i + batch.length) / leadsToUpload.length) * 50);
+      await prisma.backgroundJob.update({
+        where: { id: jobId },
+        data: { progress: uploadProgress }
+      });
     }
 
-    // Run all uploads in parallel
-    const results = await Promise.all(uploadPromises);
-    const uploadErrors = [];
-    for (const uploadData of results) {
-      console.log('SmartLead upload response:', JSON.stringify(uploadData));
-      if (uploadData.ok) {
-        totalUploaded += uploadData.upload_count || 0;
-        duplicates += uploadData.duplicate_count || 0;
-        invalid += uploadData.invalid_email_count || 0;
-      } else {
-        uploadErrors.push(uploadData.error || uploadData.message || 'Unknown error');
-      }
-    }
     if (uploadErrors.length > 0) {
       console.error('SmartLead upload errors:', uploadErrors);
     }
 
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        success: true,
-        campaignId,
-        campaignName,
-        queryCount: totalCount,
-        fetchedCount: prospects.length,
-        validEmailCount: leadsToUpload.length,
-        uploaded: totalUploaded,
-        duplicates,
-        invalid,
-        filters: { tenant, tag, statusFilter, campaign, search },
-        smartleadUrl: `https://app.smartlead.ai/app/email-campaign/${campaignId}/analytics`
-      })
-    };
+    // Mark job complete
+    await prisma.backgroundJob.update({
+      where: { id: jobId },
+      data: {
+        status: 'completed',
+        progress: 100,
+        result: {
+          success: true,
+          campaignId,
+          campaignName,
+          queryCount: totalCount,
+          fetchedCount: prospects.length,
+          validEmailCount: leadsToUpload.length,
+          uploaded: totalUploaded,
+          duplicates,
+          invalid,
+          filters: { tenant, tag, statusFilter, campaign, search },
+          smartleadUrl: `https://app.smartlead.ai/app/email-campaign/${campaignId}/analytics`,
+          errors: uploadErrors.length > 0 ? uploadErrors : undefined
+        }
+      }
+    });
+
+    console.log('Job completed:', jobId);
 
   } catch (error) {
     console.error('Error pushing to SmartLead:', error);
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: error.message })
-    };
+    if (jobId) {
+      await prisma.backgroundJob.update({
+        where: { id: jobId },
+        data: { status: 'failed', error: error.message }
+      });
+    }
   } finally {
     await prisma.$disconnect();
   }
