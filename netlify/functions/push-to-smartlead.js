@@ -18,6 +18,8 @@ export const handler = async (event) => {
 
     const { tenant, tag, statusFilter, campaign, search } = filters || {};
 
+    console.log('Push to SmartLead filters:', { tenant, tag, statusFilter, campaign, search });
+
     // Build query matching get-prospects logic
     const where = {};
 
@@ -28,12 +30,27 @@ export const handler = async (event) => {
     // Tag filter - find projects with matching tag, then filter prospects
     let projectIds = null;
     if (tag) {
-      const projectsWithTag = await prisma.$queryRaw`
-        SELECT id FROM "Project"
-        WHERE tags::text ILIKE ${`%"value":"${tag}"%`}
-        ${tenant ? prisma.$queryRaw`AND tenant = ${tenant}` : prisma.$queryRaw``}
-      `;
+      const tagPattern = `%"value":"${tag}"%`;
+      let projectsWithTag;
+      if (tenant) {
+        projectsWithTag = await prisma.$queryRaw`
+          SELECT id FROM "Project"
+          WHERE tags::text ILIKE ${tagPattern}
+          AND tenant = ${tenant}
+        `;
+      } else {
+        projectsWithTag = await prisma.$queryRaw`
+          SELECT id FROM "Project"
+          WHERE tags::text ILIKE ${tagPattern}
+        `;
+      }
       projectIds = projectsWithTag.map(p => p.id);
+      if (projectIds.length === 0) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: `No projects found with tag "${tag}"` })
+        };
+      }
       where.projectId = { in: projectIds };
     }
 
@@ -115,10 +132,15 @@ export const handler = async (event) => {
       });
     }
 
+    console.log('Found prospects:', prospects.length, 'With valid emails:', leadsToUpload.length);
+
     if (leadsToUpload.length === 0) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'No contacts with valid emails match the current filters' })
+        body: JSON.stringify({
+          error: 'No contacts with valid emails match the current filters',
+          debug: { prospectsFound: prospects.length, filters: { tenant, tag, statusFilter, campaign, search } }
+        })
       };
     }
 
