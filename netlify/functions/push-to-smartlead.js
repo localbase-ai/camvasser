@@ -30,7 +30,8 @@ export const handler = async (event) => {
     // Tag filter - find projects with matching tag, then filter prospects
     let projectIds = null;
     if (tag) {
-      const tagPattern = `%"value":"${tag}"%`;
+      // JSON has space after colon: "value": "tag" not "value":"tag"
+      const tagPattern = `%"value": "${tag}"%`;
       let projectsWithTag;
       if (tenant) {
         projectsWithTag = await prisma.$queryRaw`
