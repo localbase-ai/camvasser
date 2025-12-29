@@ -3452,7 +3452,7 @@
                 <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300" onclick="showLeadDetail('${lead.id}')">
                   <div class="flex justify-between items-start">
                     <div class="font-medium truncate">${lead.firstName || ''} ${lead.lastName || ''}</div>
-                    ${jobValueDisplay ? `<div class="text-success font-semibold italic whitespace-nowrap">${jobValueDisplay}</div>` : ''}
+                    ${jobValueDisplay ? `<div class="bg-green-600 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded whitespace-nowrap">💰 ${jobValueDisplay}</div>` : ''}
                   </div>
                   <div class="text-base-content/60 truncate">${lead.phone || lead.email || '-'}</div>
                 </div>
