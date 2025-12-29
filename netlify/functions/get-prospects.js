@@ -23,7 +23,7 @@ export async function handler(event) {
   }
 
   try {
-    const { limit, page, projectId, sortBy, sortDir, search, tag, statusFilter, tenant } = event.queryStringParameters || {};
+    const { limit, page, projectId, sortBy, sortDir, search, tag, statusFilter, campaign, tenant } = event.queryStringParameters || {};
     const limitNum = limit ? parseInt(limit) : 25;
     const pageNum = page ? parseInt(page) : 1;
     const skip = (pageNum - 1) * limitNum;
@@ -55,6 +55,11 @@ export async function handler(event) {
       } else {
         where.status = statusFilter;
       }
+    }
+
+    // Filter by campaign
+    if (campaign) {
+      where.campaign = campaign;
     }
 
     // Filter by project tag (prospects whose project has this tag)
@@ -210,6 +215,9 @@ export async function handler(event) {
       ? { [sortField]: { sort: sortDirection, nulls: 'first' } }
       : { [sortField]: sortDirection };
 
+    // Build tenant where clause for campaigns query
+    const campaignWhere = tenantSlug ? { tenant: tenantSlug } : {};
+
     [prospects, totalCount, homeownerCount] = await Promise.all([
       prisma.prospect.findMany({
         where,
@@ -226,6 +234,20 @@ export async function handler(event) {
       prisma.prospect.count({ where: { ...where, isHomeowner: true } })
     ]);
 
+    // Get available campaigns for filter dropdown (only on first page load)
+    let campaigns = [];
+    if (pageNum === 1) {
+      const campaignGroups = await prisma.prospect.groupBy({
+        by: ['campaign'],
+        where: campaignWhere,
+        _count: { id: true }
+      });
+      campaigns = campaignGroups
+        .filter(c => c.campaign)
+        .map(c => ({ value: c.campaign, count: c._count.id }))
+        .sort((a, b) => b.count - a.count);
+    }
+
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -235,6 +257,7 @@ export async function handler(event) {
         page: pageNum,
         totalPages: Math.ceil(totalCount / limitNum),
         homeowners: homeownerCount,
+        campaigns,
         prospects
       })
     };
