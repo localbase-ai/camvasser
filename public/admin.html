@@ -2763,11 +2763,13 @@
           throw new Error(data.error || 'Failed to push to SmartLead');
         }
 
-        // Show success
+        // Show success with debug info
+        console.log('SmartLead response:', data);
         document.getElementById('smartleadSuccessText').innerHTML = `
           Campaign "<strong>${data.campaignName}</strong>" created with ${data.uploaded} contacts.
           ${data.duplicates > 0 ? ` (${data.duplicates} duplicates skipped)` : ''}
           ${data.invalid > 0 ? ` (${data.invalid} invalid emails)` : ''}
+          <br><small class="text-xs opacity-60">Query: ${data.queryCount} → Fetched: ${data.fetchedCount} → Valid: ${data.validEmailCount}</small>
           <br><a href="${data.smartleadUrl}" target="_blank" class="link link-primary">Open in SmartLead →</a>
         `;
         document.getElementById('smartleadSuccess').classList.remove('hidden');

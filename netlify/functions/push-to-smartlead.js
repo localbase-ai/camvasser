@@ -269,10 +269,13 @@ export const handler = async (event) => {
         success: true,
         campaignId,
         campaignName,
-        totalContacts: leadsToUpload.length,
+        queryCount: totalCount,
+        fetchedCount: prospects.length,
+        validEmailCount: leadsToUpload.length,
         uploaded: totalUploaded,
         duplicates,
         invalid,
+        filters: { tenant, tag, statusFilter, campaign, search },
         smartleadUrl: `https://app.smartlead.ai/app/email-campaign/${campaignId}/analytics`
       })
     };
