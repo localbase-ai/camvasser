@@ -212,7 +212,11 @@ export const handler = async (event) => {
     });
 
     const createData = await createResponse.json();
-    if (!createData.ok || !createData.id) {
+    console.log('SmartLead campaign creation response:', JSON.stringify(createData));
+
+    // SmartLead returns id directly, not nested
+    const campaignId = createData.id;
+    if (!campaignId) {
       console.error('SmartLead campaign creation failed:', createData);
       return {
         statusCode: 500,
@@ -220,7 +224,7 @@ export const handler = async (event) => {
       };
     }
 
-    const campaignId = createData.id;
+    console.log('Created campaign ID:', campaignId);
 
     // Upload leads in larger batches (SmartLead supports up to 1000) and in parallel
     const batchSize = 500;
@@ -272,6 +276,7 @@ export const handler = async (event) => {
         duplicates,
         invalid,
         uploadErrors: uploadErrors.length > 0 ? uploadErrors : undefined,
+        createResponse: createData, // Campaign creation response
         rawResponses: results.slice(0, 2), // Include first 2 raw responses for debugging
         smartleadUrl: `https://app.smartlead.ai/app/email-campaign/${campaignId}/leads`
       })
