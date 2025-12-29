@@ -133,9 +133,14 @@ export const handler = async (event) => {
       }
     }
 
-    // Fetch prospects with emails
+    // Count first to verify
+    const totalCount = await prisma.prospect.count({ where });
+    console.log('Total matching prospects:', totalCount);
+
+    // Fetch ALL prospects with emails - explicitly no pagination
     const prospects = await prisma.prospect.findMany({
       where,
+      take: 50000, // Explicit high limit to ensure no default pagination
       select: {
         id: true,
         name: true,
@@ -147,6 +152,7 @@ export const handler = async (event) => {
         }
       }
     });
+    console.log('Actually fetched:', prospects.length);
 
     // Filter to only those with valid emails
     const leadsToUpload = [];
@@ -251,6 +257,8 @@ export const handler = async (event) => {
         success: true,
         campaignId,
         campaignName,
+        dbTotal: totalCount,
+        fetched: prospects.length,
         totalContacts: leadsToUpload.length,
         uploaded: totalUploaded,
         duplicates,
