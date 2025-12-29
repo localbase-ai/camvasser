@@ -138,37 +138,33 @@ export const handler = async (event) => {
     const totalCount = await prisma.prospect.count({ where });
     console.log('Total matching prospects:', totalCount);
 
-    // Fetch ALL prospects in batches to avoid connection pooler limits
+    // Fetch ALL prospects in parallel batches
     const batchSize = 500;
-    const prospects = [];
-    let skip = 0;
+    const numBatches = Math.ceil(totalCount / batchSize);
 
-    while (true) {
-      const batch = await prisma.prospect.findMany({
-        where,
-        skip,
-        take: batchSize,
-        select: {
-          id: true,
-          name: true,
-          emails: true,
-          companyName: true,
-          phones: true,
-          project: {
-            select: { address: true, city: true, state: true, postalCode: true }
+    const batchPromises = [];
+    for (let i = 0; i < numBatches; i++) {
+      batchPromises.push(
+        prisma.prospect.findMany({
+          where,
+          skip: i * batchSize,
+          take: batchSize,
+          select: {
+            id: true,
+            name: true,
+            emails: true,
+            companyName: true,
+            phones: true,
+            project: {
+              select: { address: true, city: true, state: true, postalCode: true }
+            }
           }
-        }
-      });
-
-      if (batch.length === 0) break;
-      prospects.push(...batch);
-      skip += batchSize;
-
-      console.log(`Fetched batch: ${batch.length}, total so far: ${prospects.length}`);
-
-      if (batch.length < batchSize) break; // Last batch
+        })
+      );
     }
 
+    const batches = await Promise.all(batchPromises);
+    const prospects = batches.flat();
     console.log('Actually fetched:', prospects.length);
 
     // Filter to only those with valid emails
