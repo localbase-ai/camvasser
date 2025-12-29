@@ -242,12 +242,19 @@ export const handler = async (event) => {
 
     // Run all uploads in parallel
     const results = await Promise.all(uploadPromises);
+    const uploadErrors = [];
     for (const uploadData of results) {
+      console.log('SmartLead upload response:', JSON.stringify(uploadData));
       if (uploadData.ok) {
         totalUploaded += uploadData.upload_count || 0;
         duplicates += uploadData.duplicate_count || 0;
         invalid += uploadData.invalid_email_count || 0;
+      } else {
+        uploadErrors.push(uploadData.error || uploadData.message || 'Unknown error');
       }
+    }
+    if (uploadErrors.length > 0) {
+      console.error('SmartLead upload errors:', uploadErrors);
     }
 
     return {
@@ -263,6 +270,7 @@ export const handler = async (event) => {
         uploaded: totalUploaded,
         duplicates,
         invalid,
+        uploadErrors: uploadErrors.length > 0 ? uploadErrors : undefined,
         smartleadUrl: `https://app.smartlead.ai/app/email-campaign/${campaignId}/leads`
       })
     };
