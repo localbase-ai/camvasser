@@ -138,6 +138,7 @@ model Project {
   search_vector        Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((((((((((COALESCE(address, ''::text) || ' '::text) || COALESCE(city, ''::text)) || ' '::text) || COALESCE(state, ''::text)) || ' '::text) || COALESCE(\"postalCode\", ''::text)) || ' '::text) || COALESCE(name, ''::text)) || ' '::text) || COALESCE(notepad, ''::text)))"))
   labels               ProjectLabel[]
   prospects            Prospect[]
+  organizations        OrganizationProperty[]
 
   @@index([tenant])
   @@index([address])
@@ -149,34 +150,35 @@ model Project {
 }
 
 model Prospect {
-  id                String                   @id @default(cuid())
-  whitepagesId      String                   @unique
-  projectId         String?
-  name              String
-  aliases           Json?
-  isDead            Boolean                  @default(false)
-  dateOfBirth       String?
-  phones            Json?
-  emails            Json?
-  currentAddresses  Json?
-  historicAddresses Json?
-  ownedProperties   Json?
-  linkedinUrl       String?
-  companyName       String?
-  jobTitle          String?
-  relatives         Json?
-  isHomeowner       Boolean                  @default(false)
-  isCurrentResident Boolean                  @default(false)
-  lookupAddress     String?
-  tenant            String?
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
-  status            String?
-  campaign          String?
-  notes             String?
-  search_vector     Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((((COALESCE(name, ''::text) || ' '::text) || COALESCE(\"companyName\", ''::text)) || ' '::text) || COALESCE(\"jobTitle\", ''::text)))"))
-  project           Project?                 @relation(fields: [projectId], references: [id])
-  leads             Lead[]
+  id                   String                   @id @default(cuid())
+  whitepagesId         String                   @unique
+  projectId            String?
+  name                 String
+  aliases              Json?
+  isDead               Boolean                  @default(false)
+  dateOfBirth          String?
+  phones               Json?
+  emails               Json?
+  currentAddresses     Json?
+  historicAddresses    Json?
+  ownedProperties      Json?
+  linkedinUrl          String?
+  companyName          String?
+  jobTitle             String?
+  relatives            Json?
+  isHomeowner          Boolean                  @default(false)
+  isCurrentResident    Boolean                  @default(false)
+  lookupAddress        String?
+  tenant               String?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  status               String?
+  campaign             String?
+  notes                String?
+  search_vector        Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((((COALESCE(name, ''::text) || ' '::text) || COALESCE(\"companyName\", ''::text)) || ' '::text) || COALESCE(\"jobTitle\", ''::text)))"))
+  project              Project?                 @relation(fields: [projectId], references: [id])
+  leads                Lead[]
+  organizationContacts OrganizationContact[]
 
   @@index([projectId])
   @@index([tenant])
@@ -278,4 +280,63 @@ model BackgroundJob {
   @@index([status])
   @@index([tenant])
   @@index([createdAt])
+}
+
+model Organization {
+  id         String   @id @default(cuid())
+  name       String
+  type       String   // hoa, property_management, real_estate, church, apartment_complex, other
+  address    String?
+  city       String?
+  state      String?
+  postalCode String?
+  phone      String?
+  email      String?
+  website    String?
+  notes      String?
+  tenant     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  contacts   OrganizationContact[]
+  properties OrganizationProperty[]
+
+  @@index([tenant])
+  @@index([type])
+  @@index([name])
+}
+
+model OrganizationContact {
+  id             String       @id @default(cuid())
+  organizationId String
+  prospectId     String?
+  name           String
+  title          String?      // "Property Manager", "HOA President", etc.
+  phone          String?
+  email          String?
+  isPrimary      Boolean      @default(false)
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  prospect       Prospect?    @relation(fields: [prospectId], references: [id])
+
+  @@index([organizationId])
+  @@index([prospectId])
+}
+
+model OrganizationProperty {
+  id             String       @id @default(cuid())
+  organizationId String
+  projectId      String
+  relationship   String       @default("manages") // manages, owns, association
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, projectId])
+  @@index([organizationId])
+  @@index([projectId])
 }
