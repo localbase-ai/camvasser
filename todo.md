@@ -1,5 +1,8 @@
 # Camvasser TODO
 
+## Marketing Site
+- [ ] Clean up marketing site and launch
+
 # Bugs
 
 # White Pages Test
@@ -68,6 +71,9 @@
 - [ ] Get OAuth write access (fill out form) or find alternative
 - [✅] Clean up tags in CC and resync to local DB
 - [✅] Script to bulk remove/rename tags
+- [✅] Full CC sync script (1253 projects, preserves local tags)
+- [✅] Tag normalization (case cleanup: door hanger → Door Hanger)
+- [✅] Fixed per_page=100 bug (CC caps at 50)
 
 ## Data Cleanup
 - [✅] Delete 71 junk leads (address-only records with no contact info)

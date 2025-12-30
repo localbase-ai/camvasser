@@ -24,7 +24,7 @@ if (!API_TOKEN) {
 async function fetchAllProjects(sinceDate = null) {
   const projects = [];
   let page = 1;
-  const perPage = 100;
+  const perPage = 50; // CC API caps at 50
 
   console.log('Fetching projects from CompanyCam...');
 
