@@ -115,7 +115,8 @@ export async function handler(event) {
       emails: 'emails',
       phone: 'phones',
       phones: 'phones',
-      name: 'name'
+      name: 'name',
+      address: 'project.address'
     };
 
     // Apply field filters to where clause
@@ -146,6 +147,27 @@ export async function handler(event) {
           where.AND = where.AND || [];
           where.AND.push({ [dbField]: { not: null } });
           // Can't easily check for non-empty array in Prisma, but not null is close enough
+        }
+      } else if (dbField === 'project.address') {
+        // Filter by related project's address field
+        where.AND = where.AND || [];
+        if (filter.isEmpty) {
+          where.AND.push({
+            OR: [
+              { project: null },
+              { project: { address: null } },
+              { project: { address: '' } }
+            ]
+          });
+        } else {
+          where.AND.push({
+            project: {
+              AND: [
+                { address: { not: null } },
+                { address: { not: '' } }
+              ]
+            }
+          });
         }
       }
     }
