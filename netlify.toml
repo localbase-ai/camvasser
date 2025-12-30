@@ -2,13 +2,8 @@
   publish = "public"
   command = "npx prisma generate"
 
-[[plugins]]
-  package = "@netlify/plugin-prisma-provider"
-
 [functions]
   directory = "netlify/functions"
-  node_bundler = "esbuild"
-  external_node_modules = ["@prisma/client"]
 
 # Extend timeout for push-to-smartlead (max 26s on Pro plan)
 [functions."push-to-smartlead"]
