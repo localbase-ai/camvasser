@@ -114,13 +114,44 @@ export function buildLeadsWhereClause({ tenant, search, status, owner }) {
 
   // Apply text search
   if (searchText) {
-    where.OR = [
-      { firstName: { contains: searchText, mode: 'insensitive' } },
-      { lastName: { contains: searchText, mode: 'insensitive' } },
-      { email: { contains: searchText, mode: 'insensitive' } },
-      { phone: { contains: searchText, mode: 'insensitive' } },
-      { address: { contains: searchText, mode: 'insensitive' } }
-    ];
+    const words = searchText.split(/\s+/).filter(Boolean);
+
+    if (words.length >= 2) {
+      // Multi-word search: try to match as firstName + lastName
+      // "ryan w" should match firstName contains "ryan" AND lastName contains "w"
+      const firstWord = words[0];
+      const restWords = words.slice(1).join(' ');
+
+      where.OR = [
+        // Match as firstName + lastName (most common case)
+        {
+          AND: [
+            { firstName: { contains: firstWord, mode: 'insensitive' } },
+            { lastName: { contains: restWords, mode: 'insensitive' } }
+          ]
+        },
+        // Also try lastName + firstName (reversed order)
+        {
+          AND: [
+            { lastName: { contains: firstWord, mode: 'insensitive' } },
+            { firstName: { contains: restWords, mode: 'insensitive' } }
+          ]
+        },
+        // Still allow full phrase match on other fields
+        { email: { contains: searchText, mode: 'insensitive' } },
+        { phone: { contains: searchText, mode: 'insensitive' } },
+        { address: { contains: searchText, mode: 'insensitive' } }
+      ];
+    } else {
+      // Single word search: check all fields
+      where.OR = [
+        { firstName: { contains: searchText, mode: 'insensitive' } },
+        { lastName: { contains: searchText, mode: 'insensitive' } },
+        { email: { contains: searchText, mode: 'insensitive' } },
+        { phone: { contains: searchText, mode: 'insensitive' } },
+        { address: { contains: searchText, mode: 'insensitive' } }
+      ];
+    }
   }
 
   return where;
