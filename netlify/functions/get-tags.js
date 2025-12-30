@@ -1,40 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { verifyToken } from './lib/auth.js';
-import axios from 'axios';
 
-let prisma;
-try {
-  prisma = new PrismaClient();
-} catch (e) {
-  console.error('Failed to initialize Prisma:', e);
-}
-
-// Fetch valid tags from CompanyCam API
-async function fetchValidTagsFromCompanyCam(tenant) {
-  const tokenKey = `${tenant.toUpperCase()}_COMPANYCAM_TOKEN`;
-  const apiToken = process.env[tokenKey] || process.env.COMPANYCAM_API_TOKEN;
-
-  if (!apiToken) {
-    console.warn(`No CompanyCam API token found for tenant: ${tenant}`);
-    return null; // Return null to skip validation if no token
-  }
-
-  try {
-    const response = await axios.get('https://api.companycam.com/v2/tags', {
-      headers: {
-        'Authorization': `Bearer ${apiToken}`,
-        'Accept': 'application/json'
-      },
-      timeout: 10000
-    });
-
-    // Return a Set of valid tag IDs for fast lookup
-    return new Set((response.data || []).map(tag => tag.id));
-  } catch (error) {
-    console.error('Error fetching tags from CompanyCam:', error.message);
-    return null; // Return null to skip validation on error
-  }
-}
+const prisma = new PrismaClient();
 
 export async function handler(event) {
   // Only allow GET
@@ -58,14 +25,6 @@ export async function handler(event) {
   }
 
   try {
-    if (!prisma) {
-      return {
-        statusCode: 500,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Prisma client failed to initialize' })
-      };
-    }
-
     const { tenant } = event.queryStringParameters || {};
 
     // Build where clause
