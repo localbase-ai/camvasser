@@ -268,11 +268,14 @@ export const handler = async (event) => {
     console.log('Created campaign ID:', campaignId);
 
     // Upload leads in batches sequentially (more reliable for large uploads)
-    const batchSize = 500;
+    // SmartLead API limit is 350 leads per batch, 60 requests per minute
+    const batchSize = 300; // Stay under 350 limit with safety margin
     let totalUploaded = 0;
     let duplicates = 0;
     let invalid = 0;
+    let alreadyInCampaign = 0;
     const uploadErrors = [];
+    const batchResults = [];
 
     for (let i = 0; i < leadsToUpload.length; i += batchSize) {
       const batch = leadsToUpload.slice(i, i + batchSize);
@@ -285,17 +288,34 @@ export const handler = async (event) => {
         });
 
         const uploadData = await uploadResponse.json();
-        console.log('SmartLead upload response:', JSON.stringify(uploadData));
+        console.log('SmartLead upload response (batch', Math.floor(i / batchSize) + 1, '):', JSON.stringify(uploadData));
 
-        if (uploadData.ok || uploadData.upload_count !== undefined) {
+        const batchNum = Math.floor(i / batchSize) + 1;
+        const batchResult = { batch: batchNum, size: batch.length, response: uploadData };
+
+        if (!uploadResponse.ok) {
+          console.error('SmartLead HTTP error:', uploadResponse.status, uploadResponse.statusText);
+          uploadErrors.push(`Batch ${batchNum}: HTTP ${uploadResponse.status}`);
+          batchResult.error = `HTTP ${uploadResponse.status}`;
+        } else if (uploadData.ok || uploadData.upload_count !== undefined) {
           totalUploaded += uploadData.upload_count || 0;
           duplicates += uploadData.duplicate_count || 0;
           invalid += uploadData.invalid_email_count || 0;
+          alreadyInCampaign += uploadData.already_in_campaign_count || 0;
+          console.log('Batch', batchNum, 'uploaded:', uploadData.upload_count, 'duplicates:', uploadData.duplicate_count, 'already in campaign:', uploadData.already_in_campaign_count);
         } else {
-          uploadErrors.push(uploadData.error || uploadData.message || 'Unknown error');
+          uploadErrors.push(`Batch ${batchNum}: ${uploadData.error || uploadData.message || 'Unknown error'}`);
+          batchResult.error = uploadData.error || uploadData.message;
         }
+
+        batchResults.push(batchResult);
       } catch (e) {
         uploadErrors.push(e.message);
+      }
+
+      // Rate limit: wait 1.5 seconds between batches (SmartLead allows 60 requests/minute)
+      if (i + batchSize < leadsToUpload.length) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
       // Update progress (50-100% for upload phase)
@@ -317,7 +337,7 @@ export const handler = async (event) => {
         status: 'completed',
         progress: 100,
         result: {
-          success: true,
+          success: uploadErrors.length === 0,
           campaignId,
           campaignName,
           queryCount: totalCount,
@@ -326,6 +346,9 @@ export const handler = async (event) => {
           uploaded: totalUploaded,
           duplicates,
           invalid,
+          alreadyInCampaign,
+          totalBatches: Math.ceil(leadsToUpload.length / batchSize),
+          successfulBatches: batchResults.filter(b => !b.error).length,
           filters: { tenant, tag, statusFilter, campaign, search },
           smartleadUrl: `https://app.smartlead.ai/app/email-campaign/${campaignId}/analytics`,
           errors: uploadErrors.length > 0 ? uploadErrors : undefined
