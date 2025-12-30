@@ -1046,6 +1046,47 @@
       if (initialHash && ['addresses', 'contacts', 'leads', 'map', 'calendar', 'integrations'].includes(initialHash)) {
         switchView(initialHash, false);
       }
+      // Handle deep link to specific lead: #lead/{leadId}
+      if (initialHash.startsWith('lead/')) {
+        const leadId = initialHash.substring(5);
+        switchView('leads', false);
+        // Wait for leads to load, then show detail
+        setTimeout(() => openLeadFromDeepLink(leadId), 500);
+      }
+    }
+
+    async function openLeadFromDeepLink(leadId) {
+      // If leads aren't loaded yet, wait and retry
+      if (allLeads.length === 0) {
+        await searchLeads();
+      }
+      // Try to find the lead
+      let lead = allLeads.find(l => l.id === leadId);
+      if (!lead) {
+        // Fetch all leads to find it
+        const response = await fetch(`/.netlify/functions/get-leads?limit=10000&tenant=${currentTenant || ''}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          allLeads = data.leads || [];
+          lead = allLeads.find(l => l.id === leadId);
+        }
+      }
+      if (lead) {
+        showLeadDetail(leadId);
+      }
+    }
+
+    function copyLeadShareLink(leadId) {
+      const url = `${window.location.origin}${window.location.pathname}#lead/${leadId}`;
+      navigator.clipboard.writeText(url).then(() => {
+        // Show brief feedback
+        const btn = document.getElementById('copyLinkBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✓ Copied!';
+        setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+      });
     }
 
     function switchView(view, updateHash = true) {
@@ -2194,7 +2235,15 @@
         <div class="space-y-4">
           <!-- Name & Status -->
           <div>
-            <h4 class="text-lg font-semibold">${lead.firstName || ''} ${lead.lastName || ''}</h4>
+            <div class="flex items-center justify-between gap-2">
+              <h4 class="text-lg font-semibold">${lead.firstName || ''} ${lead.lastName || ''}</h4>
+              <button id="copyLinkBtn" onclick="copyLeadShareLink('${lead.id}')" class="btn btn-xs btn-ghost gap-1" title="Copy shareable link">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                Link
+              </button>
+            </div>
             <div class="mt-2">
               <label class="text-xs font-semibold text-base-content/60 uppercase block mb-1">Status</label>
               <select id="leadStatusSelect" class="select select-bordered select-sm w-full max-w-xs" onchange="updateLeadStatus('${lead.id}', this.value)">
