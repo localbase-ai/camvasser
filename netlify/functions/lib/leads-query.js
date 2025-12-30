@@ -97,9 +97,14 @@ export function buildLeadsWhereClause({ tenant, search, status, owner }) {
     }
   }
 
-  // Apply status filter
+  // Apply status filter (supports comma-separated multiple statuses)
   if (status) {
-    where.status = status;
+    const statuses = status.split(',').map(s => s.trim()).filter(Boolean);
+    if (statuses.length === 1) {
+      where.status = statuses[0];
+    } else if (statuses.length > 1) {
+      where.status = { in: statuses };
+    }
   }
 
   // Apply owner filter

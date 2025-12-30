@@ -332,9 +332,20 @@
             <span id="leadCountLabel" class="text-xs text-base-content/60"></span>
             <div class="flex flex-wrap gap-2 items-center flex-1">
               <input type="text" id="leadSearch" placeholder="Search leads..." class="input input-bordered input-sm flex-1 min-w-[200px]">
-              <select id="leadStatusFilter" class="select select-bordered select-sm">
-                <option value="">All Statuses</option>
-              </select>
+              <!-- Multi-select Status Filter -->
+              <div class="dropdown" id="statusFilterDropdown">
+                <label tabindex="0" class="btn btn-sm btn-ghost border border-base-300 gap-1 font-normal">
+                  <span id="statusFilterLabel">All Statuses</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </label>
+                <div tabindex="0" class="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-56 max-h-80 overflow-y-auto">
+                  <div id="statusFilterOptions" class="space-y-1">
+                    <!-- Options populated by JS -->
+                  </div>
+                </div>
+              </div>
               <select id="leadOwnerFilter" class="select select-bordered select-sm">
                 <option value="">All Owners</option>
               </select>
@@ -1293,6 +1304,9 @@
       document.getElementById('prospectTagFilter').innerHTML = '<option value="">All Tags</option>' + options;
     }
 
+    // Track selected statuses for multi-select filter
+    let selectedStatuses = [];
+
     function populateLeadStatusFilter(distinctStatuses) {
       const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
       // Use distinctStatuses from API if provided, otherwise fall back to allLeads
@@ -1308,8 +1322,58 @@
         return a.localeCompare(b);
       });
 
-      const options = statuses.map(s => `<option value="${s}">${formatStatus(s)}</option>`).join('');
-      document.getElementById('leadStatusFilter').innerHTML = '<option value="">All Statuses</option>' + options;
+      const optionsHtml = statuses.map(s => `
+        <label class="flex items-center gap-2 px-2 py-1 hover:bg-base-200 rounded cursor-pointer">
+          <input type="checkbox" class="checkbox checkbox-sm checkbox-primary status-filter-checkbox" value="${s}" ${selectedStatuses.includes(s) ? 'checked' : ''}>
+          <span class="text-sm">${formatStatus(s)}</span>
+        </label>
+      `).join('');
+
+      document.getElementById('statusFilterOptions').innerHTML = `
+        <label class="flex items-center gap-2 px-2 py-1 hover:bg-base-200 rounded cursor-pointer border-b border-base-200 mb-1 pb-2">
+          <input type="checkbox" class="checkbox checkbox-sm" id="statusFilterSelectAll" ${selectedStatuses.length === 0 ? 'checked' : ''}>
+          <span class="text-sm font-medium">All Statuses</span>
+        </label>
+        ${optionsHtml}
+      `;
+
+      // Add event listeners
+      document.getElementById('statusFilterSelectAll').addEventListener('change', (e) => {
+        if (e.target.checked) {
+          selectedStatuses = [];
+          document.querySelectorAll('.status-filter-checkbox').forEach(cb => cb.checked = false);
+          updateStatusFilterLabel();
+          leadPage = 1;
+          searchLeads();
+        }
+      });
+
+      document.querySelectorAll('.status-filter-checkbox').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          const val = e.target.value;
+          if (e.target.checked) {
+            if (!selectedStatuses.includes(val)) selectedStatuses.push(val);
+          } else {
+            selectedStatuses = selectedStatuses.filter(s => s !== val);
+          }
+          // Uncheck "All" when specific statuses selected
+          document.getElementById('statusFilterSelectAll').checked = selectedStatuses.length === 0;
+          updateStatusFilterLabel();
+          leadPage = 1;
+          searchLeads();
+        });
+      });
+    }
+
+    function updateStatusFilterLabel() {
+      const label = document.getElementById('statusFilterLabel');
+      if (selectedStatuses.length === 0) {
+        label.textContent = 'All Statuses';
+      } else if (selectedStatuses.length === 1) {
+        label.textContent = formatStatus(selectedStatuses[0]);
+      } else {
+        label.textContent = `${selectedStatuses.length} statuses`;
+      }
     }
 
     function populateLeadOwnerFilter(distinctOwners) {
@@ -1349,7 +1413,7 @@
         clearTimeout(leadSearchTimeout);
         leadSearchTimeout = setTimeout(() => { leadPage = 1; searchLeads(); }, 300);
       });
-      document.getElementById('leadStatusFilter').addEventListener('change', () => { leadPage = 1; searchLeads(); });
+      // Status filter events are handled in populateLeadStatusFilter
       document.getElementById('leadOwnerFilter').addEventListener('change', () => { leadPage = 1; searchLeads(); });
       document.getElementById('leadHasValueFilter').addEventListener('change', () => { leadPage = 1; searchLeads(); });
       document.getElementById('leadHasOwnerFilter').addEventListener('change', () => {
@@ -1453,7 +1517,7 @@
 
     async function searchLeads() {
       let searchQuery = document.getElementById('leadSearch').value.trim();
-      const statusFilter = document.getElementById('leadStatusFilter').value;
+      const statusFilter = selectedStatuses.length > 0 ? selectedStatuses.join(',') : '';
       const ownerFilter = document.getElementById('leadOwnerFilter').value;
 
       // Check for has:value or no:value in search query (handled client-side)
