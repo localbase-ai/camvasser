@@ -2,7 +2,12 @@ import { PrismaClient } from '@prisma/client';
 import { verifyToken } from './lib/auth.js';
 import axios from 'axios';
 
-const prisma = new PrismaClient();
+let prisma;
+try {
+  prisma = new PrismaClient();
+} catch (e) {
+  console.error('Failed to initialize Prisma:', e);
+}
 
 // Fetch valid tags from CompanyCam API
 async function fetchValidTagsFromCompanyCam(tenant) {
@@ -53,6 +58,14 @@ export async function handler(event) {
   }
 
   try {
+    if (!prisma) {
+      return {
+        statusCode: 500,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Prisma client failed to initialize' })
+      };
+    }
+
     const { tenant } = event.queryStringParameters || {};
 
     // Build where clause
