@@ -1111,7 +1111,9 @@
       closeLeadDetail();
       // Switch to addresses view and search for this address
       switchView('addresses');
-      document.getElementById('addressSearch').value = address;
+      // Extract just the street address (before first comma) for better matching
+      const streetAddress = address.split(',')[0].trim();
+      document.getElementById('addressSearch').value = streetAddress;
       // Trigger search after a short delay to ensure view is loaded
       setTimeout(() => {
         searchAddresses();
