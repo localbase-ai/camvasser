@@ -2723,8 +2723,6 @@
       document.getElementById('smartleadModal').close();
     }
 
-    let smartleadPollInterval = null;
-
     async function pushToSmartLead() {
       const campaignName = document.getElementById('smartleadCampaignName').value.trim();
       if (!campaignName) {
@@ -2750,7 +2748,7 @@
       };
 
       try {
-        // Background function returns 202 immediately
+        // Start the job - this will process first batch and return
         const response = await fetch('/.netlify/functions/push-to-smartlead', {
           method: 'POST',
           headers: {
@@ -2760,17 +2758,20 @@
           body: JSON.stringify({ campaignName, filters })
         });
 
-        // 202 = accepted for background processing
-        if (response.status === 202) {
-          document.getElementById('smartleadBtnText').textContent = 'Processing...';
-          // Poll for job completion
-          pollSmartLeadJob(currentTenant);
-        } else {
-          // Handle non-background response (shouldn't happen, but fallback)
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(data.error || 'Failed to push to SmartLead');
-          }
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to push to SmartLead');
+        }
+
+        // Check if completed or needs more batches
+        if (data.status === 'completed') {
+          showSmartLeadSuccess(data.result);
+        } else if (data.status === 'running' && data.hasMore) {
+          // Continue processing batches
+          document.getElementById('smartleadBtnText').textContent = `Batch ${data.batchCompleted}/${data.totalBatches}...`;
+          await processSmartLeadBatches(data.jobId, data.totalBatches);
+        } else if (data.status === 'running') {
+          // Single batch, done
           showSmartLeadSuccess(data);
         }
 
@@ -2783,65 +2784,79 @@
       }
     }
 
-    function pollSmartLeadJob(tenant) {
-      // Clear any existing poll
-      if (smartleadPollInterval) {
-        clearInterval(smartleadPollInterval);
-      }
+    async function processSmartLeadBatches(jobId, totalBatches) {
+      let attempts = 0;
+      const maxAttempts = 100; // Safety limit
 
-      let pollCount = 0;
-      const maxPolls = 180; // 15 minutes at 5 second intervals
+      while (attempts < maxAttempts) {
+        attempts++;
 
-      smartleadPollInterval = setInterval(async () => {
-        pollCount++;
-        if (pollCount > maxPolls) {
-          clearInterval(smartleadPollInterval);
-          document.getElementById('smartleadErrorText').textContent = 'Job timed out. Please check SmartLead directly.';
+        // Small delay to avoid hammering the API (rate limiting)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        try {
+          const response = await fetch('/.netlify/functions/push-to-smartlead', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ jobId })
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Batch processing failed');
+          }
+
+          if (data.status === 'completed') {
+            showSmartLeadSuccess(data.result);
+            return;
+          } else if (data.status === 'running') {
+            document.getElementById('smartleadBtnText').textContent = `Batch ${data.batchCompleted}/${totalBatches} (${data.uploaded} uploaded)...`;
+            if (!data.hasMore) {
+              // Last batch done, call once more to finalize
+              continue;
+            }
+          } else if (data.status === 'failed') {
+            throw new Error(data.error || 'Job failed');
+          }
+
+        } catch (error) {
+          document.getElementById('smartleadErrorText').textContent = error.message;
           document.getElementById('smartleadError').classList.remove('hidden');
           document.getElementById('smartleadSubmitBtn').disabled = false;
           document.getElementById('smartleadBtnText').textContent = 'Create Campaign';
           document.getElementById('smartleadSpinner').classList.add('hidden');
           return;
         }
+      }
 
-        try {
-          const response = await fetch(`/.netlify/functions/get-job-status?type=push-to-smartlead&tenant=${tenant}`);
-          const data = await response.json();
-
-          if (data.jobs && data.jobs.length > 0) {
-            const job = data.jobs[0]; // Most recent job
-
-            // Update progress
-            if (job.progress > 0 && job.total > 0) {
-              document.getElementById('smartleadBtnText').textContent = `Processing ${job.progress}%...`;
-            }
-
-            if (job.status === 'completed') {
-              clearInterval(smartleadPollInterval);
-              showSmartLeadSuccess(job.result);
-            } else if (job.status === 'failed') {
-              clearInterval(smartleadPollInterval);
-              document.getElementById('smartleadErrorText').textContent = job.error || 'Job failed';
-              document.getElementById('smartleadError').classList.remove('hidden');
-              document.getElementById('smartleadSubmitBtn').disabled = false;
-              document.getElementById('smartleadBtnText').textContent = 'Create Campaign';
-              document.getElementById('smartleadSpinner').classList.add('hidden');
-            }
-          }
-        } catch (e) {
-          console.error('Error polling job status:', e);
-        }
-      }, 5000); // Poll every 5 seconds
+      // If we hit max attempts
+      document.getElementById('smartleadErrorText').textContent = 'Processing took too long. Check SmartLead directly.';
+      document.getElementById('smartleadError').classList.remove('hidden');
+      document.getElementById('smartleadSubmitBtn').disabled = false;
+      document.getElementById('smartleadBtnText').textContent = 'Create Campaign';
+      document.getElementById('smartleadSpinner').classList.add('hidden');
     }
 
     function showSmartLeadSuccess(data) {
       console.log('SmartLead response:', data);
+      const uploaded = data.uploaded || 0;
+      const duplicates = data.duplicates || 0;
+      const invalid = data.invalid || 0;
+      const alreadyInCampaign = data.alreadyInCampaign || 0;
+      const validEmailCount = data.validEmailCount || uploaded;
+
+      let statsLine = '';
+      if (duplicates > 0) statsLine += ` (${duplicates} duplicates)`;
+      if (invalid > 0) statsLine += ` (${invalid} invalid)`;
+      if (alreadyInCampaign > 0) statsLine += ` (${alreadyInCampaign} already in campaign)`;
+
       document.getElementById('smartleadSuccessText').innerHTML = `
-        Campaign "<strong>${data.campaignName}</strong>" created with ${data.uploaded} contacts.
-        ${data.duplicates > 0 ? ` (${data.duplicates} duplicates skipped)` : ''}
-        ${data.invalid > 0 ? ` (${data.invalid} invalid emails)` : ''}
-        <br><small class="text-xs opacity-60">Query: ${data.queryCount} → Fetched: ${data.fetchedCount} → Valid: ${data.validEmailCount}</small>
-        <br><a href="${data.smartleadUrl}" target="_blank" class="link link-primary">Open in SmartLead →</a>
+        Campaign "<strong>${data.campaignName || 'Campaign'}</strong>" created with ${uploaded} contacts.${statsLine}
+        <br><small class="text-xs opacity-60">Total with email: ${validEmailCount}</small>
+        ${data.smartleadUrl ? `<br><a href="${data.smartleadUrl}" target="_blank" class="link link-primary">Open in SmartLead →</a>` : ''}
       `;
       document.getElementById('smartleadSuccess').classList.remove('hidden');
       document.getElementById('smartleadBtnText').textContent = 'Done!';
