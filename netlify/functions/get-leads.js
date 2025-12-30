@@ -75,14 +75,22 @@ export async function handler(event) {
       prisma.lead.count({ where })
     ]);
 
-    // Get distinct owners for filter dropdown (tenant-scoped)
+    // Get distinct owners and statuses for filter dropdowns (tenant-scoped)
     const tenantWhere = tenant ? { tenant } : {};
-    const ownersResult = await prisma.lead.findMany({
-      where: { ...tenantWhere, ownerName: { not: null } },
-      select: { ownerName: true },
-      distinct: ['ownerName']
-    });
+    const [ownersResult, statusesResult] = await Promise.all([
+      prisma.lead.findMany({
+        where: { ...tenantWhere, ownerName: { not: null } },
+        select: { ownerName: true },
+        distinct: ['ownerName']
+      }),
+      prisma.lead.findMany({
+        where: { ...tenantWhere, status: { not: null } },
+        select: { status: true },
+        distinct: ['status']
+      })
+    ]);
     const distinctOwners = ownersResult.map(r => r.ownerName).filter(Boolean).sort();
+    const distinctStatuses = statusesResult.map(r => r.status).filter(Boolean);
 
     return {
       statusCode: 200,
@@ -95,7 +103,8 @@ export async function handler(event) {
         page: pageNum,
         totalPages: Math.ceil(total / limitNum),
         leads,
-        distinctOwners
+        distinctOwners,
+        distinctStatuses
       })
     };
 

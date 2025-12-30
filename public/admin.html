@@ -1256,11 +1256,8 @@
         document.getElementById('leadCount').textContent = leadTotal;
         document.getElementById('leadCountLabel').textContent = `${leadTotal.toLocaleString()} records`;
 
-        // Populate status and owner filters (only on first load)
-        if (document.getElementById('leadStatusFilter').options.length <= 1) {
-          populateLeadStatusFilter();
-        }
-        // Always update owner filter with distinct owners from API
+        // Always update status and owner filters with distinct values from API
+        populateLeadStatusFilter(data.distinctStatuses);
         populateLeadOwnerFilter(data.distinctOwners);
 
         // Apply saved view mode on initial load
@@ -1296,9 +1293,10 @@
       document.getElementById('prospectTagFilter').innerHTML = '<option value="">All Tags</option>' + options;
     }
 
-    function populateLeadStatusFilter() {
+    function populateLeadStatusFilter(distinctStatuses) {
       const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
-      const allStatuses = [...new Set(allLeads.map(l => l.status).filter(Boolean))];
+      // Use distinctStatuses from API if provided, otherwise fall back to allLeads
+      const allStatuses = distinctStatuses || [...new Set(allLeads.map(l => l.status).filter(Boolean))];
 
       // Sort: preferred order first, then alphabetically for any others
       const statuses = allStatuses.sort((a, b) => {
