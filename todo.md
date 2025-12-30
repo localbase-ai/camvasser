@@ -25,9 +25,13 @@
 - [ ] Google Business Listings: figure out mapstacking
 - [✅] SmartLead: CSV export for leads and contacts
 
-## Features 
-- [ ] Add HOA object (link to address/project)
-- [ ] Add Company object (for HOA management companies, etc.)
+## Features
+- [✅] Add HOA object (link to address/project)
+- [✅] Add Company object (for HOA management companies, etc.)
+- [✅] Organizations tab with full CRUD (HOAs, property mgmt, real estate, churches, apartments)
+- [✅] Organization contacts (separate from residential prospects)
+- [✅] Contact type filter in Contacts view (Prospects / Org Contacts / All)
+- [✅] Import Leawood HOA data (96 HOAs, 9 mgmt companies, 72 contacts)
 - [✅] show totals on list views for leads, contacts, addresses
 
 ## Mobile App
@@ -52,6 +56,7 @@
 # Bugs
 - [✅] status filter dropdown doesn't work in leads list view
 - [✅] board view columns should have status filters
+- [✅] Search handles multi-word name queries (e.g., "ryan w")
 
 # Map Features
 - [✅] filter leads by 'lead-status'
@@ -66,6 +71,10 @@
 
 ## Data Cleanup
 - [✅] Delete 71 junk leads (address-only records with no contact info)
+- [✅] Review and clean up 244 orphaned leads (merge duplicates, fix typos, delete junk)
+- [✅] Create projects for orphaned leads
+- [✅] Lead owner field added (ownerName)
+- [✅] Import 86 sold jobs with owner assignments
 - [ ] get pins from Cade's door hanging into the data somehow
 - [ ] go through all leads in system and make sure right status
 
@@ -81,6 +90,13 @@
 ## Admin Features - Conversions
 - [✅] Convert contact to lead
 - [✅] Revert lead to project/address
+- [✅] Convert lead to organization (for HOAs, property mgmt companies found in leads)
+
+## Admin Features - Leads Board
+- [✅] Kanban drag-and-drop for lead status
+- [✅] Lead owner assignment and filter
+- [✅] Board view as default
+- [✅] Share URL feature for leads
 
 ## Admin Features - Search & Bulk Actions
 - [✅] Empty field search syntax (e.g., `email:empty`, `no:phone`, `has:name`)
