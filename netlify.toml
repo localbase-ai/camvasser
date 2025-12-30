@@ -5,9 +5,9 @@
 [functions]
   directory = "netlify/functions"
 
-# Extend timeout for push-to-smartlead (max 26s on Pro plan)
-[functions."push-to-smartlead"]
-  timeout = 26
+# push-to-smartlead is a background function (15 min timeout)
+# Background functions are configured via export const config = { type: 'background' }
+# No timeout override needed here
 
 # Edge Functions for Google Calendar (Deno runtime, separate from serverless functions)
 [[edge_functions]]

@@ -310,21 +310,31 @@ export const handler = async (event) => {
 
         batchResults.push(batchResult);
       } catch (e) {
-        uploadErrors.push(e.message);
+        console.error('Batch upload error:', e);
+        uploadErrors.push(`Batch error: ${e.message}`);
+        batchResults.push({ batch: Math.floor(i / batchSize) + 1, size: batch.length, error: e.message });
       }
 
       // Rate limit: wait 1.5 seconds between batches (SmartLead allows 60 requests/minute)
       if (i + batchSize < leadsToUpload.length) {
+        console.log('Waiting 1.5s before next batch...');
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
       // Update progress (50-100% for upload phase)
-      const uploadProgress = 50 + Math.floor(((i + batch.length) / leadsToUpload.length) * 50);
-      await prisma.backgroundJob.update({
-        where: { id: jobId },
-        data: { progress: uploadProgress }
-      });
+      try {
+        const uploadProgress = 50 + Math.floor(((i + batch.length) / leadsToUpload.length) * 50);
+        console.log('Updating progress to', uploadProgress);
+        await prisma.backgroundJob.update({
+          where: { id: jobId },
+          data: { progress: uploadProgress }
+        });
+      } catch (progressError) {
+        console.error('Failed to update progress:', progressError);
+      }
     }
+
+    console.log('Upload loop completed. Total uploaded:', totalUploaded);
 
     if (uploadErrors.length > 0) {
       console.error('SmartLead upload errors:', uploadErrors);
