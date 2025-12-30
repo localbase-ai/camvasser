@@ -839,6 +839,11 @@
 
     // Get total job value for a lead
     function getLeadJobValue(lead) {
+      // First check flowData.job_value (backfilled from QB/localbase)
+      if (lead.flowData && (lead.flowData.job_value || lead.flowData.job_value === 0)) {
+        return lead.flowData.job_value;
+      }
+      // Fall back to proposal amounts from Roofr
       const proposals = getLeadProposals(lead);
       if (proposals.length === 0) return null;
       // Sum all proposal amounts
