@@ -1253,8 +1253,9 @@
         // Populate status and owner filters (only on first load)
         if (document.getElementById('leadStatusFilter').options.length <= 1) {
           populateLeadStatusFilter();
-          populateLeadOwnerFilter();
         }
+        // Always update owner filter with distinct owners from API
+        populateLeadOwnerFilter(data.distinctOwners);
 
         // Apply saved view mode on initial load
         await setLeadsView(leadsViewMode);
@@ -1307,8 +1308,9 @@
       document.getElementById('leadStatusFilter').innerHTML = '<option value="">All Statuses</option>' + options;
     }
 
-    function populateLeadOwnerFilter() {
-      const owners = [...new Set(allLeads.map(l => l.ownerName).filter(Boolean))].sort();
+    function populateLeadOwnerFilter(distinctOwners) {
+      // Use distinctOwners from API if provided, otherwise fall back to allLeads
+      const owners = distinctOwners || [...new Set(allLeads.map(l => l.ownerName).filter(Boolean))].sort();
       const options = owners.map(o => `<option value="${o}">${o}</option>`).join('');
       document.getElementById('leadOwnerFilter').innerHTML = '<option value="">All Owners</option>' + options;
     }

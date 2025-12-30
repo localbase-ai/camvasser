@@ -75,6 +75,15 @@ export async function handler(event) {
       prisma.lead.count({ where })
     ]);
 
+    // Get distinct owners for filter dropdown (tenant-scoped)
+    const tenantWhere = tenant ? { tenant } : {};
+    const ownersResult = await prisma.lead.findMany({
+      where: { ...tenantWhere, ownerName: { not: null } },
+      select: { ownerName: true },
+      distinct: ['ownerName']
+    });
+    const distinctOwners = ownersResult.map(r => r.ownerName).filter(Boolean).sort();
+
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -85,7 +94,8 @@ export async function handler(event) {
         total,
         page: pageNum,
         totalPages: Math.ceil(total / limitNum),
-        leads
+        leads,
+        distinctOwners
       })
     };
 
