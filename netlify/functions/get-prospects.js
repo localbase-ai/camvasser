@@ -23,10 +23,17 @@ export async function handler(event) {
   }
 
   try {
-    const { limit, page, projectId, sortBy, sortDir, search, tag, statusFilter, campaign, tenant } = event.queryStringParameters || {};
+    const { limit, page, projectId, sortBy, sortDir, search, tag, statusFilter, campaign, tenant, contactType } = event.queryStringParameters || {};
     const limitNum = limit ? parseInt(limit) : 25;
     const pageNum = page ? parseInt(page) : 1;
     const skip = (pageNum - 1) * limitNum;
+
+    // If contactType is 'org', return only org contacts
+    // If contactType is 'all', return both prospects and org contacts merged
+    // Default (no contactType or 'prospect') returns only prospects
+    if (contactType === 'org' || contactType === 'all') {
+      return await handleOrgContacts(event, user, contactType);
+    }
 
     // Build where clause
     const where = {};
@@ -295,4 +302,139 @@ export async function handler(event) {
       })
     };
   }
+}
+
+// Handle org contacts (contactType=org or contactType=all)
+async function handleOrgContacts(event, user, contactType) {
+  const { limit, page, search, tenant } = event.queryStringParameters || {};
+  const limitNum = limit ? parseInt(limit) : 25;
+  const pageNum = page ? parseInt(page) : 1;
+  const skip = (pageNum - 1) * limitNum;
+  const tenantSlug = tenant || user.slug;
+
+  // Build org contact where clause
+  const orgWhere = {
+    organization: { tenant: tenantSlug }
+  };
+
+  if (search) {
+    orgWhere.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+      { phone: { contains: search, mode: 'insensitive' } },
+      { title: { contains: search, mode: 'insensitive' } },
+      { organization: { name: { contains: search, mode: 'insensitive' } } }
+    ];
+  }
+
+  if (contactType === 'org') {
+    // Only org contacts
+    const [orgContacts, totalCount] = await Promise.all([
+      prisma.organizationContact.findMany({
+        where: orgWhere,
+        orderBy: { name: 'asc' },
+        take: limitNum,
+        skip,
+        include: {
+          organization: { select: { id: true, name: true, type: true } }
+        }
+      }),
+      prisma.organizationContact.count({ where: orgWhere })
+    ]);
+
+    // Transform to prospect-like shape for UI consistency
+    const prospects = orgContacts.map(oc => ({
+      id: `org_${oc.id}`,
+      _orgContactId: oc.id,
+      name: oc.name,
+      phones: oc.phone ? [{ phone_number: oc.phone }] : null,
+      emails: oc.email ? [{ email_address: oc.email }] : null,
+      companyName: oc.organization?.name,
+      jobTitle: oc.title,
+      isOrgContact: true,
+      organization: oc.organization,
+      createdAt: oc.createdAt,
+      notes: oc.notes
+    }));
+
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        count: prospects.length,
+        total: totalCount,
+        page: pageNum,
+        totalPages: Math.ceil(totalCount / limitNum),
+        homeowners: 0,
+        prospects
+      })
+    };
+  }
+
+  // contactType === 'all' - merge both
+  const prospectWhere = { tenant: tenantSlug };
+  if (search) {
+    prospectWhere.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { companyName: { contains: search, mode: 'insensitive' } },
+      { jobTitle: { contains: search, mode: 'insensitive' } }
+    ];
+  }
+
+  const [prospects, prospectCount, orgContacts, orgCount] = await Promise.all([
+    prisma.prospect.findMany({
+      where: prospectWhere,
+      orderBy: { name: 'asc' },
+      take: limitNum,
+      skip,
+      include: {
+        project: { select: { id: true, address: true, city: true, state: true, postalCode: true, publicUrl: true, tags: true, coordinates: true } }
+      }
+    }),
+    prisma.prospect.count({ where: prospectWhere }),
+    prisma.organizationContact.findMany({
+      where: orgWhere,
+      orderBy: { name: 'asc' },
+      take: limitNum,
+      skip,
+      include: {
+        organization: { select: { id: true, name: true, type: true } }
+      }
+    }),
+    prisma.organizationContact.count({ where: orgWhere })
+  ]);
+
+  // Transform org contacts
+  const orgProspects = orgContacts.map(oc => ({
+    id: `org_${oc.id}`,
+    _orgContactId: oc.id,
+    name: oc.name,
+    phones: oc.phone ? [{ phone_number: oc.phone }] : null,
+    emails: oc.email ? [{ email_address: oc.email }] : null,
+    companyName: oc.organization?.name,
+    jobTitle: oc.title,
+    isOrgContact: true,
+    organization: oc.organization,
+    createdAt: oc.createdAt,
+    notes: oc.notes
+  }));
+
+  // Merge and sort by name
+  const merged = [...prospects.map(p => ({ ...p, isOrgContact: false })), ...orgProspects]
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+  const totalCount = prospectCount + orgCount;
+
+  return {
+    statusCode: 200,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      count: merged.length,
+      total: totalCount,
+      page: pageNum,
+      totalPages: Math.ceil(totalCount / limitNum),
+      homeowners: 0,
+      prospects: merged.slice(0, limitNum) // Limit after merge
+    })
+  };
 }

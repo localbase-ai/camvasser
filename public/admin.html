@@ -51,7 +51,7 @@
       <nav class="flex-1">
         <ul class="menu menu-md">
           <li>
-            <a href="#leads" class="nav-link" data-view="leads">
+            <a href="#leads" class="nav-link active" data-view="leads">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -60,7 +60,7 @@
             </a>
           </li>
           <li>
-            <a href="#addresses" class="nav-link active" data-view="addresses">
+            <a href="#addresses" class="nav-link" data-view="addresses">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -76,6 +76,15 @@
               </svg>
               <span class="nav-text">Contacts</span>
               <span id="prospectCount" class="badge badge-sm badge-ghost">-</span>
+            </a>
+          </li>
+          <li>
+            <a href="#organizations" class="nav-link" data-view="organizations">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <span class="nav-text">Organizations</span>
+              <span id="orgCount" class="badge badge-sm badge-ghost">-</span>
             </a>
           </li>
           <li>
@@ -230,6 +239,11 @@
             </div>
             <div class="flex flex-wrap gap-2 items-center flex-1">
               <input type="text" id="prospectSearch" placeholder="Search contacts..." class="input input-bordered input-sm flex-1 min-w-[200px]">
+              <select id="contactTypeFilter" class="select select-bordered select-sm">
+                <option value="">Prospects</option>
+                <option value="org">Org Contacts</option>
+                <option value="all">All Contacts</option>
+              </select>
               <select id="prospectTagFilter" class="select select-bordered select-sm">
                 <option value="">All Tags</option>
               </select>
@@ -257,9 +271,9 @@
               <select id="prospectCampaignFilter" class="select select-bordered select-sm">
                 <option value="">All Campaigns</option>
               </select>
-              <button onclick="showSmartLeadModal()" class="btn btn-sm btn-primary gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                Push to SmartLead
+              <button onclick="showSmartLeadModal()" class="btn btn-sm btn-ghost gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /></svg>
+                SmartLead
               </button>
             </div>
           </div>
@@ -815,6 +829,76 @@
         </div>
       </div>
 
+      <!-- Organizations View -->
+      <div id="view-organizations" class="view hidden flex flex-col h-full">
+        <!-- Sticky Header -->
+        <div class="sticky top-0 bg-base-100 z-10 py-2">
+          <div class="flex justify-between items-center gap-4">
+            <h2 class="text-lg font-bold">Organizations</h2>
+            <span id="orgCountLabel" class="text-xs text-base-content/60"></span>
+            <div class="flex flex-wrap gap-2 items-center flex-1">
+              <input type="text" id="orgSearch" placeholder="Search organizations..." class="input input-bordered input-sm flex-1 min-w-[200px]">
+              <select id="orgTypeFilter" class="select select-bordered select-sm">
+                <option value="">All Types</option>
+                <option value="hoa">HOA</option>
+                <option value="property_management">Property Management</option>
+                <option value="real_estate">Real Estate</option>
+                <option value="church">Church</option>
+                <option value="apartment_complex">Apartment Complex</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Split Pane Container -->
+        <div class="relative flex-1 min-h-0 mt-1">
+          <!-- Table Pane -->
+          <div id="orgListPane" class="h-full flex flex-col">
+            <div class="overflow-auto flex-1">
+              <table class="table w-full">
+                <thead class="sticky top-0 bg-base-100 z-10">
+                  <tr>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortOrganizations('name')">Name</th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortOrganizations('type')">Type</th>
+                    <th>City</th>
+                    <th>Phone</th>
+                    <th>Website</th>
+                    <th>Contacts</th>
+                    <th>Properties</th>
+                  </tr>
+                </thead>
+                <tbody id="orgTableBody">
+                  <tr>
+                    <td colspan="7" class="text-center py-8">
+                      <span class="loading loading-spinner loading-md"></span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            <div id="orgPagination" class="flex justify-center mt-4 flex-shrink-0"></div>
+          </div>
+
+          <!-- Detail Pane (absolute overlay) -->
+          <div id="orgDetailPane" class="hidden absolute top-0 right-0 h-full w-[450px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
+            <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
+              <h3 class="font-semibold text-sm">Organization Details</h3>
+              <button onclick="closeOrgDetail()" class="btn btn-ghost btn-xs btn-square">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div id="orgDetailContent" class="p-4">
+              <!-- Organization details will be rendered here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
       </div><!-- end content area -->
     </main>
   </div>
@@ -825,7 +909,7 @@
     // =====================
     let authToken = null;
     let currentUser = null;
-    let currentView = 'addresses';
+    let currentView = 'leads';
     let currentTenant = null;  // Currently selected tenant slug
     let userTenants = [];      // List of tenants user has access to
 
@@ -834,6 +918,7 @@
     let allProspects = [];
     let allLeads = [];
     let allTags = [];
+    let allOrganizations = [];
 
     // Proposals lookup map (keyed by email and name)
     let proposalsLookup = { byEmail: {}, byName: {} };
@@ -883,17 +968,21 @@
     let addressPage = 1;
     let prospectPage = 1;
     let leadPage = 1;
+    let orgPage = 1;
     let addressTotalPages = 1;
     let prospectTotalPages = 1;
     let leadTotalPages = 1;
+    let orgTotalPages = 1;
     let addressTotal = 0;
     let prospectTotal = 0;
     let leadTotal = 0;
+    let orgTotal = 0;
 
     // Sort state - all default to most recent first
     let addressSort = { column: 'ccCreatedAt', direction: 'desc' };
     let prospectSort = { column: 'createdAt', direction: 'desc' };
     let leadSort = { column: 'createdAt', direction: 'desc' };
+    let orgSort = { column: 'name', direction: 'asc' };
 
     // Filters
     let currentAddressFilter = null; // For filtering prospects by address
@@ -927,7 +1016,7 @@
     }
 
     // Leads view mode - restore from localStorage
-    let leadsViewMode = localStorage.getItem('leadsViewMode') || 'list';
+    let leadsViewMode = localStorage.getItem('leadsViewMode') || 'kanban';
 
     // Collapsed kanban columns - restore from localStorage
     let collapsedColumns = JSON.parse(localStorage.getItem('collapsedColumns') || '[]');
@@ -1155,6 +1244,11 @@
       if (view === 'calendar') {
         loadCalendarEvents();
       }
+
+      // Load organizations when switching to organizations view
+      if (view === 'organizations') {
+        loadOrganizations();
+      }
     }
 
     // =====================
@@ -1311,6 +1405,384 @@
       }
     }
 
+    async function loadOrganizations() {
+      try {
+        const search = document.getElementById('orgSearch')?.value || '';
+        const typeFilter = document.getElementById('orgTypeFilter')?.value || '';
+
+        const params = new URLSearchParams({
+          limit: String(PAGE_SIZE),
+          page: String(orgPage),
+          sortBy: orgSort.column,
+          sortDir: orgSort.direction
+        });
+        if (currentTenant) params.set('tenant', currentTenant);
+        if (search) params.set('search', search);
+        if (typeFilter) params.set('type', typeFilter);
+
+        const response = await fetch(`/.netlify/functions/get-organizations?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+
+        const data = await response.json();
+        allOrganizations = data.organizations || [];
+        orgTotal = data.total || 0;
+        orgTotalPages = data.totalPages || 1;
+
+        // Update sidebar count with total
+        document.getElementById('orgCount').textContent = orgTotal;
+        document.getElementById('orgCountLabel').textContent = `${orgTotal.toLocaleString()} organizations`;
+
+        renderOrganizations();
+      } catch (error) {
+        console.error('Error loading organizations:', error);
+      }
+    }
+
+    function renderOrganizations() {
+      const tbody = document.getElementById('orgTableBody');
+
+      if (allOrganizations.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-8 text-base-content/60">
+              No organizations found
+            </td>
+          </tr>
+        `;
+        document.getElementById('orgPagination').innerHTML = '';
+        return;
+      }
+
+      tbody.innerHTML = allOrganizations.map(org => {
+        const typeLabel = formatOrgType(org.type);
+        const websiteLink = org.website
+          ? `<a href="${org.website}" target="_blank" class="link link-primary text-xs" onclick="event.stopPropagation()">${new URL(org.website).hostname.replace('www.', '')}</a>`
+          : '-';
+        return `
+          <tr class="hover cursor-pointer" onclick="showOrgDetail('${org.id}')">
+            <td class="font-medium">${org.name}</td>
+            <td><span class="badge badge-sm badge-ghost">${typeLabel}</span></td>
+            <td class="text-sm text-base-content/70">${org.city || '-'}</td>
+            <td class="text-sm">${org.phone || '-'}</td>
+            <td class="text-sm">${websiteLink}</td>
+            <td class="text-center">${org._count?.contacts || 0}</td>
+            <td class="text-center">${org._count?.properties || 0}</td>
+          </tr>
+        `;
+      }).join('');
+
+      // Render pagination
+      renderOrgPagination();
+    }
+
+    function formatOrgType(type) {
+      const labels = {
+        'hoa': 'HOA',
+        'property_management': 'Property Mgmt',
+        'real_estate': 'Real Estate',
+        'church': 'Church',
+        'apartment_complex': 'Apartments',
+        'other': 'Other'
+      };
+      return labels[type] || type;
+    }
+
+    function renderOrgPagination() {
+      const container = document.getElementById('orgPagination');
+      if (orgTotalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '<div class="join">';
+      for (let i = 1; i <= orgTotalPages; i++) {
+        const active = i === orgPage ? 'btn-active' : '';
+        html += `<button class="join-item btn btn-sm ${active}" onclick="goToOrgPage(${i})">${i}</button>`;
+      }
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function goToOrgPage(page) {
+      orgPage = page;
+      loadOrganizations();
+    }
+
+    function sortOrganizations(column) {
+      if (orgSort.column === column) {
+        orgSort.direction = orgSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        orgSort.column = column;
+        orgSort.direction = 'asc';
+      }
+      orgPage = 1;
+      loadOrganizations();
+    }
+
+    function searchOrganizations() {
+      orgPage = 1;
+      loadOrganizations();
+    }
+
+    let currentOrgId = null;
+
+    function showOrgDetail(orgId) {
+      const org = allOrganizations.find(o => o.id === orgId);
+      if (!org) return;
+
+      currentOrgId = orgId;
+      const pane = document.getElementById('orgDetailPane');
+      const content = document.getElementById('orgDetailContent');
+
+      content.innerHTML = `
+        <form id="orgEditForm" class="space-y-3">
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text text-xs">Name</span></label>
+            <input type="text" name="name" value="${org.name || ''}" class="input input-bordered input-sm" required>
+          </div>
+
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text text-xs">Type</span></label>
+            <select name="type" class="select select-bordered select-sm">
+              <option value="hoa" ${org.type === 'hoa' ? 'selected' : ''}>HOA</option>
+              <option value="property_management" ${org.type === 'property_management' ? 'selected' : ''}>Property Management</option>
+              <option value="real_estate" ${org.type === 'real_estate' ? 'selected' : ''}>Real Estate</option>
+              <option value="church" ${org.type === 'church' ? 'selected' : ''}>Church</option>
+              <option value="apartment_complex" ${org.type === 'apartment_complex' ? 'selected' : ''}>Apartment Complex</option>
+              <option value="other" ${org.type === 'other' ? 'selected' : ''}>Other</option>
+            </select>
+          </div>
+
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text text-xs">Address</span></label>
+            <input type="text" name="address" value="${org.address || ''}" class="input input-bordered input-sm" placeholder="Street address">
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div class="form-control col-span-1">
+              <label class="label py-1"><span class="label-text text-xs">City</span></label>
+              <input type="text" name="city" value="${org.city || ''}" class="input input-bordered input-sm">
+            </div>
+            <div class="form-control">
+              <label class="label py-1"><span class="label-text text-xs">State</span></label>
+              <input type="text" name="state" value="${org.state || ''}" class="input input-bordered input-sm">
+            </div>
+            <div class="form-control">
+              <label class="label py-1"><span class="label-text text-xs">Zip</span></label>
+              <input type="text" name="postalCode" value="${org.postalCode || ''}" class="input input-bordered input-sm">
+            </div>
+          </div>
+
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text text-xs">Phone</span></label>
+            <input type="tel" name="phone" value="${org.phone || ''}" class="input input-bordered input-sm">
+          </div>
+
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text text-xs">Email</span></label>
+            <input type="email" name="email" value="${org.email || ''}" class="input input-bordered input-sm">
+          </div>
+
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text text-xs">Website</span></label>
+            <input type="url" name="website" value="${org.website || ''}" class="input input-bordered input-sm" placeholder="https://...">
+          </div>
+
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text text-xs">Notes</span></label>
+            <textarea name="notes" class="textarea textarea-bordered textarea-sm" rows="3">${org.notes || ''}</textarea>
+          </div>
+
+          <div class="flex gap-2 pt-2">
+            <button type="submit" class="btn btn-primary btn-sm flex-1">Save</button>
+            ${org.website ? `<a href="${org.website}" target="_blank" class="btn btn-ghost btn-sm">Visit Site</a>` : ''}
+          </div>
+        </form>
+
+        <div class="divider"></div>
+
+        <div>
+          <label class="text-xs text-base-content/60">Contacts (${org._count?.contacts || 0})</label>
+          <div id="orgContactsList" class="mt-2">
+            <span class="loading loading-spinner loading-sm"></span>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="text-xs text-base-content/60">Properties (${org._count?.properties || 0})</label>
+          <div id="orgPropertiesList" class="mt-2">
+            <span class="loading loading-spinner loading-sm"></span>
+          </div>
+        </div>
+      `;
+
+      // Add form submit handler
+      document.getElementById('orgEditForm').addEventListener('submit', handleOrgFormSubmit);
+
+      pane.classList.remove('hidden');
+
+      // Load contacts and properties
+      loadOrgContacts(orgId);
+      loadOrgProperties(orgId);
+    }
+
+    async function handleOrgFormSubmit(e) {
+      e.preventDefault();
+      const form = e.target;
+      const submitBtn = form.querySelector('button[type="submit"]');
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Saving...';
+
+      const formData = new FormData(form);
+      const data = {
+        id: currentOrgId,
+        name: formData.get('name'),
+        type: formData.get('type'),
+        address: formData.get('address'),
+        city: formData.get('city'),
+        state: formData.get('state'),
+        postalCode: formData.get('postalCode'),
+        phone: formData.get('phone'),
+        email: formData.get('email'),
+        website: formData.get('website'),
+        notes: formData.get('notes')
+      };
+
+      try {
+        const response = await fetch('/.netlify/functions/update-organization', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'Failed to save');
+        }
+
+        const result = await response.json();
+
+        // Update local data
+        const idx = allOrganizations.findIndex(o => o.id === currentOrgId);
+        if (idx !== -1) {
+          allOrganizations[idx] = result.organization;
+        }
+
+        renderOrganizations();
+        submitBtn.innerHTML = 'Saved!';
+        setTimeout(() => { submitBtn.innerHTML = 'Save'; submitBtn.disabled = false; }, 1500);
+
+      } catch (error) {
+        console.error('Error saving organization:', error);
+        submitBtn.innerHTML = 'Error';
+        submitBtn.classList.add('btn-error');
+        setTimeout(() => {
+          submitBtn.innerHTML = 'Save';
+          submitBtn.classList.remove('btn-error');
+          submitBtn.disabled = false;
+        }, 2000);
+      }
+    }
+
+    async function loadOrgContacts(orgId) {
+      try {
+        const params = new URLSearchParams({ organizationId: orgId });
+        if (currentTenant) params.set('tenant', currentTenant);
+
+        const response = await fetch(`/.netlify/functions/get-organization-contacts?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        const container = document.getElementById('orgContactsList');
+
+        if (!response.ok) {
+          container.innerHTML = '<p class="text-sm text-base-content/60">Unable to load contacts</p>';
+          return;
+        }
+
+        const data = await response.json();
+        const contacts = data.contacts || [];
+
+        if (contacts.length === 0) {
+          container.innerHTML = '<p class="text-sm text-base-content/60">No contacts</p>';
+          return;
+        }
+
+        container.innerHTML = contacts.map(c => `
+          <div class="bg-base-200 rounded p-2 mb-2">
+            <div class="font-medium text-sm">${c.name}</div>
+            ${c.title ? `<div class="text-xs text-base-content/60">${c.title}</div>` : ''}
+            ${c.phone ? `<div class="text-xs"><a href="tel:${c.phone}" class="link">${c.phone}</a></div>` : ''}
+            ${c.email ? `<div class="text-xs"><a href="mailto:${c.email}" class="link">${c.email}</a></div>` : ''}
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading org contacts:', error);
+        document.getElementById('orgContactsList').innerHTML = '<p class="text-sm text-error">Error loading contacts</p>';
+      }
+    }
+
+    async function loadOrgProperties(orgId) {
+      try {
+        const params = new URLSearchParams({ organizationId: orgId });
+        if (currentTenant) params.set('tenant', currentTenant);
+
+        const response = await fetch(`/.netlify/functions/get-organization-properties?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        const container = document.getElementById('orgPropertiesList');
+
+        if (!response.ok) {
+          container.innerHTML = '<p class="text-sm text-base-content/60">Unable to load properties</p>';
+          return;
+        }
+
+        const data = await response.json();
+        const properties = data.properties || [];
+
+        if (properties.length === 0) {
+          container.innerHTML = '<p class="text-sm text-base-content/60">No properties linked</p>';
+          return;
+        }
+
+        container.innerHTML = properties.map(p => `
+          <div class="bg-base-200 rounded p-2 mb-2">
+            <div class="text-sm">${p.project?.address || 'Unknown address'}</div>
+            <div class="text-xs text-base-content/60">${[p.project?.city, p.project?.state].filter(Boolean).join(', ')}</div>
+            <div class="text-xs badge badge-ghost mt-1">${p.relationship}</div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading org properties:', error);
+        document.getElementById('orgPropertiesList').innerHTML = '<p class="text-sm text-error">Error loading properties</p>';
+      }
+    }
+
+    function closeOrgDetail() {
+      document.getElementById('orgDetailPane').classList.add('hidden');
+    }
+
+    function navigateToOrg(orgId) {
+      if (!orgId) return;
+      // Switch to organizations view and show the org detail
+      switchView('organizations');
+      // Need to load orgs first, then show detail
+      loadOrganizations().then(() => {
+        showOrgDetail(orgId);
+      });
+    }
+
     function populateTagFilters() {
       const options = allTags.map(t => `<option value="${t.value}">${t.display_value || t.displayValue || t.value}</option>`).join('');
 
@@ -1420,6 +1892,7 @@
       document.getElementById('prospectTagFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
       document.getElementById('prospectStatusFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
       document.getElementById('prospectCampaignFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
+      document.getElementById('contactTypeFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
 
       // Lead search - use server-side search
       let leadSearchTimeout;
@@ -1438,6 +1911,14 @@
           searchLeads();
         }
       });
+
+      // Organization search
+      let orgSearchTimeout;
+      document.getElementById('orgSearch').addEventListener('input', () => {
+        clearTimeout(orgSearchTimeout);
+        orgSearchTimeout = setTimeout(() => { orgPage = 1; loadOrganizations(); }, 300);
+      });
+      document.getElementById('orgTypeFilter').addEventListener('change', () => { orgPage = 1; loadOrganizations(); });
     }
 
     // =====================
@@ -1486,6 +1967,7 @@
       const tagFilter = document.getElementById('prospectTagFilter').value;
       const statusFilter = document.getElementById('prospectStatusFilter').value;
       const campaignFilter = document.getElementById('prospectCampaignFilter').value;
+      const contactType = document.getElementById('contactTypeFilter').value;
 
       const params = new URLSearchParams({
         limit: PAGE_SIZE.toString(),
@@ -1499,6 +1981,7 @@
       if (tagFilter) params.set('tag', tagFilter);
       if (statusFilter) params.set('statusFilter', statusFilter);
       if (campaignFilter) params.set('campaign', campaignFilter);
+      if (contactType) params.set('contactType', contactType);
       if (currentAddressFilter) params.set('projectId', currentAddressFilter.id);
 
       try {
@@ -1931,6 +2414,31 @@
         tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-base-content/60">No contacts found</td></tr>`;
       } else {
         tbody.innerHTML = allProspects.map(prospect => {
+          // Handle org contacts differently
+          if (prospect.isOrgContact) {
+            const phone = prospect.phones?.[0]?.phone_number || '-';
+            const email = prospect.emails?.[0]?.email_address || '-';
+            const orgName = prospect.organization?.name || '';
+            const orgType = prospect.organization?.type || '';
+            const created = prospect.createdAt ? formatDate(prospect.createdAt) : '-';
+
+            return `
+              <tr class="cursor-pointer hover:bg-base-200" onclick="navigateToOrg('${prospect.organization?.id}')">
+                <td class="w-8" onclick="event.stopPropagation()">
+                  <input type="checkbox" class="checkbox checkbox-sm" disabled>
+                </td>
+                <td class="font-medium">${prospect.name || '-'}</td>
+                <td class="text-sm">${orgName}</td>
+                <td class="text-sm">${phone}</td>
+                <td class="text-sm max-w-[200px] truncate">${email}</td>
+                <td><span class="badge badge-primary badge-sm">${formatOrgType(orgType)}</span></td>
+                <td class="max-w-[150px]">${prospect.jobTitle || '-'}</td>
+                <td>-</td>
+                <td class="text-sm text-base-content/60">${created}</td>
+              </tr>
+            `;
+          }
+
           const phone = prospect.phones?.sort((a, b) => b.score - a.score)[0];
           const phoneType = phone?.type && phone.type !== 'unknown' ? ` <span class="text-xs text-base-content/40">(${phone.type})</span>` : '';
           const phoneDisplay = phone ? `${phone.number}${phoneType}` : '-';
