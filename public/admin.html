@@ -347,6 +347,12 @@
                 <span class="label-text text-sm">Has Owner</span>
               </label>
             </div>
+            <button class="btn btn-sm btn-primary gap-1" onclick="openNewLeadModal()">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              New Lead
+            </button>
             <div class="btn-group">
               <button class="btn btn-sm btn-active" id="leadsListBtn" onclick="setLeadsView('list')">List</button>
               <button class="btn btn-sm" id="leadsKanbanBtn" onclick="setLeadsView('kanban')">Board</button>
@@ -2829,6 +2835,90 @@
 
     function closeSmartLeadModal() {
       document.getElementById('smartleadModal').close();
+    }
+
+    // New Lead Modal Functions
+    function openNewLeadModal() {
+      // Reset form
+      document.getElementById('newLeadForm').reset();
+      document.getElementById('newLeadError').classList.add('hidden');
+      document.getElementById('newLeadSpinner').classList.add('hidden');
+      document.getElementById('newLeadBtnText').textContent = 'Create Lead';
+      document.getElementById('newLeadSubmitBtn').disabled = false;
+      document.getElementById('newLeadModal').showModal();
+    }
+
+    function closeNewLeadModal() {
+      document.getElementById('newLeadModal').close();
+    }
+
+    async function submitNewLead(event) {
+      event.preventDefault();
+
+      const firstName = document.getElementById('newLeadFirstName').value.trim();
+      const lastName = document.getElementById('newLeadLastName').value.trim();
+      const phone = document.getElementById('newLeadPhone').value.trim();
+      const email = document.getElementById('newLeadEmail').value.trim();
+      const address = document.getElementById('newLeadAddress').value.trim();
+      const status = document.getElementById('newLeadStatus').value;
+      const ownerName = document.getElementById('newLeadOwner').value.trim();
+      const notes = document.getElementById('newLeadNotes').value.trim();
+
+      if (!firstName) {
+        document.getElementById('newLeadErrorText').textContent = 'First name is required';
+        document.getElementById('newLeadError').classList.remove('hidden');
+        return;
+      }
+
+      // Show loading state
+      document.getElementById('newLeadSpinner').classList.remove('hidden');
+      document.getElementById('newLeadBtnText').textContent = 'Creating...';
+      document.getElementById('newLeadSubmitBtn').disabled = true;
+      document.getElementById('newLeadError').classList.add('hidden');
+
+      try {
+        const response = await fetch('/.netlify/functions/save-lead', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            firstName,
+            lastName,
+            phone: phone || null,
+            email: email || null,
+            address: address || null,
+            status,
+            ownerName: ownerName || null,
+            notes: notes || null,
+            tenant: currentTenant
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          closeNewLeadModal();
+          // Refresh leads list
+          await searchLeads();
+          // Show the new lead in detail pane
+          if (data.lead) {
+            allLeads.unshift(data.lead);
+            showLeadDetail(data.lead.id);
+          }
+        } else {
+          throw new Error(data.error || 'Failed to create lead');
+        }
+      } catch (error) {
+        console.error('Error creating lead:', error);
+        document.getElementById('newLeadErrorText').textContent = error.message;
+        document.getElementById('newLeadError').classList.remove('hidden');
+      } finally {
+        document.getElementById('newLeadSpinner').classList.add('hidden');
+        document.getElementById('newLeadBtnText').textContent = 'Create Lead';
+        document.getElementById('newLeadSubmitBtn').disabled = false;
+      }
     }
 
     async function pushToSmartLead() {
@@ -5576,6 +5666,70 @@
     </div>
     <form method="dialog" class="modal-backdrop bg-black/50">
       <button onclick="closeSmartLeadModal()">close</button>
+    </form>
+  </dialog>
+
+  <!-- New Lead Modal -->
+  <dialog id="newLeadModal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-base-100" style="padding: 24px; max-width: 500px;">
+      <h3 class="font-bold text-lg" style="margin-bottom: 16px;">New Lead</h3>
+      <form id="newLeadForm" onsubmit="submitNewLead(event)">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text">First Name *</span></label>
+            <input type="text" id="newLeadFirstName" class="input input-bordered input-sm" required>
+          </div>
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text">Last Name</span></label>
+            <input type="text" id="newLeadLastName" class="input input-bordered input-sm">
+          </div>
+        </div>
+        <div class="form-control mt-2">
+          <label class="label py-1"><span class="label-text">Phone</span></label>
+          <input type="tel" id="newLeadPhone" class="input input-bordered input-sm" placeholder="(555) 555-5555">
+        </div>
+        <div class="form-control mt-2">
+          <label class="label py-1"><span class="label-text">Email</span></label>
+          <input type="email" id="newLeadEmail" class="input input-bordered input-sm" placeholder="email@example.com">
+        </div>
+        <div class="form-control mt-2">
+          <label class="label py-1"><span class="label-text">Address</span></label>
+          <input type="text" id="newLeadAddress" class="input input-bordered input-sm" placeholder="123 Main St, City, ST 12345">
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-2">
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text">Status</span></label>
+            <select id="newLeadStatus" class="select select-bordered select-sm">
+              <option value="new" selected>New</option>
+              <option value="contacted">Contacted</option>
+              <option value="appointment_scheduled">Appointment Scheduled</option>
+              <option value="proposal_sent">Proposal Sent</option>
+              <option value="follow_up">Follow Up</option>
+            </select>
+          </div>
+          <div class="form-control">
+            <label class="label py-1"><span class="label-text">Owner</span></label>
+            <input type="text" id="newLeadOwner" class="input input-bordered input-sm" placeholder="Assign owner...">
+          </div>
+        </div>
+        <div class="form-control mt-2">
+          <label class="label py-1"><span class="label-text">Notes</span></label>
+          <textarea id="newLeadNotes" class="textarea textarea-bordered textarea-sm" rows="2" placeholder="Optional notes..."></textarea>
+        </div>
+        <div id="newLeadError" class="alert alert-error hidden mt-3 py-2">
+          <span id="newLeadErrorText"></span>
+        </div>
+        <div class="modal-action" style="margin-top: 16px;">
+          <button type="button" class="btn btn-sm" onclick="closeNewLeadModal()">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-primary" id="newLeadSubmitBtn">
+            <span id="newLeadBtnText">Create Lead</span>
+            <span id="newLeadSpinner" class="loading loading-spinner loading-sm hidden"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-black/50">
+      <button onclick="closeNewLeadModal()">close</button>
     </form>
   </dialog>
 
