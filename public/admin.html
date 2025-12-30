@@ -25,6 +25,9 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
+  <!-- SortableJS for kanban drag-and-drop -->
+  <script src="/Sortable.min.js"></script>
+
 </head>
 <body class="bg-base-100 min-h-screen">
 
@@ -332,9 +335,16 @@
               <select id="leadStatusFilter" class="select select-bordered select-sm">
                 <option value="">All Statuses</option>
               </select>
+              <select id="leadOwnerFilter" class="select select-bordered select-sm">
+                <option value="">All Owners</option>
+              </select>
               <label class="label cursor-pointer gap-2">
                 <input type="checkbox" id="leadHasValueFilter" class="checkbox checkbox-sm checkbox-success">
                 <span class="label-text text-sm">Has Value</span>
+              </label>
+              <label class="label cursor-pointer gap-2">
+                <input type="checkbox" id="leadHasOwnerFilter" class="checkbox checkbox-sm checkbox-info">
+                <span class="label-text text-sm">Has Owner</span>
               </label>
             </div>
             <div class="btn-group">
@@ -374,12 +384,13 @@
                     <th>Phone</th>
                     <th>Address</th>
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortLeads('status')">Status</th>
+                    <th>Owner</th>
                     <th>Value</th>
                   </tr>
                 </thead>
                 <tbody id="leadTableBody">
                   <tr>
-                    <td colspan="7" class="text-center py-8">
+                    <td colspan="9" class="text-center py-8">
                       <span class="loading loading-spinner loading-md"></span>
                     </td>
                   </tr>
@@ -834,6 +845,12 @@
       return proposals.reduce((sum, p) => sum + (p.proposal_amount || 0), 0);
     }
 
+    // Get owner initials (e.g., "Ryan Riggin" -> "RR")
+    function getOwnerInitials(ownerName) {
+      if (!ownerName) return '';
+      return ownerName.split(' ').map(n => n[0]).join('').toUpperCase();
+    }
+
     // Search indexes
     let addressSearchIndex = null;
     let prospectSearchIndex = null;
@@ -1187,9 +1204,10 @@
         document.getElementById('leadCount').textContent = leadTotal;
         document.getElementById('leadCountLabel').textContent = `${leadTotal.toLocaleString()} records`;
 
-        // Populate status filter (only on first load)
+        // Populate status and owner filters (only on first load)
         if (document.getElementById('leadStatusFilter').options.length <= 1) {
           populateLeadStatusFilter();
+          populateLeadOwnerFilter();
         }
 
         // Apply saved view mode on initial load
@@ -1243,6 +1261,12 @@
       document.getElementById('leadStatusFilter').innerHTML = '<option value="">All Statuses</option>' + options;
     }
 
+    function populateLeadOwnerFilter() {
+      const owners = [...new Set(allLeads.map(l => l.ownerName).filter(Boolean))].sort();
+      const options = owners.map(o => `<option value="${o}">${o}</option>`).join('');
+      document.getElementById('leadOwnerFilter').innerHTML = '<option value="">All Owners</option>' + options;
+    }
+
     // =====================
     // Search Handlers
     // =====================
@@ -1274,7 +1298,16 @@
         leadSearchTimeout = setTimeout(() => { leadPage = 1; searchLeads(); }, 300);
       });
       document.getElementById('leadStatusFilter').addEventListener('change', () => { leadPage = 1; searchLeads(); });
+      document.getElementById('leadOwnerFilter').addEventListener('change', () => { leadPage = 1; searchLeads(); });
       document.getElementById('leadHasValueFilter').addEventListener('change', () => { leadPage = 1; searchLeads(); });
+      document.getElementById('leadHasOwnerFilter').addEventListener('change', () => {
+        leadPage = 1;
+        if (leadsViewMode === 'kanban') {
+          searchLeadsForKanban();
+        } else {
+          searchLeads();
+        }
+      });
     }
 
     // =====================
@@ -1369,6 +1402,7 @@
     async function searchLeads() {
       let searchQuery = document.getElementById('leadSearch').value.trim();
       const statusFilter = document.getElementById('leadStatusFilter').value;
+      const ownerFilter = document.getElementById('leadOwnerFilter').value;
 
       // Check for has:value or no:value in search query (handled client-side)
       const hasValueInSearch = /\bhas:value\b/i.test(searchQuery);
@@ -1380,8 +1414,11 @@
       // Remove has:value/no:value/sort:value from query before sending to server
       searchQuery = searchQuery.replace(/\b(has|no):value\b/gi, '').replace(/\bsort:value(?::(asc|desc))?\b/gi, '').trim();
 
-      // If filtering or sorting by value, we need all leads to process client-side
-      const needsClientFilter = hasValueInSearch || noValueInSearch || sortByValue || document.getElementById('leadHasValueFilter').checked;
+      // Check for has:owner filter
+      const hasOwnerFilter = document.getElementById('leadHasOwnerFilter').checked;
+
+      // If filtering or sorting by value/owner, we need all leads to process client-side
+      const needsClientFilter = hasValueInSearch || noValueInSearch || sortByValue || document.getElementById('leadHasValueFilter').checked || hasOwnerFilter;
 
       const params = new URLSearchParams({
         limit: needsClientFilter ? '10000' : PAGE_SIZE.toString(),
@@ -1393,6 +1430,7 @@
       if (currentTenant) params.set('tenant', currentTenant);
       if (searchQuery) params.set('search', searchQuery);
       if (statusFilter) params.set('status', statusFilter);
+      if (ownerFilter) params.set('owner', ownerFilter);
 
       try {
         // Fetch leads and proposals in parallel
@@ -1447,6 +1485,12 @@
             const valB = getLeadJobValue(b) || 0;
             return sortValueDir === 'asc' ? valA - valB : valB - valA;
           });
+        }
+
+        // Apply "Has Owner" filter client-side
+        if (hasOwnerFilter) {
+          allLeads = allLeads.filter(lead => lead.ownerName);
+          leadTotal = allLeads.length;
         }
 
         document.getElementById('leadCountLabel').textContent = `${leadTotal.toLocaleString()} records`;
@@ -2095,7 +2139,7 @@
       const tbody = document.getElementById('leadTableBody');
 
       if (leads.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-base-content/60">No leads found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-base-content/60">No leads found</td></tr>`;
       } else {
         tbody.innerHTML = leads.map(lead => {
           const created = lead.createdAt ? formatDate(lead.createdAt) : '-';
@@ -2115,6 +2159,7 @@
               <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.phone || '-'}</td>
               <td class="text-sm max-w-[200px] truncate" onclick="showLeadDetail('${lead.id}')">${lead.address || '-'}</td>
               <td onclick="showLeadDetail('${lead.id}')">${status}</td>
+              <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.ownerName || '-'}</td>
               <td class="text-sm text-success font-medium" onclick="showLeadDetail('${lead.id}')">${jobValueDisplay}</td>
             </tr>
           `;
@@ -2151,6 +2196,13 @@
                 <option value="">No status</option>
                 ${leadStatuses.map(s => `<option value="${s}" ${lead.status === s ? 'selected' : ''}>${formatStatusLabel(s)}</option>`).join('')}
               </select>
+            </div>
+            <div class="mt-2">
+              <label class="text-xs font-semibold text-base-content/60 uppercase block mb-1">Owner</label>
+              <input type="text" id="leadOwnerInput" class="input input-bordered input-sm w-full max-w-xs"
+                     value="${lead.ownerName || ''}"
+                     placeholder="Assign owner..."
+                     onchange="updateLeadOwner('${lead.id}', this.value)">
             </div>
           </div>
 
@@ -2973,6 +3025,41 @@
       return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     }
 
+    async function updateLeadOwner(leadId, ownerName) {
+      const input = document.getElementById('leadOwnerInput');
+
+      try {
+        const response = await fetch('/.netlify/functions/update-lead-status', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ leadId, ownerName: ownerName || null })
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+        if (data.success) {
+          // Update local data
+          const lead = allLeads.find(l => l.id === leadId);
+          if (lead) {
+            lead.ownerName = ownerName || null;
+          }
+          // Refresh the list to show updated owner
+          renderLeads();
+          // Refresh owner filter options
+          populateLeadOwnerFilter();
+        } else {
+          alert('Failed to update owner: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error updating lead owner:', error);
+        alert('Failed to update owner');
+      }
+    }
+
     // Create QuickBooks customer from lead
     async function createQuickBooksCustomer(leadId) {
       const btn = document.getElementById('createQBCustomerBtn');
@@ -3666,15 +3753,18 @@
                 </span>
               </h3>
             </div>
-            <div class="space-y-1 overflow-y-auto flex-1 pt-1">
+            <div class="space-y-1 overflow-y-auto flex-1 pt-1 kanban-column" data-status="${status}">
               ${grouped[status].map(lead => {
                 const jobValue = getLeadJobValue(lead);
                 const jobValueDisplay = jobValue ? `$${jobValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
                 return `
-                <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300" onclick="showLeadDetail('${lead.id}')">
+                <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300 lead-card" data-lead-id="${lead.id}" onclick="showLeadDetail('${lead.id}')">
                   <div class="flex justify-between items-start gap-1">
                     <div class="font-medium truncate flex-1 min-w-0">${lead.firstName || ''} ${lead.lastName || ''}</div>
-                    ${jobValueDisplay ? `<div class="badge badge-sm bg-green-50 text-green-600 border-green-200 px-2 flex-shrink-0 whitespace-nowrap">💰 ${jobValueDisplay}</div>` : ''}
+                    <div class="flex gap-1 flex-shrink-0">
+                      ${lead.ownerName ? `<span class="badge badge-xs bg-base-300 text-base-content/70">${getOwnerInitials(lead.ownerName)}</span>` : ''}
+                      ${jobValueDisplay ? `<span class="badge badge-xs bg-green-50 text-green-600 border-green-200">💰 ${jobValueDisplay}</span>` : ''}
+                    </div>
                   </div>
                   <div class="text-base-content/60 truncate">${lead.phone || lead.email || '-'}</div>
                 </div>
@@ -3687,6 +3777,65 @@
 
       // Hide pagination in kanban view
       document.getElementById('leadPagination').innerHTML = '';
+
+      // Initialize drag-and-drop
+      initKanbanDragDrop();
+    }
+
+    // =====================
+    // Kanban Drag-and-Drop
+    // =====================
+    function initKanbanDragDrop() {
+      document.querySelectorAll('.kanban-column').forEach(column => {
+        new Sortable(column, {
+          group: 'leads',
+          animation: 150,
+          ghostClass: 'opacity-50',
+          dragClass: 'shadow-lg',
+          chosenClass: 'bg-base-300',
+          filter: '.empty-column-message',
+          onEnd: handleLeadDrop
+        });
+      });
+    }
+
+    async function handleLeadDrop(evt) {
+      const leadId = evt.item.dataset.leadId;
+      const newStatus = evt.to.dataset.status;
+      const oldStatus = evt.from.dataset.status;
+
+      // Same column - no update needed
+      if (newStatus === oldStatus) return;
+
+      // Update local data optimistically
+      const lead = allLeads.find(l => l.id === leadId);
+      const previousStatus = lead?.status;
+      if (lead) lead.status = newStatus;
+
+      try {
+        const response = await fetch('/.netlify/functions/update-lead-status', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ leadId, status: newStatus })
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to update');
+        }
+      } catch (error) {
+        console.error('Error updating lead status:', error);
+        // Revert on failure
+        if (lead) lead.status = previousStatus;
+        // Move card back to original column
+        evt.from.insertBefore(evt.item, evt.from.children[evt.oldIndex] || null);
+        alert('Failed to update lead status');
+      }
     }
 
     // =====================
@@ -3832,6 +3981,12 @@
 
         const leadsData = await leadsResponse.json();
         allLeads = leadsData.leads || [];
+
+        // Apply client-side "Has Owner" filter
+        const hasOwnerFilter = document.getElementById('leadHasOwnerFilter').checked;
+        if (hasOwnerFilter) {
+          allLeads = allLeads.filter(lead => lead.ownerName);
+        }
 
         // Build proposals lookup maps
         proposalsLookup = { byEmail: {}, byName: {} };

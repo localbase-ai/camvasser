@@ -41,7 +41,7 @@ export async function handler(event) {
   }
 
   try {
-    const { leadId, status } = JSON.parse(event.body);
+    const { leadId, status, ownerName } = JSON.parse(event.body);
 
     if (!leadId) {
       return {
@@ -93,13 +93,22 @@ export async function handler(event) {
       };
     }
 
-    // Update the status
+    // Build update data
+    const updateData = {};
+    if (status !== undefined) {
+      updateData.status = status || null;
+    }
+    if (ownerName !== undefined) {
+      updateData.ownerName = ownerName || null;
+    }
+
+    // Update the lead
     const updated = await prisma.lead.update({
       where: { id: leadId },
-      data: { status: status || null }
+      data: updateData
     });
 
-    console.log(`Updated lead ${leadId} status to: ${status || 'null'}`);
+    console.log(`Updated lead ${leadId}:`, updateData);
 
     return {
       statusCode: 200,
@@ -108,7 +117,8 @@ export async function handler(event) {
         success: true,
         lead: {
           id: updated.id,
-          status: updated.status
+          status: updated.status,
+          ownerName: updated.ownerName
         }
       })
     };

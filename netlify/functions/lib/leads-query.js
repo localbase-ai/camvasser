@@ -48,9 +48,10 @@ export function parseFieldQueries(search) {
  * @param {string} [options.tenant] - Tenant slug to filter by
  * @param {string} [options.search] - Search text (may include field queries)
  * @param {string} [options.status] - Status to filter by
+ * @param {string} [options.owner] - Owner name to filter by
  * @returns {Object} Prisma where clause
  */
-export function buildLeadsWhereClause({ tenant, search, status }) {
+export function buildLeadsWhereClause({ tenant, search, status, owner }) {
   const where = tenant ? { tenant } : {};
 
   // Parse field queries from search
@@ -99,6 +100,11 @@ export function buildLeadsWhereClause({ tenant, search, status }) {
   // Apply status filter
   if (status) {
     where.status = status;
+  }
+
+  // Apply owner filter
+  if (owner) {
+    where.ownerName = owner;
   }
 
   // Apply text search

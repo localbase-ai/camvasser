@@ -26,7 +26,7 @@ export async function handler(event) {
   }
 
   try {
-    const { type, limit, page, sortBy, sortDir, search, status, tenant: tenantParam } = event.queryStringParameters || {};
+    const { type, limit, page, sortBy, sortDir, search, status, owner, tenant: tenantParam } = event.queryStringParameters || {};
     // Use tenant from query param, fall back to user.slug for backwards compat
     const tenant = tenantParam || user.slug;
 
@@ -66,7 +66,7 @@ export async function handler(event) {
     }
 
     // Build where clause using extracted utility
-    const where = buildLeadsWhereClause({ tenant, search, status });
+    const where = buildLeadsWhereClause({ tenant, search, status, owner });
 
     // Execute Prisma query
     let leads, total;

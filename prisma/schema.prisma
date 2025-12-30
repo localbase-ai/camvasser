@@ -34,6 +34,7 @@ model Lead {
   utmCampaign   String?
   utmMedium     String?
   utmSource     String?
+  ownerName     String?
   search_vector Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((((((((COALESCE(\"firstName\", ''::text) || ' '::text) || COALESCE(\"lastName\", ''::text)) || ' '::text) || COALESCE(email, ''::text)) || ' '::text) || COALESCE(phone, ''::text)) || ' '::text) || COALESCE(address, ''::text)))"))
   coordinates   Json?
   prospect      Prospect?                @relation(fields: [prospectId], references: [id])
