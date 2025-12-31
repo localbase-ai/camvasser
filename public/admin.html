@@ -1770,14 +1770,24 @@
           return;
         }
 
-        container.innerHTML = contacts.map(c => `
-          <div class="bg-base-200 rounded p-2 mb-2">
-            <div class="font-medium text-sm">${c.name}</div>
-            ${c.title ? `<div class="text-xs text-base-content/60">${c.title}</div>` : ''}
-            ${c.phone ? `<div class="text-xs"><a href="tel:${c.phone}" class="link">${c.phone}</a></div>` : ''}
-            ${c.email ? `<div class="text-xs"><a href="mailto:${c.email}" class="link">${c.email}</a></div>` : ''}
-          </div>
-        `).join('');
+        container.innerHTML = contacts.map(c => {
+          const hasLinkedProspect = c.prospectId || c.prospect?.id;
+          const prospectId = c.prospectId || c.prospect?.id;
+          const contactName = c.name === '---' ? '(Linked Contact)' : c.name;
+
+          return `
+            <div class="bg-base-200 rounded p-2 mb-2">
+              ${hasLinkedProspect ? `
+                <a href="#" onclick="event.preventDefault(); viewLinkedContact('${prospectId}')" class="font-medium text-sm link link-primary">${contactName}</a>
+              ` : `
+                <div class="font-medium text-sm">${contactName}</div>
+              `}
+              ${c.title ? `<div class="text-xs text-base-content/60">${c.title}</div>` : ''}
+              ${c.phone ? `<div class="text-xs"><a href="tel:${c.phone}" class="link">${c.phone}</a></div>` : ''}
+              ${c.email ? `<div class="text-xs"><a href="mailto:${c.email}" class="link">${c.email}</a></div>` : ''}
+            </div>
+          `;
+        }).join('');
       } catch (error) {
         console.error('Error loading org contacts:', error);
         document.getElementById('orgContactsList').innerHTML = '<p class="text-sm text-error">Error loading contacts</p>';
@@ -1832,6 +1842,15 @@
       // Need to load orgs first, then show detail
       loadOrganizations().then(() => {
         showOrgDetail(orgId);
+      });
+    }
+
+    function viewLinkedContact(prospectId) {
+      if (!prospectId) return;
+      // Switch to contacts view and show the prospect detail
+      switchView('contacts');
+      loadProspects().then(() => {
+        showProspectDetail(prospectId);
       });
     }
 
