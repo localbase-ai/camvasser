@@ -169,7 +169,7 @@ async function main() {
         data: {
           organizationId: existingOrg.id,
           prospectId: prospect.id,
-          name: prospect.name,
+          name: '---',
           phone: getFirstPhone(prospect.phones),
           email: getFirstEmail(prospect.emails),
           isPrimary: true,
@@ -203,7 +203,7 @@ async function main() {
       data: {
         organizationId: org.id,
         prospectId: prospect.id,
-        name: prospect.name,
+        name: '---',
         phone: getFirstPhone(prospect.phones),
         email: getFirstEmail(prospect.emails),
         isPrimary: true

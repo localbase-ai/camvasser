@@ -210,7 +210,7 @@ async function main() {
                 data: {
                   organizationId: org.id,
                   prospectId,
-                  name: ownerName,
+                  name: '---',
                   phone: phone || null,
                   isPrimary: true
                 }

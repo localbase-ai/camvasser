@@ -256,6 +256,13 @@ export async function handler(event) {
         include: {
           project: {
             select: { id: true, address: true, city: true, state: true, postalCode: true, publicUrl: true, tags: true, coordinates: true, notepad: true }
+          },
+          organizationContacts: {
+            include: {
+              organization: {
+                select: { id: true, name: true, type: true }
+              }
+            }
           }
         }
       }),
