@@ -826,6 +826,58 @@
               </div>
             </div>
           </div>
+
+          <!-- WhitePages Integration -->
+          <div class="card bg-base-200 shadow-sm">
+            <div class="card-body">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold">WhitePages Pro</h3>
+                    <p class="text-sm text-base-content/60">Enrich contacts with emails & phones</p>
+                  </div>
+                </div>
+                <div id="whitepagesStatus" class="badge badge-ghost">Checking...</div>
+              </div>
+
+              <div class="divider my-2"></div>
+
+              <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">API Endpoint</span>
+                  <code class="text-xs bg-base-300 px-2 py-0.5 rounded">api.whitepages.com</code>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Contacts Enriched</span>
+                  <span id="whitepagesEnrichedCount" class="font-medium">-</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Emails Found</span>
+                  <span id="whitepagesEmailsFound" class="font-medium">-</span>
+                </div>
+              </div>
+
+              <div class="card-actions justify-end mt-4">
+                <button id="whitepagesTestBtn" onclick="testWhitePages()" class="btn btn-sm btn-outline">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Test
+                </button>
+                <button id="whitepagesEnrichBtn" onclick="enrichWithWhitePages()" class="btn btn-primary btn-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Enrich Contacts
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -6013,6 +6065,120 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           Test Connection
+        `;
+      }
+    }
+
+    // =====================
+    // WhitePages Functions
+    // =====================
+    async function testWhitePages() {
+      const btn = document.getElementById('whitepagesTestBtn');
+      const statusEl = document.getElementById('whitepagesStatus');
+
+      btn.disabled = true;
+      btn.innerHTML = `
+        <span class="loading loading-spinner loading-xs"></span>
+        Testing...
+      `;
+
+      try {
+        const response = await fetch('/.netlify/functions/whitepages-test', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+
+        if (response.ok && data.connected) {
+          statusEl.className = 'badge badge-success';
+          statusEl.textContent = 'Connected';
+          if (data.enrichedCount !== undefined) {
+            document.getElementById('whitepagesEnrichedCount').textContent = data.enrichedCount;
+          }
+          if (data.emailsFound !== undefined) {
+            document.getElementById('whitepagesEmailsFound').textContent = data.emailsFound;
+          }
+        } else {
+          statusEl.className = 'badge badge-error';
+          statusEl.textContent = data.error || 'Not Configured';
+        }
+      } catch (error) {
+        console.error('WhitePages test error:', error);
+        statusEl.className = 'badge badge-error';
+        statusEl.textContent = 'Error';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Test
+        `;
+      }
+    }
+
+    async function enrichWithWhitePages() {
+      const btn = document.getElementById('whitepagesEnrichBtn');
+      const statusEl = document.getElementById('whitepagesStatus');
+      const enrichedCountEl = document.getElementById('whitepagesEnrichedCount');
+      const emailsFoundEl = document.getElementById('whitepagesEmailsFound');
+
+      // Confirm before running
+      const confirmed = confirm('This will enrich contacts without emails using WhitePages API. Each lookup uses 1 API credit. Continue?');
+      if (!confirmed) return;
+
+      btn.disabled = true;
+      btn.innerHTML = `
+        <span class="loading loading-spinner loading-xs"></span>
+        Enriching...
+      `;
+      statusEl.className = 'badge badge-warning';
+      statusEl.textContent = 'Running...';
+
+      try {
+        const response = await fetch('/.netlify/functions/whitepages-enrich', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            tenant: currentTenant,
+            limit: 50  // Process 50 at a time
+          })
+        });
+
+        if (response.status === 401) { logout(); return; }
+
+        const data = await response.json();
+
+        if (response.ok) {
+          statusEl.className = 'badge badge-success';
+          statusEl.textContent = 'Connected';
+          enrichedCountEl.textContent = data.enrichedCount || 0;
+          emailsFoundEl.textContent = data.emailsFound || 0;
+          alert(`Enrichment complete!\n\nContacts processed: ${data.processed || 0}\nEmails found: ${data.emailsFound || 0}\nPhones found: ${data.phonesFound || 0}`);
+          // Reload contacts to show new data
+          loadProspects();
+        } else {
+          statusEl.className = 'badge badge-error';
+          statusEl.textContent = 'Error';
+          alert(data.error || 'Enrichment failed');
+        }
+      } catch (error) {
+        console.error('WhitePages enrich error:', error);
+        statusEl.className = 'badge badge-error';
+        statusEl.textContent = 'Error';
+        alert('Enrichment failed: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Enrich Contacts
         `;
       }
     }
