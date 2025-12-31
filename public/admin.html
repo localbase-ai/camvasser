@@ -2612,6 +2612,27 @@
             </div>
           ` : ''}
 
+          <!-- Property Details (from Clay import) -->
+          ${(() => {
+            try {
+              const propData = prospect.project?.notepad ? JSON.parse(prospect.project.notepad) : null;
+              if (!propData || (!propData.sqFt && !propData.beds && !propData.baths && !propData.estValue && !propData.estEquity)) return '';
+              return `
+                <div class="space-y-2">
+                  <h5 class="text-xs font-semibold text-base-content/60 uppercase">Property Details</h5>
+                  <div class="grid grid-cols-2 gap-2 text-sm">
+                    ${propData.sqFt ? `<div class="text-base-content/60">Sq Ft</div><div>${propData.sqFt.toLocaleString()}</div>` : ''}
+                    ${propData.beds ? `<div class="text-base-content/60">Beds</div><div>${propData.beds}</div>` : ''}
+                    ${propData.baths ? `<div class="text-base-content/60">Baths</div><div>${propData.baths}</div>` : ''}
+                    ${propData.estValue ? `<div class="text-base-content/60">Est. Value</div><div>$${propData.estValue.toLocaleString()}</div>` : ''}
+                    ${propData.estEquity ? `<div class="text-base-content/60">Est. Equity</div><div>$${propData.estEquity.toLocaleString()}</div>` : ''}
+                    ${propData.type ? `<div class="text-base-content/60">Type</div><div>${propData.type}</div>` : ''}
+                  </div>
+                </div>
+              `;
+            } catch (e) { return ''; }
+          })()}
+
           <!-- Details -->
           <div class="space-y-2">
             <h5 class="text-xs font-semibold text-base-content/60 uppercase">Details</h5>
