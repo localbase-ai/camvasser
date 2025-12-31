@@ -32,8 +32,7 @@ export async function handler(event) {
       const project = await prisma.project.findUnique({
         where: { id },
         include: {
-          prospects: true,
-          tags: true
+          prospects: true
         }
       });
 
