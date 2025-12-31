@@ -388,7 +388,7 @@ async function handleOrgContacts(event, user, contactType) {
       take: limitNum,
       skip,
       include: {
-        project: { select: { id: true, address: true, city: true, state: true, postalCode: true, publicUrl: true, tags: true, coordinates: true } }
+        project: { select: { id: true, address: true, city: true, state: true, postalCode: true, publicUrl: true, tags: true, coordinates: true, notepad: true } }
       }
     }),
     prisma.prospect.count({ where: prospectWhere }),
