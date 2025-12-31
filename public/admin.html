@@ -2276,8 +2276,8 @@
               </div>
               <div class="space-y-2">
                 ${addr.prospects.map(p => {
-                  const phone = p.phones?.[0]?.number;
-                  const email = p.emails?.[0]?.address;
+                  const phone = p.phones?.[0]?.phone_number || p.phones?.[0]?.number;
+                  const email = p.emails?.[0]?.email_address || p.emails?.[0]?.address;
                   return `
                     <div class="p-3 bg-base-200 rounded space-y-1">
                       <div class="flex items-center justify-between">
@@ -2439,10 +2439,12 @@
             `;
           }
 
-          const phone = prospect.phones?.sort((a, b) => b.score - a.score)[0];
-          const phoneType = phone?.type && phone.type !== 'unknown' ? ` <span class="text-xs text-base-content/40">(${phone.type})</span>` : '';
-          const phoneDisplay = phone ? `${phone.number}${phoneType}` : '-';
-          const email = prospect.emails?.[0] || '-';
+          const phone = prospect.phones?.sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+          const phoneNum = phone?.phone_number || phone?.number;
+          const phoneType = phone?.line_type && phone.line_type !== 'unknown' ? ` <span class="text-xs text-base-content/40">(${phone.line_type})</span>` : '';
+          const phoneDisplay = phoneNum ? `${phoneNum}${phoneType}` : '-';
+          const emailObj = prospect.emails?.[0];
+          const email = emailObj?.email_address || emailObj?.address || emailObj || '-';
 
           // Type badges - black and white
           let typeBadges = '';
@@ -2492,7 +2494,7 @@
       const content = document.getElementById('prospectDetailContent');
 
       // Get phone numbers
-      const phones = prospect.phones?.sort((a, b) => b.score - a.score) || [];
+      const phones = prospect.phones?.sort((a, b) => (b.score || 0) - (a.score || 0)) || [];
       const emails = prospect.emails || [];
 
       // Render prospect details
@@ -2519,22 +2521,24 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
-                    <a href="tel:${p.number}" class="link link-primary">${p.number}</a>
-                    ${p.type && p.type !== 'unknown' ? `<span class="text-xs text-base-content/40">(${p.type})</span>` : ''}
+                    <a href="tel:${p.phone_number || p.number}" class="link link-primary">${p.phone_number || p.number}</a>
+                    ${(p.line_type || p.type) && (p.line_type || p.type) !== 'unknown' ? `<span class="text-xs text-base-content/40">(${p.line_type || p.type})</span>` : ''}
                   </div>
                 `).join('')}
               </div>
             ` : '<p class="text-sm text-base-content/60">No phone numbers</p>'}
             ${emails.length > 0 ? `
               <div class="space-y-1 mt-2">
-                ${emails.map(e => `
+                ${emails.map(e => {
+                  const emailAddr = e?.email_address || e?.address || e;
+                  return `
                   <div class="flex items-center gap-2 text-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
-                    <a href="mailto:${e}" class="link link-primary">${e}</a>
+                    <a href="mailto:${emailAddr}" class="link link-primary">${emailAddr}</a>
                   </div>
-                `).join('')}
+                `}).join('')}
               </div>
             ` : ''}
           </div>

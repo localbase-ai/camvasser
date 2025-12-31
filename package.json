@@ -33,9 +33,11 @@
     "sortablejs": "^1.15.6"
   },
   "devDependencies": {
+    "@paralleldrive/cuid2": "^3.0.6",
     "@tailwindcss/cli": "^4.1.18",
     "@vitest/ui": "^4.0.1",
     "better-sqlite3": "^12.5.0",
+    "csv-parse": "^6.1.0",
     "daisyui": "^5.5.14",
     "netlify-cli": "^17.0.0",
     "tailwindcss": "^4.1.18",
