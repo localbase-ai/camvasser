@@ -5,6 +5,7 @@
 
 # Bugs
 - [ ] test  views for ipad landscape.
+- [ ] fix has:phone has:name chained search on contacts view
 
 # White Pages Test
 - [ ] set up a test account with white pages and source data for a test list
@@ -56,12 +57,6 @@
 
 ## Admin Features - Instant Estimator
 - [ ] Instant Estimator 
-
-# Bugs
-- [ ] fix has:phone has:name chained search on contacts view
-- [✅] status filter dropdown doesn't work in leads list view
-- [✅] board view columns should have status filters
-- [✅] Search handles multi-word name queries (e.g., "ryan w")
 
 # Map Features
 - [✅] filter leads by 'lead-status'
