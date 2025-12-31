@@ -2821,32 +2821,37 @@
 
     async function viewAddressFromProspect(addressId) {
       closeProspectDetail();
-      switchView('addresses');
-      // Small delay to let the view switch, then show the address detail
-      setTimeout(async () => {
-        // Load addresses if not already loaded, then show detail
-        let addr = allAddresses.find(a => a.id === addressId);
-        if (addr) {
-          showAddressDetail(addressId);
-        } else {
-          // Address not in current page, fetch it directly
-          try {
-            const response = await fetch(`/.netlify/functions/get-projects?id=${addressId}`, {
-              headers: { 'Authorization': `Bearer ${authToken}` }
-            });
-            if (response.ok) {
-              const data = await response.json();
-              if (data.projects && data.projects.length > 0) {
-                // Add to allAddresses so showAddressDetail can find it
-                allAddresses = [data.projects[0], ...allAddresses];
-                showAddressDetail(addressId);
-              }
+
+      // First, make sure we have the address data
+      let addr = allAddresses.find(a => a.id === addressId);
+
+      if (!addr) {
+        // Address not in current list, fetch it directly
+        try {
+          const response = await fetch(`/.netlify/functions/get-projects?id=${addressId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.projects && data.projects.length > 0) {
+              addr = data.projects[0];
+              // Add to allAddresses so showAddressDetail can find it
+              allAddresses = [addr, ...allAddresses];
             }
-          } catch (err) {
-            console.error('Error fetching address:', err);
           }
+        } catch (err) {
+          console.error('Error fetching address:', err);
+          return;
         }
-      }, 100);
+      }
+
+      if (!addr) return;
+
+      // Now switch view and show detail
+      switchView('addresses');
+      setTimeout(() => {
+        showAddressDetail(addressId);
+      }, 50);
     }
 
     function renderLeads() {
