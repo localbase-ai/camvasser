@@ -58,6 +58,7 @@
 - [ ] Instant Estimator 
 
 # Bugs
+- [ ] fix has:phone has:name chained search on contacts view
 - [✅] status filter dropdown doesn't work in leads list view
 - [✅] board view columns should have status filters
 - [✅] Search handles multi-word name queries (e.g., "ryan w")
