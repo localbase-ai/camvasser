@@ -25,7 +25,33 @@ export async function handler(event) {
   }
 
   try {
-    const { limit, page, search, status, sortBy, sortDir, tag, hasTags, hasProspects, tenant } = event.queryStringParameters || {};
+    const { id, limit, page, search, status, sortBy, sortDir, tag, hasTags, hasProspects, tenant } = event.queryStringParameters || {};
+
+    // If fetching by ID, return single project
+    if (id) {
+      const project = await prisma.project.findUnique({
+        where: { id },
+        include: {
+          prospects: true,
+          tags: true
+        }
+      });
+
+      if (!project) {
+        return {
+          statusCode: 404,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Project not found' })
+        };
+      }
+
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projects: [project], total: 1, totalPages: 1 })
+      };
+    }
+
     const limitNum = limit ? parseInt(limit) : 25;
     const pageNum = page ? parseInt(page) : 1;
     const skip = (pageNum - 1) * limitNum;

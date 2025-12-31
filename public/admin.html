@@ -2819,18 +2819,32 @@
       renderProspects();
     }
 
-    function viewAddressFromProspect(addressId) {
+    async function viewAddressFromProspect(addressId) {
       closeProspectDetail();
       switchView('addresses');
       // Small delay to let the view switch, then show the address detail
-      setTimeout(() => {
+      setTimeout(async () => {
         // Load addresses if not already loaded, then show detail
-        const addr = allAddresses.find(a => a.id === addressId);
+        let addr = allAddresses.find(a => a.id === addressId);
         if (addr) {
           showAddressDetail(addressId);
         } else {
-          // Address might not be in current page, search for it
-          searchAddresses();
+          // Address not in current page, fetch it directly
+          try {
+            const response = await fetch(`/.netlify/functions/get-projects?id=${addressId}`, {
+              headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            if (response.ok) {
+              const data = await response.json();
+              if (data.projects && data.projects.length > 0) {
+                // Add to allAddresses so showAddressDetail can find it
+                allAddresses = [data.projects[0], ...allAddresses];
+                showAddressDetail(addressId);
+              }
+            }
+          } catch (err) {
+            console.error('Error fetching address:', err);
+          }
         }
       }, 100);
     }
