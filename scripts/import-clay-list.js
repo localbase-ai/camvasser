@@ -10,6 +10,36 @@ import 'dotenv/config';
 const prisma = new PrismaClient();
 const TENANT = 'budroofing';
 
+// Keywords that indicate a business/organization
+const BUSINESS_KEYWORDS = [
+  'LLC', 'L.L.C.', 'Inc', 'Inc.', 'Incorporated', 'Corp', 'Corp.', 'Corporation',
+  'Company', 'Co.', 'Ltd', 'Ltd.', 'Limited', 'LP', 'L.P.', 'LLP', 'L.L.P.',
+  'Property', 'Properties', 'Management', 'Realty', 'Real Estate', 'Rentals',
+  'Investments', 'Investment', 'Holdings', 'Holding', 'Capital',
+  'HOA', 'H.O.A.', 'Association', 'Homeowners', 'Homeowner', 'Community',
+  'Trust', 'Estate', 'Estates', 'Living Trust', 'Family Trust', 'Revocable Trust',
+  'Church', 'Ministry', 'Ministries', 'Temple', 'Mosque', 'Synagogue',
+  'Group', 'Partners', 'Partnership', 'Enterprises', 'Services', 'Solutions',
+  'Apartments', 'Apartment', 'Complex'
+];
+
+function isBusinessName(name) {
+  if (!name) return false;
+  for (const keyword of BUSINESS_KEYWORDS) {
+    const regex = new RegExp(`\\b${keyword.replace(/\./g, '\\.')}\\b`, 'i');
+    if (regex.test(name)) return true;
+  }
+  return false;
+}
+
+function inferOrgType(name) {
+  if (/\b(HOA|H\.O\.A\.|ASSOCIATION|HOMEOWNERS?)\b/i.test(name)) return 'hoa';
+  if (/\b(PROPERTY|PROPERTIES|MANAGEMENT|REALTY|REAL ESTATE|RENTALS)\b/i.test(name)) return 'property_management';
+  if (/\b(CHURCH|MINISTRY|MINISTRIES|TEMPLE|MOSQUE|SYNAGOGUE)\b/i.test(name)) return 'church';
+  if (/\b(APARTMENTS?|COMPLEX)\b/i.test(name)) return 'apartment_complex';
+  return 'other';
+}
+
 async function parseCSV(filePath) {
   const records = [];
   const parser = createReadStream(filePath).pipe(
@@ -71,6 +101,7 @@ async function main() {
   let projectsSkipped = 0;
   let prospectsCreated = 0;
   let prospectsSkipped = 0;
+  let orgsCreated = 0;
   let errors = 0;
 
   for (let i = 0; i < records.length; i++) {
@@ -142,10 +173,11 @@ async function main() {
         });
 
         if (!existingProspect) {
+          const prospectId = createId();
           if (!dryRun) {
             await prisma.prospect.create({
               data: {
-                id: createId(),
+                id: prospectId,
                 whitepagesId: `clay_${createId()}`,
                 projectId,
                 name: ownerName,
@@ -156,6 +188,35 @@ async function main() {
                 campaign: '66206 List'
               }
             });
+
+            // If business name, also create Organization and link
+            if (isBusinessName(ownerName)) {
+              const orgType = inferOrgType(ownerName);
+              const org = await prisma.organization.create({
+                data: {
+                  name: ownerName,
+                  type: orgType,
+                  address,
+                  city,
+                  state: 'KS',
+                  postalCode: '66206',
+                  phone: phone || null,
+                  notes: 'Auto-created from import (business name detected)',
+                  tenant: TENANT
+                }
+              });
+
+              await prisma.organizationContact.create({
+                data: {
+                  organizationId: org.id,
+                  prospectId,
+                  name: ownerName,
+                  phone: phone || null,
+                  isPrimary: true
+                }
+              });
+              orgsCreated++;
+            }
           }
           prospectsCreated++;
         } else {
@@ -179,6 +240,7 @@ async function main() {
   console.log(`  Projects skipped (existing): ${projectsSkipped}`);
   console.log(`  Prospects created: ${prospectsCreated}`);
   console.log(`  Prospects skipped (existing): ${prospectsSkipped}`);
+  console.log(`  Organizations created: ${orgsCreated}`);
   console.log(`  Errors: ${errors}`);
 
   await prisma.$disconnect();
