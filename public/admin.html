@@ -2473,7 +2473,11 @@
             const org = prospect.organization || {};
             const orgName = org.name || '';
             const orgType = org.type || '';
-            const orgAddress = [org.address, org.city, org.state].filter(Boolean).join(', ') || '-';
+            // Use linked prospect's project address, fall back to org address
+            const proj = prospect.project;
+            const address = proj
+              ? [proj.address, proj.city, proj.state].filter(Boolean).join(', ')
+              : [org.address, org.city, org.state].filter(Boolean).join(', ') || '-';
             const created = prospect.createdAt ? formatDate(prospect.createdAt) : '-';
 
             return `
@@ -2482,7 +2486,7 @@
                   <input type="checkbox" class="checkbox checkbox-sm" disabled>
                 </td>
                 <td class="font-medium">${orgName}</td>
-                <td class="text-sm">${orgAddress}</td>
+                <td class="text-sm">${address}</td>
                 <td class="text-sm">${phone}</td>
                 <td class="text-sm max-w-[200px] truncate">${email}</td>
                 <td><span class="badge badge-primary badge-sm">${formatOrgType(orgType)}</span></td>

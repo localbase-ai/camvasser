@@ -353,7 +353,12 @@ async function handleOrgContacts(event, user, contactType) {
         take: limitNum,
         skip,
         include: {
-          organization: { select: { id: true, name: true, type: true, address: true, city: true, state: true, postalCode: true } }
+          organization: { select: { id: true, name: true, type: true, address: true, city: true, state: true, postalCode: true } },
+          prospect: {
+            include: {
+              project: { select: { id: true, address: true, city: true, state: true, postalCode: true } }
+            }
+          }
         }
       }),
       prisma.organizationContact.count({ where: orgWhere })
@@ -370,6 +375,7 @@ async function handleOrgContacts(event, user, contactType) {
       jobTitle: oc.title,
       isOrgContact: true,
       organization: oc.organization,
+      project: oc.prospect?.project || null,
       createdAt: oc.createdAt,
       notes: oc.notes
     }));
