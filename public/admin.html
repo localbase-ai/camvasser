@@ -1845,13 +1845,31 @@
       });
     }
 
-    function viewLinkedContact(prospectId) {
+    async function viewLinkedContact(prospectId) {
       if (!prospectId) return;
-      // Switch to contacts view and show the prospect detail
+      // Switch to contacts view
       switchView('contacts');
-      loadProspects().then(() => {
-        showProspectDetail(prospectId);
-      });
+
+      // Fetch this specific prospect and add to allProspects so showProspectDetail can find it
+      try {
+        const params = new URLSearchParams({ id: prospectId });
+        if (currentTenant) params.set('tenant', currentTenant);
+
+        const response = await fetch(`/.netlify/functions/get-prospects?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.ok) {
+          const prospect = await response.json();
+          // Add to allProspects if not already there
+          if (!allProspects.find(p => p.id === prospectId)) {
+            allProspects.push(prospect);
+          }
+          showProspectDetail(prospectId);
+        }
+      } catch (error) {
+        console.error('Error fetching linked contact:', error);
+      }
     }
 
     function populateTagFilters() {

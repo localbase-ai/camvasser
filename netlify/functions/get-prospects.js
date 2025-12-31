@@ -23,10 +23,43 @@ export async function handler(event) {
   }
 
   try {
-    const { limit, page, projectId, sortBy, sortDir, search, tag, statusFilter, campaign, tenant, contactType } = event.queryStringParameters || {};
+    const { limit, page, projectId, sortBy, sortDir, search, tag, statusFilter, campaign, tenant, contactType, id } = event.queryStringParameters || {};
     const limitNum = limit ? parseInt(limit) : 25;
     const pageNum = page ? parseInt(page) : 1;
     const skip = (pageNum - 1) * limitNum;
+
+    // If id is provided, return single prospect
+    if (id) {
+      const prospect = await prisma.prospect.findUnique({
+        where: { id },
+        include: {
+          project: {
+            select: { id: true, address: true, city: true, state: true, postalCode: true, publicUrl: true, tags: true, coordinates: true, notepad: true }
+          },
+          organizationContacts: {
+            include: {
+              organization: {
+                select: { id: true, name: true, type: true }
+              }
+            }
+          }
+        }
+      });
+
+      if (!prospect) {
+        return {
+          statusCode: 404,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Prospect not found' })
+        };
+      }
+
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(prospect)
+      };
+    }
 
     // If contactType is 'org', return only org contacts
     // If contactType is 'all', return both prospects and org contacts merged
