@@ -151,19 +151,13 @@ export async function handler(event) {
           });
         }
       } else if (dbField === 'emails' || dbField === 'phones') {
-        // These are JSON arrays - null or empty array means no data
+        // These are JSON arrays - null means no data
+        // Note: In this dataset, empty arrays are stored as null, not []
+        where.AND = where.AND || [];
         if (filter.isEmpty) {
-          where.AND = where.AND || [];
-          where.AND.push({
-            OR: [
-              { [dbField]: null },
-              { [dbField]: { equals: [] } }
-            ]
-          });
+          where.AND.push({ [dbField]: null });
         } else {
-          where.AND = where.AND || [];
           where.AND.push({ [dbField]: { not: null } });
-          // Can't easily check for non-empty array in Prisma, but not null is close enough
         }
       } else if (dbField === 'project.address') {
         // Filter by related project's address field
