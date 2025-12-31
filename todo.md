@@ -4,6 +4,7 @@
 - [ ] Clean up marketing site and launch
 
 # Bugs
+- [ ] test  views for ipad landscape.
 
 # White Pages Test
 - [ ] set up a test account with white pages and source data for a test list
