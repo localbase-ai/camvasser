@@ -255,7 +255,7 @@ export async function handler(event) {
         skip,
         include: {
           project: {
-            select: { id: true, address: true, city: true, state: true, postalCode: true, publicUrl: true, tags: true, coordinates: true }
+            select: { id: true, address: true, city: true, state: true, postalCode: true, publicUrl: true, tags: true, coordinates: true, notepad: true }
           }
         }
       }),
