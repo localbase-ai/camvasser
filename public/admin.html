@@ -1773,18 +1773,18 @@
         container.innerHTML = contacts.map(c => {
           const hasLinkedProspect = c.prospectId || c.prospect?.id;
           const prospectId = c.prospectId || c.prospect?.id;
-          const contactName = c.name === '---' ? '(Linked Contact)' : c.name;
+          const contactName = c.name || '---';
 
           return `
-            <div class="bg-base-200 rounded p-2 mb-2">
+            <div class="mb-3">
               ${hasLinkedProspect ? `
-                <a href="#" onclick="event.preventDefault(); viewLinkedContact('${prospectId}')" class="font-medium text-sm link link-primary">${contactName}</a>
+                <a href="#" onclick="event.preventDefault(); viewLinkedContact('${prospectId}')" class="font-medium text-sm link link-primary block">${contactName}</a>
               ` : `
                 <div class="font-medium text-sm">${contactName}</div>
               `}
               ${c.title ? `<div class="text-xs text-base-content/60">${c.title}</div>` : ''}
-              ${c.phone ? `<div class="text-xs"><a href="tel:${c.phone}" class="link">${c.phone}</a></div>` : ''}
-              ${c.email ? `<div class="text-xs"><a href="mailto:${c.email}" class="link">${c.email}</a></div>` : ''}
+              ${c.email ? `<div class="text-xs">${c.email}</div>` : ''}
+              ${c.phone ? `<div class="text-xs">${c.phone}</div>` : ''}
             </div>
           `;
         }).join('');
