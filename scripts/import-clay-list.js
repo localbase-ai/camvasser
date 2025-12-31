@@ -215,6 +215,12 @@ async function main() {
                   isPrimary: true
                 }
               });
+
+              // Update prospect name to --- since it's an org, not a person
+              await prisma.prospect.update({
+                where: { id: prospectId },
+                data: { name: '---' }
+              });
               orgsCreated++;
             }
           }

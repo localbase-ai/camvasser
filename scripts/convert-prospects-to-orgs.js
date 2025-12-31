@@ -176,6 +176,12 @@ async function main() {
           notes: `Converted from prospect (campaign ${campaign})`
         }
       });
+
+      // Update prospect name to --- since it's an org, not a person
+      await prisma.prospect.update({
+        where: { id: prospect.id },
+        data: { name: '---' }
+      });
       contactsLinked++;
       console.log(`  Linked to existing org: ${prospect.name}`);
       continue;
@@ -208,6 +214,12 @@ async function main() {
         email: getFirstEmail(prospect.emails),
         isPrimary: true
       }
+    });
+
+    // Update prospect name to --- since it's an org, not a person
+    await prisma.prospect.update({
+      where: { id: prospect.id },
+      data: { name: '---' }
     });
     contactsLinked++;
 

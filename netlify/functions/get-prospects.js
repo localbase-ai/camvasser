@@ -132,13 +132,23 @@ export async function handler(event) {
       if (!dbField) continue;
 
       if (dbField === 'name') {
-        // name is required, so only check empty string
+        // name is required, so check empty string and placeholder "---"
         if (filter.isEmpty) {
           where.AND = where.AND || [];
-          where.AND.push({ name: '' });
+          where.AND.push({
+            OR: [
+              { name: '' },
+              { name: '---' }
+            ]
+          });
         } else {
           where.AND = where.AND || [];
-          where.AND.push({ name: { not: '' } });
+          where.AND.push({
+            AND: [
+              { name: { not: '' } },
+              { name: { not: '---' } }
+            ]
+          });
         }
       } else if (dbField === 'emails' || dbField === 'phones') {
         // These are JSON arrays - null or empty array means no data
