@@ -51,7 +51,15 @@
       <nav class="flex-1">
         <ul class="menu menu-md">
           <li>
-            <a href="#leads" class="nav-link active" data-view="leads">
+            <a href="#calls" class="nav-link active" data-view="calls">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+              <span class="nav-text">Calls</span>
+            </a>
+          </li>
+          <li>
+            <a href="#leads" class="nav-link" data-view="leads">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -154,9 +162,15 @@
             <span id="addressCountLabel" class="text-xs text-base-content/60"></span>
             <div class="flex flex-wrap gap-2 items-center flex-1">
               <input type="text" id="addressSearch" placeholder="Search addresses..." class="input input-bordered input-sm flex-1 min-w-[200px]">
-              <select id="addressTagFilter" class="select select-bordered select-sm">
-                <option value="">All Tags</option>
-              </select>
+              <div class="dropdown">
+                <label tabindex="0" class="btn btn-sm btn-ghost gap-1 border border-base-300">
+                  <span id="addressTagFilterLabel">All Tags</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </label>
+                <div tabindex="0" class="dropdown-content z-[100] p-2 shadow bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto fixed">
+                  <div id="addressTagFilterOptions" class="space-y-1"></div>
+                </div>
+              </div>
               <label class="label cursor-pointer gap-2">
                 <input type="checkbox" id="hasTagsFilter" class="toggle toggle-sm">
                 <span class="label-text">Has tags</span>
@@ -244,9 +258,15 @@
                 <option value="org">Org Contacts</option>
                 <option value="all">All Contacts</option>
               </select>
-              <select id="prospectTagFilter" class="select select-bordered select-sm">
-                <option value="">All Tags</option>
-              </select>
+              <div class="dropdown dropdown-end">
+                <label tabindex="0" class="btn btn-sm btn-ghost gap-1 border border-base-300">
+                  <span id="prospectTagFilterLabel">All Tags</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </label>
+                <div tabindex="0" class="dropdown-content z-[100] p-2 shadow bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto fixed">
+                  <div id="prospectTagFilterOptions" class="space-y-1"></div>
+                </div>
+              </div>
               <select id="prospectStatusFilter" class="select select-bordered select-sm">
                 <option value="">All Statuses</option>
                 <option value="no_status">No Status</option>
@@ -287,6 +307,7 @@
             <div id="prospectBulkActions" class="hidden bg-warning/10 rounded-lg px-3 py-2 my-2 flex items-center justify-between">
               <span class="text-sm"><strong id="prospectSelectedCount">0</strong> contact(s) selected</span>
               <div class="flex gap-2">
+                <button onclick="openCallListModal('contact')" class="btn btn-secondary btn-sm">Add to Call List</button>
                 <button onclick="exportSelectedProspects()" class="btn btn-primary btn-sm">Export CSV</button>
                 <button onclick="deleteSelectedProspects()" class="btn btn-error btn-sm">Delete Selected</button>
               </div>
@@ -302,13 +323,14 @@
                     <th>Email</th>
                     <th>Type</th>
                     <th>Tags</th>
+                    <th>Campaign</th>
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortProspects('status')">Status</th>
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortProspects('createdAt')">Created</th>
                   </tr>
                 </thead>
                 <tbody id="prospectTableBody">
                   <tr>
-                    <td colspan="9" class="text-center py-8">
+                    <td colspan="10" class="text-center py-8">
                       <span class="loading loading-spinner loading-md"></span>
                     </td>
                   </tr>
@@ -399,6 +421,7 @@
                 <span id="allMatchingSelectedLeads" class="hidden text-sm text-success font-medium">· All matching selected</span>
               </div>
               <div class="flex gap-2">
+                <button onclick="openCallListModal('lead')" class="btn btn-secondary btn-sm">Add to Call List</button>
                 <button onclick="exportSelectedLeads()" class="btn btn-primary btn-sm">Export CSV</button>
                 <button onclick="deleteSelectedLeads()" class="btn btn-error btn-sm">Delete Selected</button>
               </div>
@@ -554,6 +577,113 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <p class="text-base-content/60">No upcoming appointments</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calls View -->
+      <div id="view-calls" class="view hidden flex flex-col h-full">
+        <div class="py-4">
+          <h2 class="text-2xl font-bold mb-2">Calls</h2>
+          <p class="text-base-content/60">Track your daily calling activity</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="flex gap-4 mb-6">
+          <!-- Daily Target -->
+          <div class="flex-1 bg-base-200 rounded-lg p-4 flex items-center gap-3">
+            <div class="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-xs text-base-content/60">Daily Target</p>
+              <p class="text-2xl font-bold">100</p>
+            </div>
+          </div>
+
+          <!-- Calls Today -->
+          <div class="flex-1 bg-base-200 rounded-lg p-4 flex items-center gap-3">
+            <div class="w-10 h-10 bg-info/20 rounded-lg flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-xs text-base-content/60">Calls Today</p>
+              <p class="text-2xl font-bold">0</p>
+            </div>
+          </div>
+
+          <!-- Connects Today -->
+          <div class="flex-1 bg-base-200 rounded-lg p-4 flex items-center gap-3">
+            <div class="w-10 h-10 bg-success/20 rounded-lg flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-xs text-base-content/60">Connects Today</p>
+              <p class="text-2xl font-bold">0</p>
+            </div>
+          </div>
+
+          <!-- New Deals Created -->
+          <div class="flex-1 bg-base-200 rounded-lg p-4 flex items-center gap-3">
+            <div class="w-10 h-10 bg-warning/20 rounded-lg flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-xs text-base-content/60">New Deals</p>
+              <p class="text-2xl font-bold">0</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Call List Content -->
+        <div class="flex-1 flex flex-col min-h-0">
+          <!-- Header row with controls -->
+          <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center gap-2">
+              <select id="callListSelect" class="select select-bordered select-sm" onchange="loadCallList(this.value)">
+                <option value="">Select a list...</option>
+              </select>
+              <label class="label cursor-pointer gap-2">
+                <input type="checkbox" id="showAllCallLists" class="toggle toggle-sm" onchange="loadCallLists()">
+                <span class="label-text text-xs">Show all lists</span>
+              </label>
+            </div>
+            <div id="callListCount" class="text-sm text-base-content/60">
+              0 items in list
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div id="callListEmpty" class="flex-1 flex flex-col items-center justify-center py-12 bg-base-200 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+            <h3 class="text-lg font-semibold mb-1">No call lists yet</h3>
+            <p class="text-base-content/60 text-sm text-center">Select contacts or leads and click<br>"Add to Call List" to create one</p>
+          </div>
+
+          <!-- Call list table (hidden by default) -->
+          <div id="callListTable" class="hidden overflow-auto flex-1">
+            <table class="table w-full">
+              <thead class="sticky top-0 bg-base-100 z-10">
+                <tr>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Type</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="callListTableBody">
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -1195,13 +1325,13 @@
 
       // Handle browser back/forward
       window.addEventListener('hashchange', () => {
-        const hash = window.location.hash.slice(1) || 'addresses';
+        const hash = window.location.hash.slice(1) || 'calls';
         switchView(hash, false);
       });
 
       // Check initial hash
       const initialHash = window.location.hash.slice(1);
-      if (initialHash && ['addresses', 'contacts', 'leads', 'map', 'calendar', 'integrations'].includes(initialHash)) {
+      if (initialHash && ['calls', 'addresses', 'contacts', 'leads', 'map', 'calendar', 'integrations'].includes(initialHash)) {
         switchView(initialHash, false);
       }
       // Handle deep link to specific lead: #lead/{leadId}
@@ -1301,6 +1431,11 @@
       if (view === 'organizations') {
         loadOrganizations();
       }
+
+      // Load call lists when switching to calls view
+      if (view === 'calls') {
+        loadCallLists();
+      }
     }
 
     // =====================
@@ -1312,11 +1447,26 @@
         loadAddresses(),
         loadProspects(),
         loadLeads(),
-        loadTags()
+        loadTags(),
+        loadOrgCount()
       ]);
 
       // Pre-cache map URLs for faster display
       preCacheMapUrls();
+    }
+
+    async function loadOrgCount() {
+      try {
+        const params = new URLSearchParams({ limit: '1', page: '1' });
+        if (currentTenant) params.set('tenant', currentTenant);
+        const response = await fetch(`/.netlify/functions/get-organizations?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await response.json();
+        document.getElementById('orgCount').textContent = data.total || 0;
+      } catch (error) {
+        console.error('Error loading org count:', error);
+      }
     }
 
     async function loadAddresses() {
@@ -1872,11 +2022,72 @@
       }
     }
 
-    function populateTagFilters() {
-      const options = allTags.map(t => `<option value="${t.value}">${t.display_value || t.displayValue || t.value}</option>`).join('');
+    // Track selected tags for multi-select filters
+    let selectedProspectTags = [];
+    let selectedAddressTags = [];
 
-      document.getElementById('addressTagFilter').innerHTML = '<option value="">All Tags</option>' + options;
-      document.getElementById('prospectTagFilter').innerHTML = '<option value="">All Tags</option>' + options;
+    function populateTagFilters() {
+      // Populate address tag multi-select
+      const addressTagOptions = allTags.map(t => {
+        const displayValue = t.display_value || t.displayValue || t.value;
+        return `
+          <label class="flex items-center gap-2 px-2 py-1 hover:bg-base-200 rounded cursor-pointer">
+            <input type="checkbox" class="checkbox checkbox-sm address-tag-checkbox" value="${t.value}" onchange="updateAddressTagFilter()">
+            <span class="text-sm">${displayValue}</span>
+          </label>
+        `;
+      }).join('');
+      document.getElementById('addressTagFilterOptions').innerHTML = addressTagOptions;
+
+      // Populate prospect tag multi-select
+      const prospectTagOptions = allTags.map(t => {
+        const displayValue = t.display_value || t.displayValue || t.value;
+        return `
+          <label class="flex items-center gap-2 px-2 py-1 hover:bg-base-200 rounded cursor-pointer">
+            <input type="checkbox" class="checkbox checkbox-sm prospect-tag-checkbox" value="${t.value}" onchange="updateProspectTagFilter()">
+            <span class="text-sm">${displayValue}</span>
+          </label>
+        `;
+      }).join('');
+      document.getElementById('prospectTagFilterOptions').innerHTML = prospectTagOptions;
+    }
+
+    function updateAddressTagFilter() {
+      const checkboxes = document.querySelectorAll('.address-tag-checkbox:checked');
+      selectedAddressTags = Array.from(checkboxes).map(cb => cb.value);
+
+      // Update label
+      const label = document.getElementById('addressTagFilterLabel');
+      if (selectedAddressTags.length === 0) {
+        label.textContent = 'All Tags';
+      } else if (selectedAddressTags.length === 1) {
+        const tag = allTags.find(t => t.value === selectedAddressTags[0]);
+        label.textContent = tag?.display_value || tag?.displayValue || selectedAddressTags[0];
+      } else {
+        label.textContent = `${selectedAddressTags.length} tags`;
+      }
+
+      addressPage = 1;
+      searchAddresses();
+    }
+
+    function updateProspectTagFilter() {
+      const checkboxes = document.querySelectorAll('.prospect-tag-checkbox:checked');
+      selectedProspectTags = Array.from(checkboxes).map(cb => cb.value);
+
+      // Update label
+      const label = document.getElementById('prospectTagFilterLabel');
+      if (selectedProspectTags.length === 0) {
+        label.textContent = 'All Tags';
+      } else if (selectedProspectTags.length === 1) {
+        const tag = allTags.find(t => t.value === selectedProspectTags[0]);
+        label.textContent = tag?.display_value || tag?.displayValue || selectedProspectTags[0];
+      } else {
+        label.textContent = `${selectedProspectTags.length} tags`;
+      }
+
+      prospectPage = 1;
+      searchProspects();
     }
 
     // Track selected statuses for multi-select filter
@@ -1968,7 +2179,7 @@
         clearTimeout(addressSearchTimeout);
         addressSearchTimeout = setTimeout(() => { addressPage = 1; searchAddresses(); }, 300);
       });
-      document.getElementById('addressTagFilter').addEventListener('change', () => { addressPage = 1; searchAddresses(); });
+      // Tag filter is handled by updateAddressTagFilter() via checkbox onchange
       document.getElementById('hasTagsFilter').addEventListener('change', () => { addressPage = 1; searchAddresses(); });
       document.getElementById('hasProspectsFilter').addEventListener('change', () => { addressPage = 1; searchAddresses(); });
 
@@ -1978,7 +2189,7 @@
         clearTimeout(prospectSearchTimeout);
         prospectSearchTimeout = setTimeout(() => { prospectPage = 1; searchProspects(); }, 300);
       });
-      document.getElementById('prospectTagFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
+      // Tag filter is handled by updateProspectTagFilter() via checkbox onchange
       document.getElementById('prospectStatusFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
       document.getElementById('prospectCampaignFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
       document.getElementById('contactTypeFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
@@ -2015,7 +2226,6 @@
     // =====================
     async function searchAddresses() {
       const searchQuery = document.getElementById('addressSearch').value.trim();
-      const tagFilter = document.getElementById('addressTagFilter').value;
       const hasTags = document.getElementById('hasTagsFilter').checked;
       const hasProspects = document.getElementById('hasProspectsFilter').checked;
 
@@ -2029,7 +2239,7 @@
 
       if (currentTenant) params.set('tenant', currentTenant);
       if (searchQuery) params.set('search', searchQuery);
-      if (tagFilter) params.set('tag', tagFilter);
+      if (selectedAddressTags.length > 0) params.set('tags', selectedAddressTags.join(','));
       if (hasTags) params.set('hasTags', 'true');
       if (hasProspects) params.set('hasProspects', 'true');
 
@@ -2053,7 +2263,6 @@
 
     async function searchProspects() {
       const searchQuery = document.getElementById('prospectSearch').value.trim();
-      const tagFilter = document.getElementById('prospectTagFilter').value;
       const statusFilter = document.getElementById('prospectStatusFilter').value;
       const campaignFilter = document.getElementById('prospectCampaignFilter').value;
       const contactType = document.getElementById('contactTypeFilter').value;
@@ -2067,7 +2276,7 @@
 
       if (currentTenant) params.set('tenant', currentTenant);
       if (searchQuery) params.set('search', searchQuery);
-      if (tagFilter) params.set('tag', tagFilter);
+      if (selectedProspectTags.length > 0) params.set('tags', selectedProspectTags.join(','));
       if (statusFilter) params.set('statusFilter', statusFilter);
       if (campaignFilter) params.set('campaign', campaignFilter);
       if (contactType) params.set('contactType', contactType);
@@ -2500,7 +2709,7 @@
       const tbody = document.getElementById('prospectTableBody');
 
       if (allProspects.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-base-content/60">No contacts found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-base-content/60">No contacts found</td></tr>`;
       } else {
         tbody.innerHTML = allProspects.map(prospect => {
           // Handle org contacts differently
@@ -2528,6 +2737,7 @@
                 <td class="text-sm max-w-[200px] truncate">${email}</td>
                 <td><span class="badge badge-primary badge-sm">${formatOrgType(orgType)}</span></td>
                 <td class="max-w-[150px]">${prospect.jobTitle || '-'}</td>
+                <td class="text-sm">-</td>
                 <td>-</td>
                 <td class="text-sm text-base-content/60">${created}</td>
               </tr>
@@ -2567,6 +2777,7 @@
               <td class="text-sm max-w-[200px] truncate" onclick="showProspectDetail('${prospect.id}')">${email}</td>
               <td onclick="showProspectDetail('${prospect.id}')">${typeBadges || '-'}</td>
               <td class="max-w-[150px]" onclick="showProspectDetail('${prospect.id}')">${tags || '-'}</td>
+              <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${prospect.campaign || '-'}</td>
               <td onclick="showProspectDetail('${prospect.id}')">${status}</td>
               <td class="text-sm text-base-content/60" onclick="showProspectDetail('${prospect.id}')">${created}</td>
             </tr>
@@ -3068,6 +3279,15 @@
                 <a href="tel:${lead.phone}" class="link link-primary">${lead.phone}</a>
               </div>
             ` : ''}
+            ${lead.address ? `
+              <div class="flex items-start gap-2 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>${lead.address}${lead.city || lead.state || lead.postalCode ? ', ' + [lead.city, lead.state, lead.postalCode].filter(Boolean).join(', ') : ''}</span>
+              </div>
+            ` : ''}
           </div>
 
           <!-- Address -->
@@ -3079,7 +3299,7 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="font-medium text-sm">${lead.address}</p>
-                    ${lead.city || lead.state || lead.zip ? `<p class="text-xs text-base-content/60">${[lead.city, lead.state, lead.zip].filter(Boolean).join(', ')}</p>` : ''}
+                    ${lead.city || lead.state || lead.postalCode ? `<p class="text-xs text-base-content/60">${[lead.city, lead.state, lead.postalCode].filter(Boolean).join(', ')}</p>` : ''}
                   </div>
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -3868,6 +4088,267 @@
 
     function closeInfoModal() {
       document.getElementById('infoModal').close();
+    }
+
+    // Call List Modal Functions
+    let callListModalType = null; // 'contact' or 'lead'
+    let allCallLists = [];
+    let tenantUsers = [];
+
+    async function openCallListModal(type) {
+      callListModalType = type;
+
+      // Fetch existing call lists and tenant users in parallel
+      try {
+        const [listsRes, usersRes] = await Promise.all([
+          fetch(`/.netlify/functions/get-call-lists?tenant=${currentTenant}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          }),
+          fetch(`/.netlify/functions/get-tenant-users?tenant=${currentTenant}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          })
+        ]);
+
+        if (listsRes.status === 401 || usersRes.status === 401) { logout(); return; }
+
+        const listsData = await listsRes.json();
+        const usersData = await usersRes.json();
+
+        allCallLists = listsData.callLists || [];
+        tenantUsers = usersData.users || [];
+      } catch (e) {
+        allCallLists = [];
+        tenantUsers = [];
+      }
+
+      // Render list options
+      const optionsContainer = document.getElementById('callListOptions');
+      if (allCallLists.length === 0) {
+        optionsContainer.innerHTML = '<p class="text-sm text-base-content/40 italic">No existing lists</p>';
+      } else {
+        optionsContainer.innerHTML = allCallLists.map(list => `
+          <button onclick="addToExistingCallList('${list.id}')" class="btn btn-outline btn-sm w-full justify-start">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            ${list.name}
+            <span class="badge badge-ghost badge-sm ml-auto">${list._count?.items || 0}</span>
+          </button>
+        `).join('');
+      }
+
+      // Populate assignee dropdown
+      const assigneeSelect = document.getElementById('newCallListAssignee');
+      const currentUserName = currentUser.name || currentUser.email;
+      assigneeSelect.innerHTML = `<option value="">${currentUserName}</option>` +
+        tenantUsers.filter(u => u.id !== currentUser.id).map(u => `<option value="${u.id}">${u.name || u.email}</option>`).join('');
+
+      // Default list name to current date
+      const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      document.getElementById('newCallListName').value = today;
+      document.getElementById('callListModal').showModal();
+    }
+
+    function closeCallListModal() {
+      document.getElementById('callListModal').close();
+      callListModalType = null;
+    }
+
+    function getSelectedIds() {
+      if (callListModalType === 'contact') {
+        return Array.from(document.querySelectorAll('.prospect-checkbox:checked')).map(cb => cb.dataset.id);
+      } else {
+        return Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => cb.dataset.id);
+      }
+    }
+
+    async function addToExistingCallList(listId) {
+      const ids = getSelectedIds();
+      if (ids.length === 0) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/add-to-call-list', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            callListId: listId,
+            contactIds: callListModalType === 'contact' ? ids : [],
+            leadIds: callListModalType === 'lead' ? ids : [],
+            tenant: currentTenant
+          })
+        });
+
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+
+        if (data.success) {
+          closeCallListModal();
+          showInfoModal('success', 'Added to List', `Added ${ids.length} ${callListModalType}(s) to call list`);
+        } else {
+          showInfoModal('error', 'Error', data.error || 'Failed to add to list');
+        }
+      } catch (e) {
+        showInfoModal('error', 'Error', 'Failed to add to list');
+      }
+    }
+
+    async function createCallListAndAdd() {
+      const name = document.getElementById('newCallListName').value.trim();
+      if (!name) {
+        alert('Please enter a list name');
+        return;
+      }
+
+      const ids = getSelectedIds();
+      if (ids.length === 0) return;
+
+      const assignedToUserId = document.getElementById('newCallListAssignee').value || null;
+
+      try {
+        const response = await fetch('/.netlify/functions/create-call-list', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name,
+            contactIds: callListModalType === 'contact' ? ids : [],
+            leadIds: callListModalType === 'lead' ? ids : [],
+            tenant: currentTenant,
+            assignedToUserId
+          })
+        });
+
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+
+        if (data.success) {
+          closeCallListModal();
+          const assigneeName = assignedToUserId ? tenantUsers.find(u => u.id === assignedToUserId)?.name : 'you';
+          showInfoModal('success', 'List Created', `Created "${name}" with ${ids.length} ${callListModalType}(s), assigned to ${assigneeName}`);
+        } else {
+          showInfoModal('error', 'Error', data.error || 'Failed to create list');
+        }
+      } catch (e) {
+        showInfoModal('error', 'Error', 'Failed to create list');
+      }
+    }
+
+    // Load call lists for the Calls view
+    async function loadCallLists() {
+      try {
+        const showAll = document.getElementById('showAllCallLists')?.checked;
+        let url = `/.netlify/functions/get-call-lists?tenant=${currentTenant}`;
+        if (showAll) {
+          url += '&all=true';
+        } else {
+          url += `&assignedTo=${currentUser.id}`;
+        }
+
+        const response = await fetch(url, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+        allCallLists = data.callLists || [];
+
+        const select = document.getElementById('callListSelect');
+        const emptyState = document.getElementById('callListEmpty');
+
+        if (allCallLists.length === 0) {
+          select.innerHTML = '<option value="">No lists yet</option>';
+          emptyState.classList.remove('hidden');
+          document.getElementById('callListTable').classList.add('hidden');
+          emptyState.querySelector('h3').textContent = showAll ? 'No call lists yet' : 'No lists assigned to you';
+          emptyState.querySelector('p').innerHTML = 'Select contacts or leads and click<br>"Add to Call List" to create one';
+        } else {
+          select.innerHTML = '<option value="">Select a list...</option>' +
+            allCallLists.map(list => {
+              const assignee = list.assigneeName ? ` - ${list.assigneeName}` : '';
+              return `<option value="${list.id}">${list.name} (${list._count?.items || 0})${showAll ? assignee : ''}</option>`;
+            }).join('');
+          emptyState.querySelector('h3').textContent = 'Select a call list';
+          emptyState.querySelector('p').innerHTML = 'Choose a list from the dropdown above';
+        }
+      } catch (e) {
+        console.error('Error loading call lists:', e);
+      }
+    }
+
+    // Load a specific call list's items
+    async function loadCallList(listId) {
+      if (!listId) {
+        document.getElementById('callListEmpty').classList.remove('hidden');
+        document.getElementById('callListTable').classList.add('hidden');
+        document.getElementById('callListCount').textContent = '0 items in list';
+        return;
+      }
+
+      try {
+        const response = await fetch(`/.netlify/functions/get-call-list-items?listId=${listId}&tenant=${currentTenant}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+        const items = data.items || [];
+
+        document.getElementById('callListCount').textContent = `${items.length} item${items.length !== 1 ? 's' : ''} in list`;
+
+        if (items.length === 0) {
+          document.getElementById('callListEmpty').classList.remove('hidden');
+          document.getElementById('callListTable').classList.add('hidden');
+          document.getElementById('callListEmpty').querySelector('h3').textContent = 'List is empty';
+          document.getElementById('callListEmpty').querySelector('p').innerHTML = 'Add contacts or leads to this list';
+        } else {
+          document.getElementById('callListEmpty').classList.add('hidden');
+          document.getElementById('callListTable').classList.remove('hidden');
+
+          const tbody = document.getElementById('callListTableBody');
+          tbody.innerHTML = items.map(item => {
+            const record = item.contact || item.lead;
+            const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim() || 'Unknown';
+            const phone = record?.phones?.[0]?.phone_number || record?.phone || '-';
+            const type = item.contact ? 'Contact' : 'Lead';
+            return `
+              <tr class="hover:bg-base-200">
+                <td class="font-medium">${name}</td>
+                <td><a href="tel:${phone}" class="link link-primary">${phone}</a></td>
+                <td><span class="badge badge-sm badge-ghost">${type}</span></td>
+                <td>
+                  <button onclick="removeFromCallList('${listId}', '${item.id}')" class="btn btn-ghost btn-xs text-error">Remove</button>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (e) {
+        console.error('Error loading call list items:', e);
+      }
+    }
+
+    async function removeFromCallList(listId, itemId) {
+      try {
+        const response = await fetch('/.netlify/functions/remove-from-call-list', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ itemId })
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+        if (data.success) {
+          loadCallList(listId);
+          loadCallLists(); // Refresh counts
+        }
+      } catch (e) {
+        console.error('Error removing from call list:', e);
+      }
     }
 
     async function updateLeadStatus(leadId, status) {
@@ -6743,6 +7224,44 @@
     </div>
     <form method="dialog" class="modal-backdrop bg-black/50">
       <button onclick="closeInfoModal()">close</button>
+    </form>
+  </dialog>
+
+  <!-- Call List Modal -->
+  <dialog id="callListModal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-base-100" style="padding: 24px; max-width: 400px;">
+      <h3 class="font-bold text-lg" style="margin-bottom: 16px;">Add to Call List</h3>
+
+      <!-- Existing Lists -->
+      <div id="callListExisting" class="space-y-2 mb-4">
+        <p class="text-sm text-base-content/60">Select an existing list or create a new one</p>
+        <div id="callListOptions" class="space-y-2">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Create New -->
+      <div class="divider text-xs">OR</div>
+      <div class="space-y-3">
+        <div class="form-control">
+          <label class="label py-1"><span class="label-text text-xs">Create New List</span></label>
+          <input type="text" id="newCallListName" placeholder="List name..." class="input input-bordered input-sm w-full">
+        </div>
+        <div class="form-control">
+          <label class="label py-1"><span class="label-text text-xs">Assign to</span></label>
+          <select id="newCallListAssignee" class="select select-bordered select-sm w-full">
+            <option value="">Myself</option>
+          </select>
+        </div>
+        <button onclick="createCallListAndAdd()" class="btn btn-primary btn-sm w-full">Create List</button>
+      </div>
+
+      <div class="modal-action" style="margin-top: 16px;">
+        <button class="btn btn-sm" onclick="closeCallListModal()">Cancel</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-black/50">
+      <button onclick="closeCallListModal()">close</button>
     </form>
   </dialog>
 </body>

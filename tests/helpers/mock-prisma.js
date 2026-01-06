@@ -68,6 +68,27 @@ export function createMockPrisma() {
       delete: vi.fn(),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 })
     },
+    callList: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
+      count: vi.fn().mockResolvedValue(0),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 })
+    },
+    callListItem: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
+      count: vi.fn().mockResolvedValue(0),
+      create: vi.fn(),
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      update: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 })
+    },
     $queryRaw: vi.fn().mockResolvedValue([]),
     $queryRawUnsafe: vi.fn().mockResolvedValue([]),
     $disconnect: vi.fn()
@@ -186,6 +207,27 @@ export const factories = {
     createdByName: 'Test User',
     createdAt: new Date(),
     updatedAt: new Date(),
+    ...overrides
+  }),
+
+  callList: (overrides = {}) => ({
+    id: 'calllist_123',
+    name: 'Test Call List',
+    tenantId: 'acme',
+    userId: 'user_123',
+    assignedToUserId: 'user_123',
+    createdAt: new Date(),
+    _count: { items: 0 },
+    ...overrides
+  }),
+
+  callListItem: (overrides = {}) => ({
+    id: 'calllistitem_123',
+    callListId: 'calllist_123',
+    contactId: null,
+    leadId: null,
+    position: 0,
+    createdAt: new Date(),
     ...overrides
   })
 };

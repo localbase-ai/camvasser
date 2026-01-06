@@ -23,7 +23,7 @@ export async function handler(event) {
   }
 
   try {
-    const { limit, page, projectId, sortBy, sortDir, search, tag, statusFilter, campaign, tenant, contactType, id } = event.queryStringParameters || {};
+    const { limit, page, projectId, sortBy, sortDir, search, tag, tags, statusFilter, campaign, tenant, contactType, id } = event.queryStringParameters || {};
     const limitNum = limit ? parseInt(limit) : 25;
     const pageNum = page ? parseInt(page) : 1;
     const skip = (pageNum - 1) * limitNum;
@@ -102,14 +102,17 @@ export async function handler(event) {
       where.campaign = campaign;
     }
 
-    // Filter by project tag (prospects whose project has this tag)
-    if (tag) {
-      // Find projects with matching tag using raw SQL
-      const tagPattern = `%"value": "${tag}"%`;
-      const projectIds = await prisma.$queryRaw`
+    // Filter by project tag(s) (prospects whose project has these tags)
+    // Support both single tag (tag) and multiple tags (tags, comma-separated)
+    const tagList = tags ? tags.split(',').filter(Boolean) : (tag ? [tag] : []);
+    if (tagList.length > 0) {
+      // Find projects with matching any of the tags using raw SQL
+      const tagPatterns = tagList.map(t => `%"value": "${t}"%`);
+      const whereClause = tagPatterns.map(p => `tags::text ILIKE '${p}'`).join(' OR ');
+      const projectIds = await prisma.$queryRawUnsafe(`
         SELECT id FROM "Project"
-        WHERE tags::text ILIKE ${tagPattern}
-      `;
+        WHERE ${whereClause}
+      `);
       const ids = projectIds.map(p => p.id);
       if (ids.length === 0) {
         return {

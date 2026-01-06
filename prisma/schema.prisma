@@ -16,6 +16,9 @@ model Lead {
   email         String?
   phone         String?
   address       String?
+  city          String?
+  state         String?
+  postalCode    String?
   projectId     String?
   prospectId    String?
   tenant        String
@@ -339,4 +342,45 @@ model OrganizationProperty {
   @@unique([organizationId, projectId])
   @@index([organizationId])
   @@index([projectId])
+}
+
+model OAuthToken {
+  id           String   @id @default(cuid())
+  provider     String   @unique // "quickbooks", etc.
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  companyId    String?  // Provider-specific ID (QB realm ID)
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@index([provider])
+}
+
+model CallList {
+  id               String         @id @default(cuid())
+  name             String
+  tenantId         String
+  userId           String
+  assignedToUserId String?
+  createdAt        DateTime       @default(now())
+  items            CallListItem[]
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([assignedToUserId])
+}
+
+model CallListItem {
+  id         String   @id @default(cuid())
+  callListId String
+  contactId  String?
+  leadId     String?
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+  callList   CallList @relation(fields: [callListId], references: [id], onDelete: Cascade)
+
+  @@index([callListId])
+  @@index([contactId])
+  @@index([leadId])
 }

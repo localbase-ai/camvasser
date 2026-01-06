@@ -83,7 +83,10 @@ export async function handler(event) {
       lastName: lead.lastName,
       email: lead.email,
       phone: lead.phone,
-      address: lead.address
+      address: lead.address,
+      city: lead.city,
+      state: lead.state,
+      postalCode: lead.postalCode
     };
 
     // Check for existing customer

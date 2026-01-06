@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import { updateCustomerNotes, getCustomer } from './lib/quickbooks.js';
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -137,10 +138,46 @@ async function addNote(event, user) {
       }
     });
 
+    // If this is a lead note and lead has a QB customer, sync notes to QB
+    let qbSynced = false;
+    if (entityType === 'lead') {
+      try {
+        const lead = await prisma.lead.findUnique({
+          where: { id: entityId },
+          select: { flowData: true }
+        });
+
+        const qbCustomerId = lead?.flowData?.quickbooks_customer_id;
+        if (qbCustomerId) {
+          // Get all notes for this lead to build combined notes string
+          const allNotes = await prisma.note.findMany({
+            where: { entityType: 'lead', entityId },
+            orderBy: { createdAt: 'asc' }
+          });
+
+          // Format notes for QB (newest first, with author and date)
+          const notesText = allNotes.map(n => {
+            const date = new Date(n.createdAt).toLocaleDateString('en-US', {
+              month: 'short', day: 'numeric', year: 'numeric'
+            });
+            const author = n.authorName || 'Unknown';
+            return `[${date} - ${author}]\n${n.content}`;
+          }).join('\n\n---\n\n');
+
+          await updateCustomerNotes(qbCustomerId, notesText);
+          qbSynced = true;
+          console.log('[Notes] Synced notes to QB customer:', qbCustomerId);
+        }
+      } catch (qbError) {
+        console.error('[Notes] Failed to sync to QB:', qbError.message);
+        // Don't fail the note creation, just log the error
+      }
+    }
+
     return {
       statusCode: 201,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: true, note })
+      body: JSON.stringify({ success: true, note, qbSynced })
     };
 
   } catch (error) {
