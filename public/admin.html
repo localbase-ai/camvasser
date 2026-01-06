@@ -204,11 +204,12 @@
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortAddresses('tags')">Tags</th>
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortAddresses('prospectCount')">Contacts</th>
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortAddresses('ccCreatedAt')">Created</th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortAddresses('ccUpdatedAt')">Updated</th>
                   </tr>
                 </thead>
                 <tbody id="addressTableBody">
                   <tr>
-                    <td colspan="8" class="text-center py-8">
+                    <td colspan="9" class="text-center py-8">
                       <span class="loading loading-spinner loading-md"></span>
                     </td>
                   </tr>
@@ -586,61 +587,6 @@
         <div class="py-4">
           <h2 class="text-2xl font-bold mb-2">Calls</h2>
           <p class="text-base-content/60">Track your daily calling activity</p>
-        </div>
-
-        <!-- Stats Cards -->
-        <div class="flex gap-4 mb-6">
-          <!-- Daily Target -->
-          <div class="flex-1 bg-base-200 rounded-lg p-4 flex items-center gap-3">
-            <div class="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <p class="text-xs text-base-content/60">Daily Target</p>
-              <p class="text-2xl font-bold">100</p>
-            </div>
-          </div>
-
-          <!-- Calls Today -->
-          <div class="flex-1 bg-base-200 rounded-lg p-4 flex items-center gap-3">
-            <div class="w-10 h-10 bg-info/20 rounded-lg flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-            </div>
-            <div>
-              <p class="text-xs text-base-content/60">Calls Today</p>
-              <p class="text-2xl font-bold">0</p>
-            </div>
-          </div>
-
-          <!-- Connects Today -->
-          <div class="flex-1 bg-base-200 rounded-lg p-4 flex items-center gap-3">
-            <div class="w-10 h-10 bg-success/20 rounded-lg flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-            <div>
-              <p class="text-xs text-base-content/60">Connects Today</p>
-              <p class="text-2xl font-bold">0</p>
-            </div>
-          </div>
-
-          <!-- New Deals Created -->
-          <div class="flex-1 bg-base-200 rounded-lg p-4 flex items-center gap-3">
-            <div class="w-10 h-10 bg-warning/20 rounded-lg flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <p class="text-xs text-base-content/60">New Deals</p>
-              <p class="text-2xl font-bold">0</p>
-            </div>
-          </div>
         </div>
 
         <!-- Call List Content -->
@@ -2424,12 +2370,13 @@
       const tbody = document.getElementById('addressTableBody');
 
       if (addresses.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-base-content/60">No addresses found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-base-content/60">No addresses found</td></tr>`;
       } else {
         tbody.innerHTML = addresses.map(addr => {
           const thumb = addr.featureImage?.find(img => img.type === 'thumbnail')?.url || addr.featureImage?.[0]?.url;
           const tags = (addr.tags || []).map(t => `<div class="badge badge-sm">${t.display_value || t.displayValue || t.value}</div>`).join(' ');
           const created = addr.ccCreatedAt ? formatDate(addr.ccCreatedAt) : '-';
+          const updated = addr.ccUpdatedAt ? formatDate(addr.ccUpdatedAt) : '-';
           const isSelected = selectedAddressId === addr.id;
 
           return `
@@ -2459,6 +2406,7 @@
                 }
               </td>
               <td class="text-sm text-base-content/60">${created}</td>
+              <td class="text-sm text-base-content/60">${updated}</td>
             </tr>
           `;
         }).join('');
