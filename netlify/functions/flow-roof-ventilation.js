@@ -540,7 +540,7 @@ function generateHTML(tenant) {
 
     <!-- Step 1: Address -->
     <div class="step active" id="step1">
-      <h1 class="step-title">Where is the home you're asking about?</h1>
+      <h1 class="step-title">What is the address of the home?</h1>
       <p class="step-subtitle">We'll check climate conditions and common roof ventilation patterns for homes in your area.</p>
 
       <div id="map" style="width: 100%; height: 280px; border-radius: var(--radius); overflow: hidden;"></div>
