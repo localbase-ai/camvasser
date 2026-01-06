@@ -809,8 +809,7 @@ function generateHTML(tenant) {
         <p style="text-align: center; font-size: 15px; line-height: 1.6; color: var(--muted); margin-bottom: 20px;">
           One of our specialists will reach out to discuss your personalized Ventilation Report and options for improving airflow.
         </p>
-        <button class="btn" onclick="callNow()">Get Your Roof Ventilation Report</button>
-        <button class="btn btn-secondary" onclick="callNow()">Request a No-Pressure Ventilation & Roof Inspection</button>
+        <button class="btn" onclick="callNow()">Request a No-Pressure Ventilation & Roof Inspection</button>
       </div>
     </div>
 
