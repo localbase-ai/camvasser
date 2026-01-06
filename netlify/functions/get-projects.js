@@ -25,7 +25,7 @@ export async function handler(event) {
   }
 
   try {
-    const { id, limit, page, search, status, sortBy, sortDir, tag, hasTags, hasProspects, tenant } = event.queryStringParameters || {};
+    const { id, limit, page, search, status, sortBy, sortDir, tag, tags, hasTags, hasProspects, tenant } = event.queryStringParameters || {};
 
     // If fetching by ID, return single project
     if (id) {
@@ -210,13 +210,16 @@ export async function handler(event) {
       }
     }
 
-    // Filter by tag if provided - use raw SQL for PostgreSQL JSON search
-    // Prisma's string_contains doesn't work reliably with JSON fields on PostgreSQL
-    if (tag) {
-      const tagPattern = `%"value": "${tag}"%`;
+    // Filter by tag(s) if provided - use raw SQL for PostgreSQL JSON search
+    // Support both single tag (tag) and multiple tags (tags, comma-separated)
+    const tagList = tags ? tags.split(',').filter(Boolean) : (tag ? [tag] : []);
+    if (tagList.length > 0) {
+      // Build tag patterns - any tag matches (OR)
+      const tagPatterns = tagList.map(t => `%"value": "${t}"%`);
+      const tagOrCondition = tagPatterns.map(p => `tags::text ILIKE '${p.replace(/'/g, "''")}'`).join(' OR ');
 
       // Build conditions for the tag query
-      const tagConditions = [`tags::text ILIKE '${tagPattern.replace(/'/g, "''")}'`];
+      const tagConditions = [`(${tagOrCondition})`];
       if (tenant) tagConditions.push(`tenant = '${tenant}'`);
 
       // Handle hasProspects in the tag query
@@ -242,7 +245,7 @@ export async function handler(event) {
       const projectIds = await prisma.$queryRawUnsafe(tagQuery);
       const ids = projectIds.map(p => p.id);
       if (ids.length === 0) {
-        // No projects match this tag, return empty result
+        // No projects match these tags, return empty result
         return {
           statusCode: 200,
           headers: { 'Content-Type': 'application/json' },

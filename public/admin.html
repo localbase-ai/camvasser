@@ -154,9 +154,15 @@
             <span id="addressCountLabel" class="text-xs text-base-content/60"></span>
             <div class="flex flex-wrap gap-2 items-center flex-1">
               <input type="text" id="addressSearch" placeholder="Search addresses..." class="input input-bordered input-sm flex-1 min-w-[200px]">
-              <select id="addressTagFilter" class="select select-bordered select-sm">
-                <option value="">All Tags</option>
-              </select>
+              <div class="dropdown">
+                <label tabindex="0" class="btn btn-sm btn-ghost gap-1 border border-base-300">
+                  <span id="addressTagFilterLabel">All Tags</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </label>
+                <div tabindex="0" class="dropdown-content z-[100] p-2 shadow bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto fixed">
+                  <div id="addressTagFilterOptions" class="space-y-1"></div>
+                </div>
+              </div>
               <label class="label cursor-pointer gap-2">
                 <input type="checkbox" id="hasTagsFilter" class="toggle toggle-sm">
                 <span class="label-text">Has tags</span>
@@ -244,9 +250,15 @@
                 <option value="org">Org Contacts</option>
                 <option value="all">All Contacts</option>
               </select>
-              <select id="prospectTagFilter" class="select select-bordered select-sm">
-                <option value="">All Tags</option>
-              </select>
+              <div class="dropdown">
+                <label tabindex="0" class="btn btn-sm btn-ghost gap-1 border border-base-300">
+                  <span id="prospectTagFilterLabel">All Tags</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </label>
+                <div tabindex="0" class="dropdown-content z-[100] p-2 shadow bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto fixed">
+                  <div id="prospectTagFilterOptions" class="space-y-1"></div>
+                </div>
+              </div>
               <select id="prospectStatusFilter" class="select select-bordered select-sm">
                 <option value="">All Statuses</option>
                 <option value="no_status">No Status</option>
@@ -1875,11 +1887,66 @@
       }
     }
 
-    function populateTagFilters() {
-      const options = allTags.map(t => `<option value="${t.value}">${t.display_value || t.displayValue || t.value}</option>`).join('');
+    // Track selected tags for multi-select filters
+    let selectedAddressTags = [];
+    let selectedProspectTags = [];
 
-      document.getElementById('addressTagFilter').innerHTML = '<option value="">All Tags</option>' + options;
-      document.getElementById('prospectTagFilter').innerHTML = '<option value="">All Tags</option>' + options;
+    function populateTagFilters() {
+      // Build checkbox options for addresses
+      const addressTagOptions = allTags.map(t => `
+        <label class="flex items-center gap-2 px-2 py-1 hover:bg-base-200 rounded cursor-pointer">
+          <input type="checkbox" class="checkbox checkbox-sm address-tag-checkbox" value="${t.value}" onchange="updateAddressTagFilter()">
+          <span class="text-sm">${t.display_value || t.displayValue || t.value}</span>
+        </label>
+      `).join('');
+      document.getElementById('addressTagFilterOptions').innerHTML = addressTagOptions;
+
+      // Build checkbox options for prospects/contacts
+      const prospectTagOptions = allTags.map(t => `
+        <label class="flex items-center gap-2 px-2 py-1 hover:bg-base-200 rounded cursor-pointer">
+          <input type="checkbox" class="checkbox checkbox-sm prospect-tag-checkbox" value="${t.value}" onchange="updateProspectTagFilter()">
+          <span class="text-sm">${t.display_value || t.displayValue || t.value}</span>
+        </label>
+      `).join('');
+      document.getElementById('prospectTagFilterOptions').innerHTML = prospectTagOptions;
+    }
+
+    function updateAddressTagFilter() {
+      const checkboxes = document.querySelectorAll('.address-tag-checkbox:checked');
+      selectedAddressTags = Array.from(checkboxes).map(cb => cb.value);
+
+      // Update label
+      const label = document.getElementById('addressTagFilterLabel');
+      if (selectedAddressTags.length === 0) {
+        label.textContent = 'All Tags';
+      } else if (selectedAddressTags.length === 1) {
+        const tag = allTags.find(t => t.value === selectedAddressTags[0]);
+        label.textContent = tag?.display_value || tag?.displayValue || selectedAddressTags[0];
+      } else {
+        label.textContent = `${selectedAddressTags.length} tags`;
+      }
+
+      addressPage = 1;
+      searchAddresses();
+    }
+
+    function updateProspectTagFilter() {
+      const checkboxes = document.querySelectorAll('.prospect-tag-checkbox:checked');
+      selectedProspectTags = Array.from(checkboxes).map(cb => cb.value);
+
+      // Update label
+      const label = document.getElementById('prospectTagFilterLabel');
+      if (selectedProspectTags.length === 0) {
+        label.textContent = 'All Tags';
+      } else if (selectedProspectTags.length === 1) {
+        const tag = allTags.find(t => t.value === selectedProspectTags[0]);
+        label.textContent = tag?.display_value || tag?.displayValue || selectedProspectTags[0];
+      } else {
+        label.textContent = `${selectedProspectTags.length} tags`;
+      }
+
+      prospectPage = 1;
+      searchProspects();
     }
 
     // Track selected statuses for multi-select filter
@@ -1971,7 +2038,7 @@
         clearTimeout(addressSearchTimeout);
         addressSearchTimeout = setTimeout(() => { addressPage = 1; searchAddresses(); }, 300);
       });
-      document.getElementById('addressTagFilter').addEventListener('change', () => { addressPage = 1; searchAddresses(); });
+      // Tag filter is handled by updateAddressTagFilter() via checkbox onchange
       document.getElementById('hasTagsFilter').addEventListener('change', () => { addressPage = 1; searchAddresses(); });
       document.getElementById('hasProspectsFilter').addEventListener('change', () => { addressPage = 1; searchAddresses(); });
 
@@ -1981,7 +2048,7 @@
         clearTimeout(prospectSearchTimeout);
         prospectSearchTimeout = setTimeout(() => { prospectPage = 1; searchProspects(); }, 300);
       });
-      document.getElementById('prospectTagFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
+      // Tag filter is handled by updateProspectTagFilter() via checkbox onchange
       document.getElementById('prospectStatusFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
       document.getElementById('prospectCampaignFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
       document.getElementById('contactTypeFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
@@ -2018,7 +2085,6 @@
     // =====================
     async function searchAddresses() {
       const searchQuery = document.getElementById('addressSearch').value.trim();
-      const tagFilter = document.getElementById('addressTagFilter').value;
       const hasTags = document.getElementById('hasTagsFilter').checked;
       const hasProspects = document.getElementById('hasProspectsFilter').checked;
 
@@ -2032,7 +2098,7 @@
 
       if (currentTenant) params.set('tenant', currentTenant);
       if (searchQuery) params.set('search', searchQuery);
-      if (tagFilter) params.set('tag', tagFilter);
+      if (selectedAddressTags.length > 0) params.set('tags', selectedAddressTags.join(','));
       if (hasTags) params.set('hasTags', 'true');
       if (hasProspects) params.set('hasProspects', 'true');
 
@@ -2056,7 +2122,6 @@
 
     async function searchProspects() {
       const searchQuery = document.getElementById('prospectSearch').value.trim();
-      const tagFilter = document.getElementById('prospectTagFilter').value;
       const statusFilter = document.getElementById('prospectStatusFilter').value;
       const campaignFilter = document.getElementById('prospectCampaignFilter').value;
       const contactType = document.getElementById('contactTypeFilter').value;
@@ -2070,7 +2135,7 @@
 
       if (currentTenant) params.set('tenant', currentTenant);
       if (searchQuery) params.set('search', searchQuery);
-      if (tagFilter) params.set('tag', tagFilter);
+      if (selectedProspectTags.length > 0) params.set('tags', selectedProspectTags.join(','));
       if (statusFilter) params.set('statusFilter', statusFilter);
       if (campaignFilter) params.set('campaign', campaignFilter);
       if (contactType) params.set('contactType', contactType);
@@ -3685,7 +3750,7 @@
       // Build filters from current UI state
       const filters = {
         tenant: currentTenant,
-        tag: document.getElementById('prospectTagFilter').value,
+        tags: selectedProspectTags.length > 0 ? selectedProspectTags.join(',') : '',
         statusFilter: document.getElementById('prospectStatusFilter').value,
         campaign: document.getElementById('prospectCampaignFilter').value,
         search: document.getElementById('prospectSearch').value.trim()
