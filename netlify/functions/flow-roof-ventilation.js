@@ -556,8 +556,7 @@ function generateHTML(tenant) {
 
     <!-- Step 2: Roof Snow & Melt Patterns -->
     <div class="step" id="step2">
-      <h1 class="step-title">Does Your Roof Look Like This When It Snows?</h1>
-      <img src="/images/melt-pattern.jpg" alt="Roof showing uneven snow melt patterns indicating ventilation issues" style="width: 100%; border-radius: var(--radius); margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+      <h1 class="step-title">During winter or cold weather, how does snow or frost melt on your roof?</h1>
       <p class="step-subtitle">Uneven melt patterns are often the first visible sign of ventilation issues. Choose all that apply.</p>
 
       <div class="options" id="meltPatternsOptions">
