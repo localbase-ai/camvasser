@@ -1,5 +1,3 @@
-import axios from 'axios';
-
 /**
  * Fetch labels for a specific CompanyCam project
  * @param {string} projectId - The CompanyCam project ID
@@ -8,24 +6,27 @@ import axios from 'axios';
  */
 export async function fetchProjectLabels(projectId, apiToken) {
   try {
-    const response = await axios.get(
+    const response = await fetch(
       `https://api.companycam.com/v2/projects/${projectId}/labels`,
       {
         headers: {
           'Authorization': `Bearer ${apiToken}`,
           'Accept': 'application/json'
-        },
-        timeout: 5000
+        }
       }
     );
 
-    return response.data || [];
-  } catch (error) {
     // 404 means no labels exist for this project
-    if (error.response?.status === 404) {
+    if (response.status === 404) {
       return [];
     }
 
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    return await response.json() || [];
+  } catch (error) {
     console.error(`Error fetching labels for project ${projectId}:`, error.message);
     throw error;
   }
@@ -39,21 +40,21 @@ export async function fetchProjectLabels(projectId, apiToken) {
  */
 export async function fetchProjectWithLabels(projectId, apiToken) {
   try {
-    // Fetch project details
-    const projectResponse = await axios.get(
+    const projectResponse = await fetch(
       `https://api.companycam.com/v2/projects/${projectId}`,
       {
         headers: {
           'Authorization': `Bearer ${apiToken}`,
           'Accept': 'application/json'
-        },
-        timeout: 5000
+        }
       }
     );
 
-    const project = projectResponse.data;
+    if (!projectResponse.ok) {
+      throw new Error(`HTTP ${projectResponse.status}`);
+    }
 
-    // Fetch labels for this project
+    const project = await projectResponse.json();
     const labels = await fetchProjectLabels(projectId, apiToken);
 
     return {
@@ -68,24 +69,26 @@ export async function fetchProjectWithLabels(projectId, apiToken) {
 
 /**
  * Fetch all labels for a company (across all projects)
- * This can be used to get a list of all available labels
  * @param {string} apiToken - The CompanyCam API token
  * @returns {Promise<Array>} Array of all unique labels
  */
 export async function fetchAllCompanyLabels(apiToken) {
   try {
-    const response = await axios.get(
+    const response = await fetch(
       'https://api.companycam.com/v2/tags',
       {
         headers: {
           'Authorization': `Bearer ${apiToken}`,
           'Accept': 'application/json'
-        },
-        timeout: 5000
+        }
       }
     );
 
-    return response.data || [];
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    return await response.json() || [];
   } catch (error) {
     console.error('Error fetching company labels:', error.message);
     throw error;
