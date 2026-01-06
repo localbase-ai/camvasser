@@ -1,28 +1,22 @@
 import { PrismaClient } from '@prisma/client';
 import { verifyToken } from './lib/auth.js';
 import { loadTenantConfig } from './lib/tenant-config.js';
-import { syncProject } from './lib/project-sync.js';
 
 const prisma = new PrismaClient();
 
 /**
- * Fetch projects from CompanyCam API
- * @param {string} apiToken - CompanyCam API token
- * @param {Date|null} sinceDate - Filter projects updated since this date
- * @param {boolean} fullSync - If true, increases page limit for full sync
+ * Fetch all projects from CompanyCam (basic info only, no labels)
  */
-async function fetchProjects(apiToken, sinceDate = null, fullSync = false) {
+async function fetchAllProjects(apiToken) {
   const projects = [];
   let page = 1;
   const perPage = 50;
-  const maxPages = fullSync ? 200 : 20; // Full sync allows more pages
+  const maxPages = 200; // Safety limit
 
   while (page <= maxPages) {
     const params = new URLSearchParams({
       page: String(page),
-      per_page: String(perPage),
-      sort: 'updated_at',
-      direction: 'desc'
+      per_page: String(perPage)
     });
 
     const response = await fetch(
@@ -37,8 +31,9 @@ async function fetchProjects(apiToken, sinceDate = null, fullSync = false) {
 
     if (!response.ok) {
       if (response.status === 429) {
-        console.log('[Sync] Rate limited, returning partial results');
-        break;
+        console.log('[FixDates] Rate limited, waiting 30s...');
+        await new Promise(r => setTimeout(r, 30000));
+        continue;
       }
       throw new Error(`CompanyCam API error: ${response.status}`);
     }
@@ -47,18 +42,14 @@ async function fetchProjects(apiToken, sinceDate = null, fullSync = false) {
 
     if (!pageProjects || pageProjects.length === 0) break;
 
-    // Filter by date if provided
-    // Note: updated_at is a Unix timestamp in seconds
-    if (sinceDate) {
-      const filtered = pageProjects.filter(p => new Date(p.updated_at * 1000) >= sinceDate);
-      projects.push(...filtered);
-      if (filtered.length < pageProjects.length) break;
-    } else {
-      projects.push(...pageProjects);
-    }
+    projects.push(...pageProjects);
+    console.log(`[FixDates] Fetched page ${page}, total: ${projects.length}`);
 
     if (pageProjects.length < perPage) break;
     page++;
+
+    // Small delay to avoid rate limiting
+    await new Promise(r => setTimeout(r, 50));
   }
 
   return projects;
@@ -106,63 +97,81 @@ export async function handler(event) {
       };
     }
 
-    // Parse options from body
-    let days = 30;
-    if (event.body) {
-      try {
-        const body = JSON.parse(event.body);
-        if (body.days) days = parseInt(body.days, 10);
-      } catch (e) {}
+    console.log('[FixDates] Starting date fix migration...');
+
+    // Fetch all projects from CompanyCam
+    const ccProjects = await fetchAllProjects(apiToken);
+    console.log(`[FixDates] Fetched ${ccProjects.length} projects from CompanyCam`);
+
+    // Create a map for quick lookup
+    const ccProjectMap = new Map();
+    for (const p of ccProjects) {
+      ccProjectMap.set(p.id, p);
     }
 
-    const sinceDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    const fullSync = days > 365;
+    // Get all local projects with bad dates
+    const localProjects = await prisma.project.findMany({
+      where: {
+        tenant: user.slug,
+        OR: [
+          { ccCreatedAt: null },
+          { ccCreatedAt: { lt: new Date('2000-01-01') } }
+        ]
+      },
+      select: { id: true }
+    });
 
-    console.log(`[Sync] ${fullSync ? 'Full sync' : 'Incremental sync'} - fetching projects updated since ${sinceDate.toISOString()}`);
+    console.log(`[FixDates] Found ${localProjects.length} projects needing date fix`);
 
-    const projects = await fetchProjects(apiToken, sinceDate, fullSync);
+    let updated = 0;
+    let notFound = 0;
 
-    console.log(`[Sync] Found ${projects.length} projects to sync`);
+    for (const local of localProjects) {
+      const cc = ccProjectMap.get(local.id);
 
-    let synced = 0;
-    let errors = 0;
+      if (!cc) {
+        notFound++;
+        continue;
+      }
 
-    for (const project of projects) {
-      try {
-        await syncProject(project, user.slug, apiToken);
-        synced++;
-      } catch (error) {
-        console.error(`[Sync] Error syncing ${project.id}:`, error.message);
-        errors++;
+      const ccCreatedAt = cc.created_at ? new Date(cc.created_at * 1000) : null;
+      const ccUpdatedAt = cc.updated_at ? new Date(cc.updated_at * 1000) : null;
+
+      if (ccCreatedAt) {
+        await prisma.project.update({
+          where: { id: local.id },
+          data: {
+            ccCreatedAt,
+            ccUpdatedAt
+          }
+        });
+        updated++;
+
+        if (updated % 500 === 0) {
+          console.log(`[FixDates] Updated ${updated} projects...`);
+        }
       }
     }
 
-    // Get updated totals
-    const totalProjects = await prisma.project.count({ where: { tenant: user.slug } });
-    const photoSum = await prisma.project.aggregate({
-      where: { tenant: user.slug },
-      _sum: { photoCount: true }
-    });
+    console.log(`[FixDates] Complete - Updated: ${updated}, Not found: ${notFound}`);
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         success: true,
-        synced,
-        errors,
-        totalProjects,
-        totalPhotos: photoSum._sum.photoCount || 0,
-        message: `Synced ${synced} projects`
+        updated,
+        notFound,
+        message: `Fixed dates for ${updated} projects`
       })
     };
 
   } catch (error) {
-    console.error('[Sync] Error:', error);
+    console.error('[FixDates] Error:', error);
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Sync failed', details: error.message })
+      body: JSON.stringify({ error: 'Migration failed', details: error.message })
     };
   } finally {
     await prisma.$disconnect();
