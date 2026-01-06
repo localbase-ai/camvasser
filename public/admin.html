@@ -6074,7 +6074,12 @@
       }
 
       try {
-        const response = await fetch('/.netlify/functions/sync-companycam', {
+        // Use background function for full syncs (they take too long for regular functions)
+        const endpoint = isFullSync
+          ? '/.netlify/functions/sync-companycam-background'
+          : '/.netlify/functions/sync-companycam';
+
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -6085,6 +6090,14 @@
 
         if (response.status === 401) {
           logout();
+          return;
+        }
+
+        // Background functions return 202 immediately
+        if (isFullSync && response.status === 202) {
+          statusEl.className = 'badge badge-warning';
+          statusEl.textContent = 'Syncing...';
+          showInfoModal('success', 'Full Sync Started', 'Full sync is running in the background. This may take several minutes. Refresh the page later to see updated stats.');
           return;
         }
 
