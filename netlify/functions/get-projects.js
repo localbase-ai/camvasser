@@ -262,7 +262,7 @@ export async function handler(event) {
     }
 
     // Build sort order
-    const validSortFields = ['address', 'city', 'state', 'photoCount', 'lastSyncedAt', 'ccCreatedAt'];
+    const validSortFields = ['address', 'city', 'state', 'photoCount', 'lastSyncedAt', 'ccCreatedAt', 'ccUpdatedAt'];
     const sortDirection = sortDir === 'asc' ? 'asc' : 'desc';
 
     let projects, totalCount;

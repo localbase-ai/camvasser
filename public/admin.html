@@ -196,11 +196,12 @@
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortAddresses('tags')">Tags</th>
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortAddresses('prospectCount')">Contacts</th>
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortAddresses('ccCreatedAt')">Created</th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortAddresses('ccUpdatedAt')">Updated</th>
                   </tr>
                 </thead>
                 <tbody id="addressTableBody">
                   <tr>
-                    <td colspan="8" class="text-center py-8">
+                    <td colspan="9" class="text-center py-8">
                       <span class="loading loading-spinner loading-md"></span>
                     </td>
                   </tr>
@@ -2283,12 +2284,13 @@
       const tbody = document.getElementById('addressTableBody');
 
       if (addresses.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-base-content/60">No addresses found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-base-content/60">No addresses found</td></tr>`;
       } else {
         tbody.innerHTML = addresses.map(addr => {
           const thumb = addr.featureImage?.find(img => img.type === 'thumbnail')?.url || addr.featureImage?.[0]?.url;
           const tags = (addr.tags || []).map(t => `<div class="badge badge-sm">${t.display_value || t.displayValue || t.value}</div>`).join(' ');
           const created = addr.ccCreatedAt ? formatDate(addr.ccCreatedAt) : '-';
+          const updated = addr.ccUpdatedAt ? formatDate(addr.ccUpdatedAt) : '-';
           const isSelected = selectedAddressId === addr.id;
 
           return `
@@ -2318,6 +2320,7 @@
                 }
               </td>
               <td class="text-sm text-base-content/60">${created}</td>
+              <td class="text-sm text-base-content/60">${updated}</td>
             </tr>
           `;
         }).join('');
