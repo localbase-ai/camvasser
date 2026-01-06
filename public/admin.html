@@ -6051,23 +6051,50 @@
     async function syncCompanyCam() {
       const btn = document.getElementById('companycamSyncBtn');
       const statusEl = document.getElementById('companycamStatus');
+      const projectCountEl = document.getElementById('companycamProjectCount');
+      const photoCountEl = document.getElementById('companycamPhotoCount');
+      const lastSyncEl = document.getElementById('companycamLastSync');
 
       btn.disabled = true;
       btn.innerHTML = `
         <span class="loading loading-spinner loading-xs"></span>
         Syncing...
       `;
+      statusEl.className = 'badge badge-warning';
+      statusEl.textContent = 'Syncing';
 
       try {
-        // This would trigger a full CompanyCam sync
-        // For now just refresh the stats
-        await checkCompanyCamStatus();
-        statusEl.className = 'badge badge-success';
-        statusEl.textContent = 'Connected';
+        const response = await fetch('/.netlify/functions/sync-companycam', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ days: 30 })
+        });
+
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          statusEl.className = 'badge badge-success';
+          statusEl.textContent = 'Connected';
+          projectCountEl.textContent = data.totalProjects.toLocaleString();
+          photoCountEl.textContent = data.totalPhotos.toLocaleString();
+          lastSyncEl.textContent = 'Just now';
+          showInfoModal('success', 'Sync Complete', `Synced ${data.synced} projects`);
+        } else {
+          throw new Error(data.error || 'Sync failed');
+        }
       } catch (error) {
         console.error('CompanyCam sync error:', error);
         statusEl.className = 'badge badge-error';
         statusEl.textContent = 'Error';
+        showInfoModal('error', 'Sync Failed', error.message);
       } finally {
         btn.disabled = false;
         btn.innerHTML = `
