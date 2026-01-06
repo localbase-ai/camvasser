@@ -770,8 +770,11 @@
                 </div>
               </div>
 
-              <div class="card-actions justify-end mt-4">
-                <button id="companycamSyncBtn" onclick="syncCompanyCam()" class="btn btn-primary btn-sm">
+              <div class="card-actions justify-end mt-4 gap-2">
+                <button id="companycamFullSyncBtn" onclick="syncCompanyCam(3650)" class="btn btn-outline btn-sm" title="Re-sync all projects to fix dates">
+                  Full Sync
+                </button>
+                <button id="companycamSyncBtn" onclick="syncCompanyCam(30)" class="btn btn-primary btn-sm">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
@@ -6048,20 +6051,27 @@
       }
     }
 
-    async function syncCompanyCam() {
+    async function syncCompanyCam(days = 30) {
       const btn = document.getElementById('companycamSyncBtn');
+      const fullSyncBtn = document.getElementById('companycamFullSyncBtn');
       const statusEl = document.getElementById('companycamStatus');
       const projectCountEl = document.getElementById('companycamProjectCount');
       const photoCountEl = document.getElementById('companycamPhotoCount');
       const lastSyncEl = document.getElementById('companycamLastSync');
 
+      const isFullSync = days > 365;
       btn.disabled = true;
-      btn.innerHTML = `
-        <span class="loading loading-spinner loading-xs"></span>
-        Syncing...
-      `;
-      statusEl.className = 'badge badge-warning';
-      statusEl.textContent = 'Syncing';
+      fullSyncBtn.disabled = true;
+
+      if (isFullSync) {
+        fullSyncBtn.innerHTML = `<span class="loading loading-spinner loading-xs"></span> Syncing...`;
+        statusEl.className = 'badge badge-warning';
+        statusEl.textContent = 'Full Sync';
+      } else {
+        btn.innerHTML = `<span class="loading loading-spinner loading-xs"></span> Syncing...`;
+        statusEl.className = 'badge badge-warning';
+        statusEl.textContent = 'Syncing';
+      }
 
       try {
         const response = await fetch('/.netlify/functions/sync-companycam', {
@@ -6070,7 +6080,7 @@
             'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ days: 30 })
+          body: JSON.stringify({ days })
         });
 
         if (response.status === 401) {
@@ -6097,12 +6107,14 @@
         showInfoModal('error', 'Sync Failed', error.message);
       } finally {
         btn.disabled = false;
+        fullSyncBtn.disabled = false;
         btn.innerHTML = `
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           Sync Now
         `;
+        fullSyncBtn.textContent = 'Full Sync';
       }
     }
 

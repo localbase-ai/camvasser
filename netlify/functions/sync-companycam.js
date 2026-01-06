@@ -7,12 +7,15 @@ const prisma = new PrismaClient();
 
 /**
  * Fetch projects from CompanyCam API
+ * @param {string} apiToken - CompanyCam API token
+ * @param {Date|null} sinceDate - Filter projects updated since this date
+ * @param {boolean} fullSync - If true, increases page limit for full sync
  */
-async function fetchProjects(apiToken, sinceDate = null) {
+async function fetchProjects(apiToken, sinceDate = null, fullSync = false) {
   const projects = [];
   let page = 1;
   const perPage = 50;
-  const maxPages = 20; // Limit to avoid timeout
+  const maxPages = fullSync ? 200 : 20; // Full sync allows more pages
 
   while (page <= maxPages) {
     const params = new URLSearchParams({
@@ -113,10 +116,11 @@ export async function handler(event) {
     }
 
     const sinceDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const fullSync = days > 365;
 
-    console.log(`[Sync] Fetching projects updated since ${sinceDate.toISOString()}`);
+    console.log(`[Sync] ${fullSync ? 'Full sync' : 'Incremental sync'} - fetching projects updated since ${sinceDate.toISOString()}`);
 
-    const projects = await fetchProjects(apiToken, sinceDate);
+    const projects = await fetchProjects(apiToken, sinceDate, fullSync);
 
     console.log(`[Sync] Found ${projects.length} projects to sync`);
 
