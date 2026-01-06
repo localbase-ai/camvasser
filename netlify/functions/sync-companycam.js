@@ -45,8 +45,9 @@ async function fetchProjects(apiToken, sinceDate = null) {
     if (!pageProjects || pageProjects.length === 0) break;
 
     // Filter by date if provided
+    // Note: updated_at is a Unix timestamp in seconds
     if (sinceDate) {
-      const filtered = pageProjects.filter(p => new Date(p.updated_at) >= sinceDate);
+      const filtered = pageProjects.filter(p => new Date(p.updated_at * 1000) >= sinceDate);
       projects.push(...filtered);
       if (filtered.length < pageProjects.length) break;
     } else {
