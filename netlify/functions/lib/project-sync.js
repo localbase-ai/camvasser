@@ -63,6 +63,10 @@ export async function syncProject(projectData, tenant, apiToken) {
     // Geocode the address using Google Maps for accurate coordinates
     const coordinates = await geocodeAddress(projectData.address);
 
+    // Convert Unix timestamps (seconds) to Date objects
+    const ccCreatedAt = projectData.created_at ? new Date(projectData.created_at * 1000) : null;
+    const ccUpdatedAt = projectData.updated_at ? new Date(projectData.updated_at * 1000) : null;
+
     // Upsert project data
     const project = await prisma.project.upsert({
       where: { id: projectData.id },
@@ -77,6 +81,8 @@ export async function syncProject(projectData, tenant, apiToken) {
         photoCount: projectData.photo_count || 0,
         publicUrl: projectData.public_url,
         coordinates,
+        ccCreatedAt,
+        ccUpdatedAt,
         lastSyncedAt: new Date()
       },
       create: {
@@ -91,6 +97,8 @@ export async function syncProject(projectData, tenant, apiToken) {
         photoCount: projectData.photo_count || 0,
         publicUrl: projectData.public_url,
         coordinates,
+        ccCreatedAt,
+        ccUpdatedAt,
         lastSyncedAt: new Date(),
         createdAt: new Date()
       }
