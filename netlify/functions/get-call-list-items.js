@@ -96,7 +96,7 @@ export async function handler(event) {
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Failed to fetch call list items' })
+      body: JSON.stringify({ error: 'Failed to fetch call list items', details: error.message })
     };
   }
 }
