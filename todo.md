@@ -24,6 +24,10 @@
 
 ## Quickbooks Integration
 - [✅] create customer record from lead detail view in camvasser
+- [✅] sync QB estimates to proposals (shows job values on deal cards)
+- [✅] admin UI button to sync estimates
+- [✅] auto-mark estimates as "won" when invoiced/paid
+- [✅] cleaned up 25 old estimates in QB (marked as Closed)
 
 # Next up Integrations:
 - [ ] Ring Central
