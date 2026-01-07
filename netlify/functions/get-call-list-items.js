@@ -51,8 +51,7 @@ export async function handler(event) {
     const [contacts, leads] = await Promise.all([
       contactIds.length > 0 ? prisma.prospect.findMany({
         where: { id: { in: contactIds } },
-        select: {
-          id: true, name: true, phones: true, emails: true, status: true, lookupAddress: true, updatedAt: true,
+        include: {
           project: { select: { tags: true } }
         }
       }) : [],
