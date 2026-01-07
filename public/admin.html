@@ -932,6 +932,48 @@
             </div>
           </div>
 
+          <!-- QuickBooks Estimates -->
+          <div class="card bg-base-200 shadow-sm">
+            <div class="card-body">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold">QuickBooks Estimates</h3>
+                    <p class="text-sm text-base-content/60">Sync estimates as proposals</p>
+                  </div>
+                </div>
+                <div id="qbEstimatesStatus" class="badge badge-ghost">Ready</div>
+              </div>
+
+              <div class="divider my-2"></div>
+
+              <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Last Sync</span>
+                  <span id="qbEstimatesLastSync" class="font-medium">-</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Estimates Synced</span>
+                  <span id="qbEstimatesSynced" class="font-medium">-</span>
+                </div>
+              </div>
+
+              <div class="card-actions justify-end mt-4">
+                <button id="qbEstimatesSyncBtn" onclick="syncQbEstimates()" class="btn btn-primary btn-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Sync Estimates
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- SmartLead Integration -->
           <div class="card bg-base-200 shadow-sm">
             <div class="card-body">
@@ -7201,6 +7243,64 @@
           Sync Now
         `;
         fullSyncBtn.textContent = 'Full Sync';
+      }
+    }
+
+    // =====================
+    // QuickBooks Estimates Sync
+    // =====================
+    async function syncQbEstimates() {
+      const btn = document.getElementById('qbEstimatesSyncBtn');
+      const statusEl = document.getElementById('qbEstimatesStatus');
+      const lastSyncEl = document.getElementById('qbEstimatesLastSync');
+      const syncedEl = document.getElementById('qbEstimatesSynced');
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="loading loading-spinner loading-xs"></span> Syncing...`;
+      statusEl.className = 'badge badge-warning';
+      statusEl.textContent = 'Syncing';
+
+      try {
+        const response = await fetch(`/.netlify/functions/sync-qb-estimates?tenant=${currentTenant}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          statusEl.className = 'badge badge-success';
+          statusEl.textContent = 'Synced';
+          lastSyncEl.textContent = 'Just now';
+          syncedEl.textContent = data.synced.toLocaleString();
+          showInfoModal('success', 'Sync Complete', `Synced ${data.synced} estimates (${data.created} new, ${data.updated} updated)`);
+
+          // Refresh proposals to show new data
+          await fetchProposals();
+        } else {
+          throw new Error(data.error || 'Sync failed');
+        }
+      } catch (error) {
+        console.error('QB Estimates sync error:', error);
+        statusEl.className = 'badge badge-error';
+        statusEl.textContent = 'Error';
+        showInfoModal('error', 'Sync Failed', error.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Sync Estimates
+        `;
       }
     }
 

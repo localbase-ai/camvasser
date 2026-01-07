@@ -259,11 +259,17 @@ model Proposal {
   tenant         String
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  // QuickBooks estimate fields
+  qbEstimateId   String?   @unique
+  qbCustomerId   String?
+  qbDocNumber    String?
+  qbSyncedAt     DateTime?
 
   @@index([tenant])
   @@index([customerEmail])
   @@index([customerName])
   @@index([status])
+  @@index([qbEstimateId])
 }
 
 model BackgroundJob {
