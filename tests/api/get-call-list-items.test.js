@@ -19,6 +19,8 @@ const { handler } = await import('../../netlify/functions/get-call-list-items.js
 describe('get-call-list-items API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default mock for callList.findUnique (script lookup)
+    mockPrisma.callList.findUnique.mockResolvedValue({ id: 'list_123', script: null });
   });
 
   describe('authentication', () => {
@@ -77,12 +79,21 @@ describe('get-call-list-items API', () => {
       expect(body.items).toEqual([]);
     });
 
-    it('should return items with contact data', async () => {
+    it('should return items with contact data including address, status, updatedAt, and tags', async () => {
       const items = [
         factories.callListItem({ id: 'item_1', contactId: 'contact_1' })
       ];
       const contacts = [
-        { id: 'contact_1', name: 'John Doe', phones: [{ phone_number: '555-1234' }] }
+        {
+          id: 'contact_1',
+          name: 'John Doe',
+          phones: [{ phone_number: '555-1234' }],
+          emails: [{ email: 'john@example.com' }],
+          status: 'contacted',
+          lookupAddress: '123 Main St, City, ST 12345',
+          updatedAt: new Date('2024-01-15'),
+          project: { tags: [{ display_value: 'VIP', color: '#ff0000' }] }
+        }
       ];
 
       mockPrisma.callListItem.findMany.mockResolvedValue(items);
@@ -98,6 +109,11 @@ describe('get-call-list-items API', () => {
       expect(response.statusCode).toBe(200);
       expect(body.items).toHaveLength(1);
       expect(body.items[0].contact.name).toBe('John Doe');
+      expect(body.items[0].contact.lookupAddress).toBe('123 Main St, City, ST 12345');
+      expect(body.items[0].contact.status).toBe('contacted');
+      expect(body.items[0].contact.updatedAt).toBeDefined();
+      expect(body.items[0].contact.project.tags).toHaveLength(1);
+      expect(body.items[0].contact.project.tags[0].display_value).toBe('VIP');
     });
 
     it('should return items with lead data', async () => {
@@ -138,6 +154,50 @@ describe('get-call-list-items API', () => {
           orderBy: { position: 'asc' }
         })
       );
+    });
+
+    it('should return call list script when associated', async () => {
+      const script = {
+        id: 'script_1',
+        name: 'Sales Script',
+        content: 'Hello, this is a test script...'
+      };
+      mockPrisma.callList.findUnique.mockResolvedValue({
+        id: 'list_123',
+        script: script
+      });
+      mockPrisma.callListItem.findMany.mockResolvedValue([]);
+      mockPrisma.prospect.findMany.mockResolvedValue([]);
+      mockPrisma.lead.findMany.mockResolvedValue([]);
+
+      const event = createAuthenticatedEvent({
+        queryStringParameters: { listId: 'list_123' }
+      });
+      const response = await handler(event);
+      const body = JSON.parse(response.body);
+
+      expect(response.statusCode).toBe(200);
+      expect(body.script).toEqual(script);
+      expect(body.script.name).toBe('Sales Script');
+    });
+
+    it('should return null script when list has no script', async () => {
+      mockPrisma.callList.findUnique.mockResolvedValue({
+        id: 'list_123',
+        script: null
+      });
+      mockPrisma.callListItem.findMany.mockResolvedValue([]);
+      mockPrisma.prospect.findMany.mockResolvedValue([]);
+      mockPrisma.lead.findMany.mockResolvedValue([]);
+
+      const event = createAuthenticatedEvent({
+        queryStringParameters: { listId: 'list_123' }
+      });
+      const response = await handler(event);
+      const body = JSON.parse(response.body);
+
+      expect(response.statusCode).toBe(200);
+      expect(body.script).toBeNull();
     });
   });
 

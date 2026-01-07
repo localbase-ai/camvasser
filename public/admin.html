@@ -639,45 +639,69 @@
             </div>
           </div>
 
-          <!-- Empty state -->
-          <div id="callListEmpty" class="flex-1 flex flex-col items-center justify-center py-12 bg-base-200 rounded-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-            </svg>
-            <h3 class="text-lg font-semibold mb-1">No call lists yet</h3>
-            <p class="text-base-content/60 text-sm text-center">Select contacts or leads and click<br>"Add to Call List" to create one</p>
-          </div>
-
-          <!-- Script panel (shown when list has a script) -->
-          <div id="callScriptPanel" class="hidden mb-4">
-            <div class="collapse collapse-arrow bg-base-200 rounded-lg">
-              <input type="checkbox" checked />
-              <div class="collapse-title font-medium flex items-center gap-2">
+          <!-- Script Panel (collapsible accordion, shown when list has script) -->
+          <div id="callScriptPanel" class="hidden mb-3">
+            <details class="collapse collapse-arrow bg-base-200 rounded-lg">
+              <summary class="collapse-title py-2 min-h-0 font-medium flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span id="callScriptName">Call Script</span>
-              </div>
+                <span id="callScriptPanelName">Call Script</span>
+              </summary>
               <div class="collapse-content">
-                <div id="callScriptContent" class="prose prose-sm max-w-none"></div>
+                <div id="callScriptPanelContent" class="prose prose-sm max-w-none max-h-[300px] overflow-y-auto"></div>
               </div>
-            </div>
+            </details>
           </div>
 
-          <!-- Call list table (hidden by default) -->
-          <div id="callListTable" class="hidden overflow-auto flex-1">
-            <table class="table w-full">
-              <thead class="sticky top-0 bg-base-100 z-10">
-                <tr>
-                  <th>Name</th>
-                  <th>Phone</th>
-                  <th>Type</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="callListTableBody">
-              </tbody>
-            </table>
+          <!-- Main content area with table and detail pane -->
+          <div class="flex-1 flex min-h-0 relative">
+            <!-- Left: Table or Empty State -->
+            <div class="flex-1 flex flex-col min-w-0">
+              <!-- Empty state -->
+              <div id="callListEmpty" class="flex-1 flex flex-col items-center justify-center py-12 bg-base-200 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                <h3 class="text-lg font-semibold mb-1">No call lists yet</h3>
+                <p class="text-base-content/60 text-sm text-center">Select contacts or leads and click<br>"Add to Call List" to create one</p>
+              </div>
+
+              <!-- Call list table (hidden by default) -->
+              <div id="callListTable" class="hidden overflow-auto flex-1">
+                <table class="table table-sm w-full">
+                  <thead class="sticky top-0 bg-base-100 z-10">
+                    <tr>
+                      <th class="w-8"></th>
+                      <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('name')">Name</th>
+                      <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('phone')">Phone</th>
+                      <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('address')">Address</th>
+                      <th>Tags</th>
+                      <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('status')">Status</th>
+                      <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('updatedAt')">Updated</th>
+                      <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('type')">Type</th>
+                    </tr>
+                  </thead>
+                  <tbody id="callListTableBody">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Right: Detail Pane (shown when row is clicked) -->
+            <div id="callDetailPane" class="hidden w-[400px] border-l border-base-300 bg-base-100 overflow-y-auto flex-shrink-0">
+              <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
+                <h3 class="font-semibold text-sm">Details</h3>
+                <button onclick="closeCallDetailPane()" class="btn btn-ghost btn-xs btn-square">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div id="callDetailContent" class="p-4">
+                <!-- Detail content will be rendered here -->
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -4312,19 +4336,305 @@
       }
     }
 
+    // Store current call list items for detail pane
+    let currentCallListItems = [];
+    let currentCallListId = null;
+    let selectedCallItemId = null;
+    let callListSort = { column: 'name', direction: 'asc' };
+
+    // Sort call list items
+    function sortCallList(column) {
+      if (callListSort.column === column) {
+        callListSort.direction = callListSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        callListSort.column = column;
+        callListSort.direction = 'asc';
+      }
+      renderCallListTable();
+    }
+
+    // Render the call list table (used after sorting)
+    function renderCallListTable() {
+      if (currentCallListItems.length === 0) return;
+
+      // Sort items
+      const sortedItems = [...currentCallListItems].sort((a, b) => {
+        const recordA = a.contact || a.lead;
+        const recordB = b.contact || b.lead;
+        const isContactA = !!a.contact;
+        const isContactB = !!b.contact;
+
+        let valA, valB;
+        switch (callListSort.column) {
+          case 'name':
+            valA = (recordA?.name || `${recordA?.firstName || ''} ${recordA?.lastName || ''}`.trim() || '').toLowerCase();
+            valB = (recordB?.name || `${recordB?.firstName || ''} ${recordB?.lastName || ''}`.trim() || '').toLowerCase();
+            break;
+          case 'phone':
+            valA = recordA?.phones?.[0]?.phone_number || recordA?.phone || '';
+            valB = recordB?.phones?.[0]?.phone_number || recordB?.phone || '';
+            break;
+          case 'address':
+            valA = (recordA?.lookupAddress || recordA?.address || '').toLowerCase();
+            valB = (recordB?.lookupAddress || recordB?.address || '').toLowerCase();
+            break;
+          case 'status':
+            valA = (recordA?.status || '').toLowerCase();
+            valB = (recordB?.status || '').toLowerCase();
+            break;
+          case 'updatedAt':
+            valA = recordA?.updatedAt ? new Date(recordA.updatedAt).getTime() : 0;
+            valB = recordB?.updatedAt ? new Date(recordB.updatedAt).getTime() : 0;
+            break;
+          case 'type':
+            valA = isContactA ? 'contact' : 'lead';
+            valB = isContactB ? 'contact' : 'lead';
+            break;
+          default:
+            valA = '';
+            valB = '';
+        }
+
+        if (valA < valB) return callListSort.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return callListSort.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      const tbody = document.getElementById('callListTableBody');
+      tbody.innerHTML = sortedItems.map(item => {
+        const record = item.contact || item.lead;
+        const isContact = !!item.contact;
+        const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim() || 'Unknown';
+        const phone = record?.phones?.[0]?.phone_number || record?.phone || '-';
+        const address = record?.lookupAddress || record?.address || '-';
+        const status = record?.status || 'new';
+        const type = isContact ? 'Contact' : 'Lead';
+        const isSelected = item.id === selectedCallItemId;
+        const updatedAt = record?.updatedAt ? new Date(record.updatedAt).toLocaleDateString() : '-';
+        const tags = isContact ? (record?.project?.tags || []) : [];
+        const tagsHtml = tags.length > 0
+          ? tags.map(t => {
+              const tagName = t.display_value || t.displayValue || t.value || t;
+              const tagColor = t.color || '#6b7280';
+              return `<span class="badge badge-xs" style="background-color: ${tagColor}; color: white; border: none;">${tagName}</span>`;
+            }).join(' ')
+          : '-';
+        const statusBadge = status ? getStatusBadge(status) : '-';
+
+        return `
+          <tr class="hover:bg-base-200 cursor-pointer ${isSelected ? 'bg-base-200' : ''}" data-item-id="${item.id}" onclick="showCallDetail('${item.id}')">
+            <td>
+              <a href="tel:${phone}" class="btn btn-ghost btn-xs btn-square" onclick="event.stopPropagation()">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </a>
+            </td>
+            <td class="font-medium">${name}</td>
+            <td class="text-sm">${phone}</td>
+            <td class="text-sm max-w-[200px] truncate" title="${address}">${address}</td>
+            <td class="text-sm">${tagsHtml}</td>
+            <td>${statusBadge}</td>
+            <td class="text-sm text-base-content/60">${updatedAt}</td>
+            <td><span class="badge badge-sm ${isContact ? 'badge-info' : 'badge-warning'} badge-outline">${type}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Close the call detail pane
+    function closeCallDetailPane() {
+      document.getElementById('callDetailPane').classList.add('hidden');
+      selectedCallItemId = null;
+      // Remove highlight from all rows
+      document.querySelectorAll('#callListTableBody tr').forEach(tr => tr.classList.remove('bg-base-200'));
+    }
+
+    // Show detail pane for a call list item
+    function showCallDetail(itemId) {
+      const item = currentCallListItems.find(i => i.id === itemId);
+      if (!item) return;
+
+      selectedCallItemId = itemId;
+      const record = item.contact || item.lead;
+      const isContact = !!item.contact;
+      const pane = document.getElementById('callDetailPane');
+      const content = document.getElementById('callDetailContent');
+
+      // Highlight selected row
+      document.querySelectorAll('#callListTableBody tr').forEach(tr => {
+        tr.classList.toggle('bg-base-200', tr.dataset.itemId === itemId);
+      });
+
+      if (isContact) {
+        // Contact detail
+        const name = record.name || 'Unknown';
+        const phones = record.phones || [];
+        const emails = record.emails || [];
+        const address = record.lookupAddress || '';
+        const status = record.status || 'new';
+
+        content.innerHTML = `
+          <div class="space-y-4">
+            <div>
+              <h4 class="font-semibold text-lg">${name}</h4>
+              <span class="badge badge-sm badge-ghost">Contact</span>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-xs text-base-content/60 uppercase font-medium">Status</label>
+              <select class="select select-sm select-bordered w-full" onchange="updateCallItemStatus('contact', '${record.id}', this.value)">
+                <option value="new" ${status === 'new' ? 'selected' : ''}>New</option>
+                <option value="contacted" ${status === 'contacted' ? 'selected' : ''}>Contacted</option>
+                <option value="qualified" ${status === 'qualified' ? 'selected' : ''}>Qualified</option>
+                <option value="converted" ${status === 'converted' ? 'selected' : ''}>Converted</option>
+                <option value="not_interested" ${status === 'not_interested' ? 'selected' : ''}>Not Interested</option>
+                <option value="do_not_contact" ${status === 'do_not_contact' ? 'selected' : ''}>Do Not Contact</option>
+              </select>
+            </div>
+
+            ${phones.length > 0 ? `
+            <div class="space-y-1">
+              <label class="text-xs text-base-content/60 uppercase font-medium">Phone</label>
+              ${phones.map(p => `
+                <div class="flex items-center gap-2">
+                  <a href="tel:${p.phone_number}" class="link link-primary">${p.phone_number}</a>
+                  ${p.type ? `<span class="badge badge-xs">${p.type}</span>` : ''}
+                </div>
+              `).join('')}
+            </div>
+            ` : ''}
+
+            ${emails.length > 0 ? `
+            <div class="space-y-1">
+              <label class="text-xs text-base-content/60 uppercase font-medium">Email</label>
+              ${emails.map(e => `
+                <a href="mailto:${e.email}" class="link link-primary block">${e.email}</a>
+              `).join('')}
+            </div>
+            ` : ''}
+
+            ${address ? `
+            <div class="space-y-1">
+              <label class="text-xs text-base-content/60 uppercase font-medium">Address</label>
+              <p class="text-sm">${address}</p>
+            </div>
+            ` : ''}
+
+            <div class="pt-2 border-t border-base-300">
+              <button onclick="removeFromCallList('${currentCallListId}', '${item.id}')" class="btn btn-sm btn-outline btn-error w-full">
+                Remove from List
+              </button>
+            </div>
+          </div>
+        `;
+      } else {
+        // Lead detail
+        const name = `${record.firstName || ''} ${record.lastName || ''}`.trim() || 'Unknown';
+        const phone = record.phone || '';
+        const email = record.email || '';
+        const address = record.address || '';
+        const status = record.status || 'new';
+
+        content.innerHTML = `
+          <div class="space-y-4">
+            <div>
+              <h4 class="font-semibold text-lg">${name}</h4>
+              <span class="badge badge-sm badge-ghost">Lead</span>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-xs text-base-content/60 uppercase font-medium">Status</label>
+              <select class="select select-sm select-bordered w-full" onchange="updateCallItemStatus('lead', '${record.id}', this.value)">
+                <option value="new" ${status === 'new' ? 'selected' : ''}>New</option>
+                <option value="contacted" ${status === 'contacted' ? 'selected' : ''}>Contacted</option>
+                <option value="qualified" ${status === 'qualified' ? 'selected' : ''}>Qualified</option>
+                <option value="proposal" ${status === 'proposal' ? 'selected' : ''}>Proposal</option>
+                <option value="won" ${status === 'won' ? 'selected' : ''}>Won</option>
+                <option value="lost" ${status === 'lost' ? 'selected' : ''}>Lost</option>
+              </select>
+            </div>
+
+            ${phone ? `
+            <div class="space-y-1">
+              <label class="text-xs text-base-content/60 uppercase font-medium">Phone</label>
+              <a href="tel:${phone}" class="link link-primary block">${phone}</a>
+            </div>
+            ` : ''}
+
+            ${email ? `
+            <div class="space-y-1">
+              <label class="text-xs text-base-content/60 uppercase font-medium">Email</label>
+              <a href="mailto:${email}" class="link link-primary block">${email}</a>
+            </div>
+            ` : ''}
+
+            ${address ? `
+            <div class="space-y-1">
+              <label class="text-xs text-base-content/60 uppercase font-medium">Address</label>
+              <p class="text-sm">${address}</p>
+            </div>
+            ` : ''}
+
+            <div class="pt-2 border-t border-base-300">
+              <button onclick="removeFromCallList('${currentCallListId}', '${item.id}')" class="btn btn-sm btn-outline btn-error w-full">
+                Remove from List
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      pane.classList.remove('hidden');
+    }
+
+    // Update status for a contact or lead from call detail pane
+    async function updateCallItemStatus(type, recordId, newStatus) {
+      try {
+        const endpoint = type === 'contact' ? 'update-prospect-status' : 'update-lead-status';
+        const response = await fetch(`/.netlify/functions/${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ id: recordId, status: newStatus })
+        });
+        if (response.status === 401) { logout(); return; }
+        if (response.ok) {
+          // Update local data and refresh the row
+          const item = currentCallListItems.find(i => (i.contact?.id || i.lead?.id) === recordId);
+          if (item) {
+            if (item.contact) item.contact.status = newStatus;
+            if (item.lead) item.lead.status = newStatus;
+            // Refresh the table row
+            loadCallList(currentCallListId);
+          }
+        }
+      } catch (e) {
+        console.error('Error updating status:', e);
+      }
+    }
+
     // Load a specific call list's items
     async function loadCallList(listId) {
       const scriptPanel = document.getElementById('callScriptPanel');
       const deleteBtn = document.getElementById('deleteCallListBtn');
+      const detailPane = document.getElementById('callDetailPane');
 
       if (!listId) {
         document.getElementById('callListEmpty').classList.remove('hidden');
         document.getElementById('callListTable').classList.add('hidden');
         document.getElementById('callListCount').textContent = '0 items in list';
         scriptPanel.classList.add('hidden');
+        detailPane.classList.add('hidden');
         deleteBtn.classList.add('hidden');
+        currentCallListItems = [];
+        currentCallListId = null;
         return;
       }
+
+      currentCallListId = listId;
 
       // Show delete button when a list is selected
       deleteBtn.classList.remove('hidden');
@@ -4338,10 +4648,12 @@
         const items = data.items || [];
         const script = data.script;
 
+        currentCallListItems = items;
+
         // Show/hide script panel
         if (script) {
-          document.getElementById('callScriptName').textContent = script.name;
-          document.getElementById('callScriptContent').innerHTML = marked.parse(script.content);
+          document.getElementById('callScriptPanelName').textContent = script.name;
+          document.getElementById('callScriptPanelContent').innerHTML = marked.parse(script.content);
           scriptPanel.classList.remove('hidden');
         } else {
           scriptPanel.classList.add('hidden');
@@ -4352,29 +4664,19 @@
         if (items.length === 0) {
           document.getElementById('callListEmpty').classList.remove('hidden');
           document.getElementById('callListTable').classList.add('hidden');
+          detailPane.classList.add('hidden');
           document.getElementById('callListEmpty').querySelector('h3').textContent = 'List is empty';
           document.getElementById('callListEmpty').querySelector('p').innerHTML = 'Add contacts or leads to this list';
         } else {
           document.getElementById('callListEmpty').classList.add('hidden');
           document.getElementById('callListTable').classList.remove('hidden');
 
-          const tbody = document.getElementById('callListTableBody');
-          tbody.innerHTML = items.map(item => {
-            const record = item.contact || item.lead;
-            const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim() || 'Unknown';
-            const phone = record?.phones?.[0]?.phone_number || record?.phone || '-';
-            const type = item.contact ? 'Contact' : 'Lead';
-            return `
-              <tr class="hover:bg-base-200">
-                <td class="font-medium">${name}</td>
-                <td><a href="tel:${phone}" class="link link-primary">${phone}</a></td>
-                <td><span class="badge badge-sm badge-ghost">${type}</span></td>
-                <td>
-                  <button onclick="removeFromCallList('${listId}', '${item.id}')" class="btn btn-ghost btn-xs text-error">Remove</button>
-                </td>
-              </tr>
-            `;
-          }).join('');
+          renderCallListTable();
+
+          // Re-show detail pane if an item was selected
+          if (selectedCallItemId) {
+            showCallDetail(selectedCallItemId);
+          }
         }
       } catch (e) {
         console.error('Error loading call list items:', e);

@@ -33,6 +33,12 @@ export async function handler(event) {
       };
     }
 
+    // Fetch the call list with its script
+    const callList = await prisma.callList.findUnique({
+      where: { id: listId },
+      include: { script: true }
+    });
+
     const items = await prisma.callListItem.findMany({
       where: { callListId: listId },
       orderBy: { position: 'asc' }
@@ -45,11 +51,14 @@ export async function handler(event) {
     const [contacts, leads] = await Promise.all([
       contactIds.length > 0 ? prisma.prospect.findMany({
         where: { id: { in: contactIds } },
-        select: { id: true, name: true, phones: true, emails: true, status: true }
+        select: {
+          id: true, name: true, phones: true, emails: true, status: true, lookupAddress: true, updatedAt: true,
+          project: { select: { tags: true } }
+        }
       }) : [],
       leadIds.length > 0 ? prisma.lead.findMany({
         where: { id: { in: leadIds } },
-        select: { id: true, firstName: true, lastName: true, phone: true, email: true, status: true }
+        select: { id: true, firstName: true, lastName: true, phone: true, email: true, status: true, address: true, updatedAt: true }
       }) : []
     ]);
 
@@ -66,7 +75,10 @@ export async function handler(event) {
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: enrichedItems })
+      body: JSON.stringify({
+        items: enrichedItems,
+        script: callList?.script || null
+      })
     };
 
   } catch (error) {
