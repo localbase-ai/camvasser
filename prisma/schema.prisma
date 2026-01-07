@@ -16,11 +16,7 @@ model Lead {
   email         String?
   phone         String?
   address       String?
-  city          String?
-  state         String?
-  postalCode    String?
   projectId     String?
-  prospectId    String?
   tenant        String
   createdAt     DateTime                 @default(now())
   callDate      DateTime?
@@ -31,15 +27,19 @@ model Lead {
   flowSlug      String?
   flowType      String?
   qualifyScore  String?
-  dataSource    String?   @map("source")
-  leadSource    String?
+  dataSource    String?                  @map("source")
   urgencyLevel  String?
   utmCampaign   String?
   utmMedium     String?
   utmSource     String?
-  ownerName     String?
   search_vector Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((((((((COALESCE(\"firstName\", ''::text) || ' '::text) || COALESCE(\"lastName\", ''::text)) || ' '::text) || COALESCE(email, ''::text)) || ' '::text) || COALESCE(phone, ''::text)) || ' '::text) || COALESCE(address, ''::text)))"))
   coordinates   Json?
+  prospectId    String?
+  leadSource    String?
+  ownerName     String?
+  city          String?
+  postalCode    String?
+  state         String?
   prospect      Prospect?                @relation(fields: [prospectId], references: [id])
 
   @@index([tenant])
@@ -139,9 +139,9 @@ model Project {
   ccUpdatedAt          DateTime?
   whitepagesEnrichedAt DateTime?
   search_vector        Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((((((((((COALESCE(address, ''::text) || ' '::text) || COALESCE(city, ''::text)) || ' '::text) || COALESCE(state, ''::text)) || ' '::text) || COALESCE(\"postalCode\", ''::text)) || ' '::text) || COALESCE(name, ''::text)) || ' '::text) || COALESCE(notepad, ''::text)))"))
+  organizations        OrganizationProperty[]
   labels               ProjectLabel[]
   prospects            Prospect[]
-  organizations        OrganizationProperty[]
 
   @@index([tenant])
   @@index([address])
@@ -179,9 +179,9 @@ model Prospect {
   campaign             String?
   notes                String?
   search_vector        Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, ((((COALESCE(name, ''::text) || ' '::text) || COALESCE(\"companyName\", ''::text)) || ' '::text) || COALESCE(\"jobTitle\", ''::text)))"))
+  organizationContacts OrganizationContact[]
   project              Project?                 @relation(fields: [projectId], references: [id])
   leads                Lead[]
-  organizationContacts OrganizationContact[]
 
   @@index([projectId])
   @@index([tenant])
@@ -233,11 +233,11 @@ model Appointment {
   location        String?
   notes           String?
   status          String   @default("scheduled")
-  eventType       String   @default("sales")
   createdById     String?
   createdByName   String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  eventType       String   @default("sales")
 
   @@index([tenant])
   @@index([leadId])
@@ -286,9 +286,9 @@ model BackgroundJob {
 }
 
 model Organization {
-  id         String   @id @default(cuid())
+  id         String                 @id @default(cuid())
   name       String
-  type       String   // hoa, property_management, real_estate, church, apartment_complex, other
+  type       String
   address    String?
   city       String?
   state      String?
@@ -298,9 +298,8 @@ model Organization {
   website    String?
   notes      String?
   tenant     String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
   contacts   OrganizationContact[]
   properties OrganizationProperty[]
 
@@ -314,14 +313,13 @@ model OrganizationContact {
   organizationId String
   prospectId     String?
   name           String
-  title          String?      // "Property Manager", "HOA President", etc.
+  title          String?
   phone          String?
   email          String?
   isPrimary      Boolean      @default(false)
   notes          String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
-
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   prospect       Prospect?    @relation(fields: [prospectId], references: [id])
 
@@ -333,9 +331,8 @@ model OrganizationProperty {
   id             String       @id @default(cuid())
   organizationId String
   projectId      String
-  relationship   String       @default("manages") // manages, owns, association
+  relationship   String       @default("manages")
   createdAt      DateTime     @default(now())
-
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -346,11 +343,11 @@ model OrganizationProperty {
 
 model OAuthToken {
   id           String   @id @default(cuid())
-  provider     String   @unique // "quickbooks", etc.
+  provider     String   @unique
   accessToken  String
   refreshToken String
   expiresAt    DateTime
-  companyId    String?  // Provider-specific ID (QB realm ID)
+  companyId    String?
   updatedAt    DateTime @updatedAt
   createdAt    DateTime @default(now())
 
@@ -362,13 +359,16 @@ model CallList {
   name             String
   tenantId         String
   userId           String
-  assignedToUserId String?
   createdAt        DateTime       @default(now())
+  assignedToUserId String?
+  scriptId         String?
+  CallScript       CallScript?    @relation(fields: [scriptId], references: [id])
   items            CallListItem[]
 
   @@index([tenantId])
   @@index([userId])
   @@index([assignedToUserId])
+  @@index([scriptId])
 }
 
 model CallListItem {
@@ -383,4 +383,17 @@ model CallListItem {
   @@index([callListId])
   @@index([contactId])
   @@index([leadId])
+}
+
+model CallScript {
+  id        String     @id
+  name      String
+  content   String
+  tenantId  String
+  createdBy String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime
+  CallList  CallList[]
+
+  @@index([tenantId])
 }

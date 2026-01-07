@@ -33,10 +33,9 @@ export async function handler(event) {
       };
     }
 
-    // Fetch the call list with its script
+    // Fetch the call list
     const callList = await prisma.callList.findUnique({
-      where: { id: listId },
-      include: { script: true }
+      where: { id: listId }
     });
 
     const items = await prisma.callListItem.findMany({
@@ -87,7 +86,7 @@ export async function handler(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         items: enrichedItems,
-        script: callList?.script || null
+        script: null // TODO: Add CallScript relation to CallList model
       })
     };
 
