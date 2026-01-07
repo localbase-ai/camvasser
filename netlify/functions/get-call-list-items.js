@@ -50,10 +50,7 @@ export async function handler(event) {
 
     const [contacts, leads] = await Promise.all([
       contactIds.length > 0 ? prisma.prospect.findMany({
-        where: { id: { in: contactIds } },
-        include: {
-          project: { select: { tags: true } }
-        }
+        where: { id: { in: contactIds } }
       }) : [],
       leadIds.length > 0 ? prisma.lead.findMany({
         where: { id: { in: leadIds } },
@@ -61,7 +58,21 @@ export async function handler(event) {
       }) : []
     ]);
 
-    const contactMap = new Map(contacts.map(c => [c.id, c]));
+    // Get project IDs from contacts and fetch projects for tags
+    const projectIds = [...new Set(contacts.filter(c => c.projectId).map(c => c.projectId))];
+    const projects = projectIds.length > 0 ? await prisma.project.findMany({
+      where: { id: { in: projectIds } },
+      select: { id: true, tags: true }
+    }) : [];
+    const projectMap = new Map(projects.map(p => [p.id, p]));
+
+    // Attach project tags to contacts
+    const contactsWithTags = contacts.map(c => ({
+      ...c,
+      project: c.projectId ? projectMap.get(c.projectId) : null
+    }));
+
+    const contactMap = new Map(contactsWithTags.map(c => [c.id, c]));
     const leadMap = new Map(leads.map(l => [l.id, l]));
 
     // Attach contact/lead data to items

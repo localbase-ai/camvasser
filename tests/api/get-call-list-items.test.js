@@ -92,13 +92,17 @@ describe('get-call-list-items API', () => {
           status: 'contacted',
           lookupAddress: '123 Main St, City, ST 12345',
           updatedAt: new Date('2024-01-15'),
-          project: { tags: [{ display_value: 'VIP', color: '#ff0000' }] }
+          projectId: 'proj_1'
         }
+      ];
+      const projects = [
+        { id: 'proj_1', tags: [{ display_value: 'VIP', color: '#ff0000' }] }
       ];
 
       mockPrisma.callListItem.findMany.mockResolvedValue(items);
       mockPrisma.prospect.findMany.mockResolvedValue(contacts);
       mockPrisma.lead.findMany.mockResolvedValue([]);
+      mockPrisma.project.findMany.mockResolvedValue(projects);
 
       const event = createAuthenticatedEvent({
         queryStringParameters: { listId: 'list_123' }
