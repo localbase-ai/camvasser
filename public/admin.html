@@ -169,18 +169,18 @@
       <!-- Addresses View -->
       <div id="view-addresses" class="view flex flex-col h-full">
         <!-- Sticky Header -->
-        <div class="sticky top-0 bg-base-100 z-10 py-2">
+        <div class="sticky top-0 bg-base-100 z-30 py-2">
           <div class="flex justify-between items-center gap-4">
             <h2 class="text-lg font-bold">Addresses</h2>
             <span id="addressCountLabel" class="text-xs text-base-content/60"></span>
             <div class="flex flex-wrap gap-2 items-center flex-1">
               <input type="text" id="addressSearch" placeholder="Search addresses..." class="input input-bordered input-sm flex-1 min-w-[200px]">
-              <div class="dropdown">
+              <div class="dropdown dropdown-end">
                 <label tabindex="0" class="btn btn-sm btn-ghost gap-1 border border-base-300">
                   <span id="addressTagFilterLabel">All Tags</span>
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                 </label>
-                <div tabindex="0" class="dropdown-content z-[100] p-2 shadow bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto fixed">
+                <div tabindex="0" class="dropdown-content z-[9999] p-2 shadow-lg bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto">
                   <div id="addressTagFilterOptions" class="space-y-1"></div>
                 </div>
               </div>
@@ -254,7 +254,7 @@
       <!-- Contacts View -->
       <div id="view-contacts" class="view hidden flex flex-col h-full">
         <!-- Sticky Header -->
-        <div class="sticky top-0 bg-base-100 z-10 py-2">
+        <div class="sticky top-0 bg-base-100 z-30 py-2">
           <div class="flex justify-between items-center gap-4">
             <div class="flex items-center gap-2">
               <h2 class="text-lg font-bold">Contacts</h2>
@@ -277,7 +277,7 @@
                   <span id="prospectTagFilterLabel">All Tags</span>
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                 </label>
-                <div tabindex="0" class="dropdown-content z-[100] p-2 shadow bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto fixed">
+                <div tabindex="0" class="dropdown-content z-[9999] p-2 shadow-lg bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto">
                   <div id="prospectTagFilterOptions" class="space-y-1"></div>
                 </div>
               </div>
@@ -894,8 +894,11 @@
                 </div>
               </div>
 
-              <div class="card-actions justify-end mt-4">
-                <button id="companycamSyncBtn" onclick="syncCompanyCam()" class="btn btn-primary btn-sm">
+              <div class="card-actions justify-end mt-4 gap-2">
+                <button id="companycamFullSyncBtn" onclick="syncCompanyCam(3650)" class="btn btn-outline btn-sm" title="Re-sync all projects to fix dates">
+                  Full Sync
+                </button>
+                <button id="companycamSyncBtn" onclick="syncCompanyCam(30)" class="btn btn-primary btn-sm">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
@@ -2017,32 +2020,26 @@
     }
 
     // Track selected tags for multi-select filters
-    let selectedProspectTags = [];
     let selectedAddressTags = [];
+    let selectedProspectTags = [];
 
     function populateTagFilters() {
-      // Populate address tag multi-select
-      const addressTagOptions = allTags.map(t => {
-        const displayValue = t.display_value || t.displayValue || t.value;
-        return `
-          <label class="flex items-center gap-2 px-2 py-1 hover:bg-base-200 rounded cursor-pointer">
-            <input type="checkbox" class="checkbox checkbox-sm address-tag-checkbox" value="${t.value}" onchange="updateAddressTagFilter()">
-            <span class="text-sm">${displayValue}</span>
-          </label>
-        `;
-      }).join('');
+      // Build checkbox options for addresses
+      const addressTagOptions = allTags.map(t => `
+        <label class="flex items-center gap-2 px-2 py-1 hover:bg-base-200 rounded cursor-pointer">
+          <input type="checkbox" class="checkbox checkbox-sm address-tag-checkbox" value="${t.value}" onchange="updateAddressTagFilter()">
+          <span class="text-sm">${t.display_value || t.displayValue || t.value}</span>
+        </label>
+      `).join('');
       document.getElementById('addressTagFilterOptions').innerHTML = addressTagOptions;
 
-      // Populate prospect tag multi-select
-      const prospectTagOptions = allTags.map(t => {
-        const displayValue = t.display_value || t.displayValue || t.value;
-        return `
-          <label class="flex items-center gap-2 px-2 py-1 hover:bg-base-200 rounded cursor-pointer">
-            <input type="checkbox" class="checkbox checkbox-sm prospect-tag-checkbox" value="${t.value}" onchange="updateProspectTagFilter()">
-            <span class="text-sm">${displayValue}</span>
-          </label>
-        `;
-      }).join('');
+      // Build checkbox options for prospects/contacts
+      const prospectTagOptions = allTags.map(t => `
+        <label class="flex items-center gap-2 px-2 py-1 hover:bg-base-200 rounded cursor-pointer">
+          <input type="checkbox" class="checkbox checkbox-sm prospect-tag-checkbox" value="${t.value}" onchange="updateProspectTagFilter()">
+          <span class="text-sm">${t.display_value || t.displayValue || t.value}</span>
+        </label>
+      `).join('');
       document.getElementById('prospectTagFilterOptions').innerHTML = prospectTagOptions;
     }
 
@@ -3900,7 +3897,7 @@
       // Build filters from current UI state
       const filters = {
         tenant: currentTenant,
-        tag: document.getElementById('prospectTagFilter').value,
+        tags: selectedProspectTags.length > 0 ? selectedProspectTags.join(',') : '',
         statusFilter: document.getElementById('prospectStatusFilter').value,
         campaign: document.getElementById('prospectCampaignFilter').value,
         search: document.getElementById('prospectSearch').value.trim()
@@ -6825,34 +6822,83 @@
       }
     }
 
-    async function syncCompanyCam() {
+    async function syncCompanyCam(days = 30) {
       const btn = document.getElementById('companycamSyncBtn');
+      const fullSyncBtn = document.getElementById('companycamFullSyncBtn');
       const statusEl = document.getElementById('companycamStatus');
+      const projectCountEl = document.getElementById('companycamProjectCount');
+      const photoCountEl = document.getElementById('companycamPhotoCount');
+      const lastSyncEl = document.getElementById('companycamLastSync');
 
+      const isFullSync = days > 365;
       btn.disabled = true;
-      btn.innerHTML = `
-        <span class="loading loading-spinner loading-xs"></span>
-        Syncing...
-      `;
+      fullSyncBtn.disabled = true;
+
+      if (isFullSync) {
+        fullSyncBtn.innerHTML = `<span class="loading loading-spinner loading-xs"></span> Syncing...`;
+        statusEl.className = 'badge badge-warning';
+        statusEl.textContent = 'Full Sync';
+      } else {
+        btn.innerHTML = `<span class="loading loading-spinner loading-xs"></span> Syncing...`;
+        statusEl.className = 'badge badge-warning';
+        statusEl.textContent = 'Syncing';
+      }
 
       try {
-        // This would trigger a full CompanyCam sync
-        // For now just refresh the stats
-        await checkCompanyCamStatus();
-        statusEl.className = 'badge badge-success';
-        statusEl.textContent = 'Connected';
+        // Use background function for full syncs (they take too long for regular functions)
+        const endpoint = isFullSync
+          ? '/.netlify/functions/sync-companycam-background'
+          : '/.netlify/functions/sync-companycam';
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ days })
+        });
+
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+
+        // Background functions return 202 immediately
+        if (isFullSync && response.status === 202) {
+          statusEl.className = 'badge badge-warning';
+          statusEl.textContent = 'Syncing...';
+          showInfoModal('success', 'Full Sync Started', 'Full sync is running in the background. This may take several minutes. Refresh the page later to see updated stats.');
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          statusEl.className = 'badge badge-success';
+          statusEl.textContent = 'Connected';
+          projectCountEl.textContent = data.totalProjects.toLocaleString();
+          photoCountEl.textContent = data.totalPhotos.toLocaleString();
+          lastSyncEl.textContent = 'Just now';
+          showInfoModal('success', 'Sync Complete', `Synced ${data.synced} projects`);
+        } else {
+          throw new Error(data.error || 'Sync failed');
+        }
       } catch (error) {
         console.error('CompanyCam sync error:', error);
         statusEl.className = 'badge badge-error';
         statusEl.textContent = 'Error';
+        showInfoModal('error', 'Sync Failed', error.message);
       } finally {
         btn.disabled = false;
+        fullSyncBtn.disabled = false;
         btn.innerHTML = `
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           Sync Now
         `;
+        fullSyncBtn.textContent = 'Full Sync';
       }
     }
 

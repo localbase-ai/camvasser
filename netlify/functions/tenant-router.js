@@ -6,6 +6,7 @@ import { handler as flowRoofSprayOptionsHandler } from './flow-roof-spray-option
 import { handler as flowCloggedGuttersHandler } from './flow-clogged-gutters.js';
 import { handler as flowIceDamHandler } from './flow-ice-dam.js';
 import { handler as flowRoofLeakEmergencyHandler } from './flow-roof-leak-emergency.js';
+import { handler as flowRoofVentilationHandler } from './flow-roof-ventilation.js';
 
 // Route mapping: page slug -> handler
 const pageHandlers = {
@@ -17,6 +18,7 @@ const pageHandlers = {
   'clogged-gutters-damage': flowCloggedGuttersHandler,
   'ice-dam-prevention': flowIceDamHandler,
   'roof-leak-emergency': flowRoofLeakEmergencyHandler,
+  'roof-ventilation-issues': flowRoofVentilationHandler,
 };
 
 /**

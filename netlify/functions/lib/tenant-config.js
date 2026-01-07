@@ -17,7 +17,7 @@ const TENANT_CONFIG = {
       page_subtitle: "Enter your address to view photos from your roofing project",
       heading: "View Your Project Photos",
       subheading: "Enter your address to see before, during, and after photos",
-      flows: ['roof-claim-denial', 'roof-spray-vs-sealant-options', 'dirty-roof-costs', 'clogged-gutters-damage', 'ice-dam-prevention', 'roof-leak-emergency', 'photos']
+      flows: ['roof-claim-denial', 'roof-spray-vs-sealant-options', 'dirty-roof-costs', 'clogged-gutters-damage', 'ice-dam-prevention', 'roof-leak-emergency', 'roof-ventilation-issues', 'photos']
     },
     kcroofrestoration: {
       name: "KC Roof Restoration",
@@ -35,7 +35,7 @@ const TENANT_CONFIG = {
       page_subtitle: "Enter your address to view photos from your roofing project",
       heading: "View Your Project Photos",
       subheading: "Enter your address to see before, during, and after photos",
-      flows: ['roof-claim-denial', 'roof-spray-vs-sealant-options', 'dirty-roof-costs', 'clogged-gutters-damage', 'ice-dam-prevention', 'roof-leak-emergency', 'photos']
+      flows: ['roof-claim-denial', 'roof-spray-vs-sealant-options', 'dirty-roof-costs', 'clogged-gutters-damage', 'ice-dam-prevention', 'roof-leak-emergency', 'roof-ventilation-issues', 'photos']
     }
   }
 };

@@ -359,8 +359,9 @@ export async function handler(event) {
           prospects: tagProspectsByProject[p.id] || []
         }));
         totalCount = Number(countResults[0]?.count || 0);
-      } else if (sortBy === 'ccCreatedAt' || !sortBy) {
-        // Use raw SQL for ccCreatedAt to handle NULLS LAST
+      } else if (sortBy === 'ccCreatedAt' || sortBy === 'ccUpdatedAt' || !sortBy) {
+        // Use raw SQL for date fields to handle NULLS LAST
+        const dateSortField = sortBy === 'ccUpdatedAt' ? 'ccUpdatedAt' : 'ccCreatedAt';
         const conditions = [];
         if (where.tenant) conditions.push(`p.tenant = '${where.tenant}'`);
         if (where.status) conditions.push(`p.status = '${where.status}'`);
@@ -401,7 +402,7 @@ export async function handler(event) {
           ${hasProspectsJoin}
           ${whereClause}
           ${hasProspectsCondition}
-          ORDER BY p."ccCreatedAt" ${orderDirection} NULLS LAST
+          ORDER BY p."${dateSortField}" ${orderDirection} NULLS LAST
           LIMIT $1 OFFSET $2
         ` : `
           SELECT p.id, p.address, p.city, p.state, p."postalCode", p.status, p."photoCount",
@@ -409,7 +410,7 @@ export async function handler(event) {
                  (SELECT COUNT(*) FROM "Prospect" WHERE "projectId" = p.id) as "prospectCount"
           FROM "Project" p
           ${whereClause}
-          ORDER BY p."ccCreatedAt" ${orderDirection} NULLS LAST
+          ORDER BY p."${dateSortField}" ${orderDirection} NULLS LAST
           LIMIT $1 OFFSET $2
         `;
 

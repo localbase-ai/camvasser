@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import axios from 'axios';
 import {
   fetchProjectLabels,
   fetchProjectWithLabels,
@@ -7,8 +6,9 @@ import {
   formatLabels
 } from '../netlify/functions/lib/companycam-api.js';
 
-// Mock axios
-vi.mock('axios');
+// Mock global fetch
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
 
 describe('CompanyCam API', () => {
   const mockApiToken = 'test-token-123';
@@ -32,11 +32,15 @@ describe('CompanyCam API', () => {
         }
       ];
 
-      axios.get.mockResolvedValueOnce({ data: mockLabels });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockLabels
+      });
 
       const result = await fetchProjectLabels(mockProjectId, mockApiToken);
 
-      expect(axios.get).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenCalledWith(
         `https://api.companycam.com/v2/projects/${mockProjectId}/labels`,
         expect.objectContaining({
           headers: {
@@ -49,8 +53,9 @@ describe('CompanyCam API', () => {
     });
 
     it('should return empty array on 404', async () => {
-      axios.get.mockRejectedValueOnce({
-        response: { status: 404 }
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404
       });
 
       const result = await fetchProjectLabels(mockProjectId, mockApiToken);
@@ -59,11 +64,14 @@ describe('CompanyCam API', () => {
     });
 
     it('should throw error on other errors', async () => {
-      axios.get.mockRejectedValueOnce(new Error('Network error'));
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500
+      });
 
       await expect(
         fetchProjectLabels(mockProjectId, mockApiToken)
-      ).rejects.toThrow('Network error');
+      ).rejects.toThrow('HTTP 500');
     });
   });
 
@@ -87,9 +95,17 @@ describe('CompanyCam API', () => {
       ];
 
       // Mock project fetch
-      axios.get.mockResolvedValueOnce({ data: mockProject });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockProject
+      });
       // Mock labels fetch
-      axios.get.mockResolvedValueOnce({ data: mockLabels });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockLabels
+      });
 
       const result = await fetchProjectWithLabels(mockProjectId, mockApiToken);
 
@@ -97,7 +113,7 @@ describe('CompanyCam API', () => {
         ...mockProject,
         labels: mockLabels
       });
-      expect(axios.get).toHaveBeenCalledTimes(2);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -108,11 +124,15 @@ describe('CompanyCam API', () => {
         { id: '2', display_value: 'Label 2', value: 'label-2' }
       ];
 
-      axios.get.mockResolvedValueOnce({ data: mockLabels });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockLabels
+      });
 
       const result = await fetchAllCompanyLabels(mockApiToken);
 
-      expect(axios.get).toHaveBeenCalledWith(
+      expect(mockFetch).toHaveBeenCalledWith(
         'https://api.companycam.com/v2/tags',
         expect.objectContaining({
           headers: {
