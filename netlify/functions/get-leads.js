@@ -26,7 +26,7 @@ export async function handler(event) {
   }
 
   try {
-    const { type, limit, page, sortBy, sortDir, search, status, owner, tenant: tenantParam } = event.queryStringParameters || {};
+    const { type, limit, page, sortBy, sortDir, search, status, owner, tenant: tenantParam, idsOnly } = event.queryStringParameters || {};
     // Use tenant from query param, fall back to user.slug for backwards compat
     const tenant = tenantParam || user.slug;
 
@@ -67,6 +67,19 @@ export async function handler(event) {
 
     // Build where clause using extracted utility
     const where = buildLeadsWhereClause({ tenant, search, status, owner });
+
+    // If idsOnly is true, return just the IDs (for bulk operations)
+    if (idsOnly === 'true') {
+      const allIds = await prisma.lead.findMany({
+        where,
+        select: { id: true }
+      });
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: allIds.map(l => l.id) })
+      };
+    }
 
     // Execute Prisma query
     let leads, total;

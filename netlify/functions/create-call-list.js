@@ -23,7 +23,7 @@ export async function handler(event) {
   }
 
   try {
-    const { name, contactIds = [], leadIds = [], tenant, assignedToUserId } = JSON.parse(event.body);
+    const { name, contactIds = [], leadIds = [], tenant, assignedToUserId, scriptId } = JSON.parse(event.body);
 
     if (!name || !tenant) {
       return {
@@ -40,6 +40,7 @@ export async function handler(event) {
         tenantId: tenant,
         userId: user.userId,
         assignedToUserId: assignedToUserId || user.userId, // default to self
+        scriptId: scriptId || null,
         items: {
           create: [
             ...contactIds.map((contactId, index) => ({

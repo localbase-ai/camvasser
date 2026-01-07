@@ -28,6 +28,19 @@
   <!-- SortableJS for kanban drag-and-drop -->
   <script src="/Sortable.min.js"></script>
 
+  <!-- Marked.js for markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    /* Large modal variant for editors/full-screen workflows */
+    .modal-box-large {
+      width: 90vw;
+      max-width: 90vw;
+      height: 90vh;
+      max-height: 90vh;
+    }
+  </style>
+
 </head>
 <body class="bg-base-100 min-h-screen">
 
@@ -306,7 +319,13 @@
           <div id="prospectListPane" class="h-full flex flex-col">
             <!-- Bulk Actions Bar -->
             <div id="prospectBulkActions" class="hidden bg-warning/10 rounded-lg px-3 py-2 my-2 flex items-center justify-between">
-              <span class="text-sm"><strong id="prospectSelectedCount">0</strong> contact(s) selected</span>
+              <span class="text-sm">
+                <strong id="prospectSelectedCount">0</strong> contact(s) selected
+                <span id="selectAllMatchingProspects" class="hidden">
+                  · <a href="#" onclick="selectAllMatchingProspects(); return false;" class="link link-primary">Select all <strong id="prospectMatchingCount">0</strong> matching</a>
+                </span>
+                <span id="allMatchingSelectedProspects" class="hidden text-success font-medium">· All matching selected</span>
+              </span>
               <div class="flex gap-2">
                 <button onclick="openCallListModal('contact')" class="btn btn-secondary btn-sm">Add to Call List</button>
                 <button onclick="exportSelectedProspects()" class="btn btn-primary btn-sm">Export CSV</button>
@@ -597,13 +616,26 @@
               <select id="callListSelect" class="select select-bordered select-sm" onchange="loadCallList(this.value)">
                 <option value="">Select a list...</option>
               </select>
+              <button id="deleteCallListBtn" onclick="deleteSelectedCallList()" class="btn btn-ghost btn-sm btn-square text-error hidden" title="Delete list">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
               <label class="label cursor-pointer gap-2">
                 <input type="checkbox" id="showAllCallLists" class="toggle toggle-sm" onchange="loadCallLists()">
                 <span class="label-text text-xs">Show all lists</span>
               </label>
             </div>
-            <div id="callListCount" class="text-sm text-base-content/60">
-              0 items in list
+            <div class="flex items-center gap-2">
+              <div id="callListCount" class="text-sm text-base-content/60">
+                0 items in list
+              </div>
+              <button onclick="openScriptManagerModal()" class="btn btn-ghost btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Manage Scripts
+              </button>
             </div>
           </div>
 
@@ -614,6 +646,22 @@
             </svg>
             <h3 class="text-lg font-semibold mb-1">No call lists yet</h3>
             <p class="text-base-content/60 text-sm text-center">Select contacts or leads and click<br>"Add to Call List" to create one</p>
+          </div>
+
+          <!-- Script panel (shown when list has a script) -->
+          <div id="callScriptPanel" class="hidden mb-4">
+            <div class="collapse collapse-arrow bg-base-200 rounded-lg">
+              <input type="checkbox" checked />
+              <div class="collapse-title font-medium flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span id="callScriptName">Call Script</span>
+              </div>
+              <div class="collapse-content">
+                <div id="callScriptContent" class="prose prose-sm max-w-none"></div>
+              </div>
+            </div>
           </div>
 
           <!-- Call list table (hidden by default) -->
@@ -2733,6 +2781,8 @@
         }).join('');
       }
       // Reset select all checkbox and bulk actions when results change
+      prospectSelectAllMatching = false;
+      prospectCurrentFilters = {};
       document.getElementById('selectAllProspects').checked = false;
       updateProspectSelectionUI();
 
@@ -4094,6 +4144,10 @@
       // Default list name to current date
       const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       document.getElementById('newCallListName').value = today;
+
+      // Load scripts for dropdown
+      await loadScriptsForDropdown();
+
       document.getElementById('callListModal').showModal();
     }
 
@@ -4102,16 +4156,46 @@
       callListModalType = null;
     }
 
-    function getSelectedIds() {
+    async function getSelectedIds() {
       if (callListModalType === 'contact') {
+        if (prospectSelectAllMatching) {
+          // Fetch all matching IDs from server with all active filters
+          const params = new URLSearchParams({ tenant: currentTenant, idsOnly: 'true' });
+          if (prospectCurrentFilters.search) params.append('search', prospectCurrentFilters.search);
+          if (prospectCurrentFilters.statusFilter) params.append('statusFilter', prospectCurrentFilters.statusFilter);
+          if (prospectCurrentFilters.campaign) params.append('campaign', prospectCurrentFilters.campaign);
+          if (prospectCurrentFilters.tags) params.append('tags', prospectCurrentFilters.tags);
+          if (prospectCurrentFilters.contactType) params.append('contactType', prospectCurrentFilters.contactType);
+          if (prospectCurrentFilters.projectId) params.append('projectId', prospectCurrentFilters.projectId);
+
+          const response = await fetch(`/.netlify/functions/get-prospects?${params}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (response.status === 401) { logout(); return []; }
+          const data = await response.json();
+          return data.ids || [];
+        }
         return Array.from(document.querySelectorAll('.prospect-checkbox:checked')).map(cb => cb.dataset.id);
       } else {
+        if (leadSelectAllMatching) {
+          // Fetch all matching IDs from server
+          const params = new URLSearchParams({ tenant: currentTenant, idsOnly: 'true' });
+          if (leadCurrentFilters.search) params.append('search', leadCurrentFilters.search);
+          if (leadCurrentFilters.status) params.append('status', leadCurrentFilters.status);
+
+          const response = await fetch(`/.netlify/functions/get-leads?${params}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (response.status === 401) { logout(); return []; }
+          const data = await response.json();
+          return data.ids || [];
+        }
         return Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => cb.dataset.id);
       }
     }
 
     async function addToExistingCallList(listId) {
-      const ids = getSelectedIds();
+      const ids = await getSelectedIds();
       if (ids.length === 0) return;
 
       try {
@@ -4150,10 +4234,11 @@
         return;
       }
 
-      const ids = getSelectedIds();
+      const ids = await getSelectedIds();
       if (ids.length === 0) return;
 
       const assignedToUserId = document.getElementById('newCallListAssignee').value || null;
+      const scriptId = document.getElementById('newCallListScript').value || null;
 
       try {
         const response = await fetch('/.netlify/functions/create-call-list', {
@@ -4167,7 +4252,8 @@
             contactIds: callListModalType === 'contact' ? ids : [],
             leadIds: callListModalType === 'lead' ? ids : [],
             tenant: currentTenant,
-            assignedToUserId
+            assignedToUserId,
+            scriptId
           })
         });
 
@@ -4189,7 +4275,9 @@
     // Load call lists for the Calls view
     async function loadCallLists() {
       try {
-        const showAll = document.getElementById('showAllCallLists')?.checked;
+        const showAllCheckbox = document.getElementById('showAllCallLists');
+        // Admin users see all lists by default
+        const showAll = showAllCheckbox?.checked || currentUser?.isAdmin;
         let url = `/.netlify/functions/get-call-lists?tenant=${currentTenant}`;
         if (showAll) {
           url += '&all=true';
@@ -4229,12 +4317,20 @@
 
     // Load a specific call list's items
     async function loadCallList(listId) {
+      const scriptPanel = document.getElementById('callScriptPanel');
+      const deleteBtn = document.getElementById('deleteCallListBtn');
+
       if (!listId) {
         document.getElementById('callListEmpty').classList.remove('hidden');
         document.getElementById('callListTable').classList.add('hidden');
         document.getElementById('callListCount').textContent = '0 items in list';
+        scriptPanel.classList.add('hidden');
+        deleteBtn.classList.add('hidden');
         return;
       }
+
+      // Show delete button when a list is selected
+      deleteBtn.classList.remove('hidden');
 
       try {
         const response = await fetch(`/.netlify/functions/get-call-list-items?listId=${listId}&tenant=${currentTenant}`, {
@@ -4243,6 +4339,16 @@
         if (response.status === 401) { logout(); return; }
         const data = await response.json();
         const items = data.items || [];
+        const script = data.script;
+
+        // Show/hide script panel
+        if (script) {
+          document.getElementById('callScriptName').textContent = script.name;
+          document.getElementById('callScriptContent').innerHTML = marked.parse(script.content);
+          scriptPanel.classList.remove('hidden');
+        } else {
+          scriptPanel.classList.add('hidden');
+        }
 
         document.getElementById('callListCount').textContent = `${items.length} item${items.length !== 1 ? 's' : ''} in list`;
 
@@ -4296,6 +4402,198 @@
         }
       } catch (e) {
         console.error('Error removing from call list:', e);
+      }
+    }
+
+    async function deleteSelectedCallList() {
+      const select = document.getElementById('callListSelect');
+      const listId = select.value;
+      if (!listId) return;
+
+      const listName = select.options[select.selectedIndex].text;
+      if (!confirm(`Delete "${listName}"? This cannot be undone.`)) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/delete-call-list', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ id: listId })
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+        if (data.success) {
+          showInfoModal('success', 'Deleted', 'Call list has been deleted.');
+          loadCallLists();
+          loadCallList(''); // Clear the view
+        } else {
+          showInfoModal('error', 'Error', data.error || 'Failed to delete list');
+        }
+      } catch (e) {
+        console.error('Error deleting call list:', e);
+        showInfoModal('error', 'Error', 'Failed to delete list');
+      }
+    }
+
+    // ============ Call Scripts ============
+    let allScripts = [];
+
+    async function openScriptManagerModal() {
+      document.getElementById('scriptManagerModal').showModal();
+      await loadScriptsForManager();
+    }
+
+    function closeScriptManagerModal() {
+      document.getElementById('scriptManagerModal').close();
+      clearScriptForm();
+    }
+
+    async function loadScriptsForManager() {
+      try {
+        const response = await fetch(`/.netlify/functions/get-call-scripts?tenantId=${currentTenant}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+        allScripts = data.scripts || [];
+
+        const container = document.getElementById('scriptList');
+        if (allScripts.length === 0) {
+          container.innerHTML = '<p class="text-xs text-base-content/40 py-2">No scripts yet</p>';
+        } else {
+          container.innerHTML = allScripts.map(script => `
+            <button onclick="editScript('${script.id}')"
+              class="btn btn-ghost btn-xs w-full justify-start text-left font-normal truncate h-auto py-1.5 px-2"
+              title="${script.name}">
+              ${script.name}
+            </button>
+          `).join('');
+        }
+      } catch (e) {
+        console.error('Error loading scripts:', e);
+      }
+    }
+
+    function editScript(scriptId) {
+      const script = allScripts.find(s => s.id === scriptId);
+      if (!script) return;
+
+      document.getElementById('editingScriptId').value = scriptId;
+      document.getElementById('scriptName').value = script.name;
+      document.getElementById('scriptContent').value = script.content;
+      document.getElementById('scriptEditorTitle').innerHTML = `<span class="text-base-content/50">editing</span> <button onclick="deleteScript('${scriptId}')" class="link link-error ml-2">delete</button>`;
+      updateScriptPreview();
+    }
+
+    function updateScriptPreview() {
+      const content = document.getElementById('scriptContent').value;
+      const preview = document.getElementById('scriptPreview');
+
+      if (!content.trim()) {
+        preview.innerHTML = '<p class="text-base-content/40 italic">Markdown preview will appear here...</p>';
+        return;
+      }
+
+      try {
+        preview.innerHTML = marked.parse(content);
+      } catch (e) {
+        preview.innerHTML = '<p class="text-error">Error parsing markdown</p>';
+      }
+    }
+
+    async function saveScript() {
+      const scriptId = document.getElementById('editingScriptId').value;
+      const name = document.getElementById('scriptName').value.trim();
+      const content = document.getElementById('scriptContent').value.trim();
+
+      if (!name || !content) {
+        showInfoModal('error', 'Missing Info', 'Please enter both a name and content for the script.');
+        return;
+      }
+
+      try {
+        const endpoint = scriptId
+          ? '/.netlify/functions/update-call-script'
+          : '/.netlify/functions/create-call-script';
+
+        const body = scriptId
+          ? { id: scriptId, name, content }
+          : { name, content, tenantId: currentTenant };
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+
+        if (data.script) {
+          showInfoModal('success', 'Saved', `Script "${name}" has been saved.`);
+          clearScriptForm();
+          await loadScriptsForManager();
+        }
+      } catch (e) {
+        console.error('Error saving script:', e);
+        showInfoModal('error', 'Error', 'Failed to save script.');
+      }
+    }
+
+    async function deleteScript(scriptId) {
+      const script = allScripts.find(s => s.id === scriptId);
+      if (!script) return;
+
+      if (!confirm(`Delete script "${script.name}"? This will remove it from any lists using it.`)) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/delete-call-script', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ id: scriptId })
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+
+        if (data.success) {
+          showInfoModal('success', 'Deleted', 'Script has been deleted.');
+          await loadScriptsForManager();
+        }
+      } catch (e) {
+        console.error('Error deleting script:', e);
+        showInfoModal('error', 'Error', 'Failed to delete script.');
+      }
+    }
+
+    function clearScriptForm() {
+      document.getElementById('editingScriptId').value = '';
+      document.getElementById('scriptName').value = '';
+      document.getElementById('scriptContent').value = '';
+      document.getElementById('scriptEditorTitle').textContent = '';
+      document.getElementById('scriptPreview').innerHTML = '<p class="text-base-content/40 italic">Preview will appear here...</p>';
+    }
+
+    async function loadScriptsForDropdown() {
+      try {
+        const response = await fetch(`/.netlify/functions/get-call-scripts?tenantId=${currentTenant}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+        const scripts = data.scripts || [];
+
+        const select = document.getElementById('newCallListScript');
+        select.innerHTML = '<option value="">No script</option>' +
+          scripts.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+      } catch (e) {
+        console.error('Error loading scripts for dropdown:', e);
       }
     }
 
@@ -4857,17 +5155,67 @@
       updateProspectSelectionUI();
     }
 
+    // Track if "select all matching" mode is active for prospects
+    let prospectSelectAllMatching = false;
+    let prospectCurrentFilters = {};
+
     function updateProspectSelectionUI() {
       const selectedCount = document.querySelectorAll('.prospect-checkbox:checked').length;
+      const visibleCount = document.querySelectorAll('.prospect-checkbox').length;
       const bulkActions = document.getElementById('prospectBulkActions');
       const selectedCountEl = document.getElementById('prospectSelectedCount');
+      const selectAllMatchingEl = document.getElementById('selectAllMatchingProspects');
+      const allMatchingSelectedEl = document.getElementById('allMatchingSelectedProspects');
+      const matchingCountEl = document.getElementById('prospectMatchingCount');
 
       if (selectedCount > 0) {
         bulkActions.classList.remove('hidden');
-        selectedCountEl.textContent = selectedCount;
+
+        if (prospectSelectAllMatching) {
+          // Show "all matching selected" mode
+          selectedCountEl.textContent = prospectTotal;
+          selectAllMatchingEl.classList.add('hidden');
+          allMatchingSelectedEl.classList.remove('hidden');
+        } else {
+          selectedCountEl.textContent = selectedCount;
+          allMatchingSelectedEl.classList.add('hidden');
+
+          // Show "select all matching" link if:
+          // 1. All visible items are selected
+          // 2. There are more results than visible
+          if (selectedCount === visibleCount && prospectTotal > visibleCount) {
+            selectAllMatchingEl.classList.remove('hidden');
+            matchingCountEl.textContent = prospectTotal;
+          } else {
+            selectAllMatchingEl.classList.add('hidden');
+          }
+        }
       } else {
         bulkActions.classList.add('hidden');
+        prospectSelectAllMatching = false;
       }
+    }
+
+    function selectAllMatchingProspects() {
+      // Store current search filters for use in bulk operations
+      prospectCurrentFilters = {
+        tenant: currentTenant,
+        search: document.getElementById('prospectSearch')?.value.trim() || undefined,
+        statusFilter: document.getElementById('prospectStatusFilter')?.value || undefined,
+        campaign: document.getElementById('prospectCampaignFilter')?.value || undefined,
+        tags: selectedProspectTags.length > 0 ? selectedProspectTags.join(',') : undefined,
+        contactType: document.getElementById('contactTypeFilter')?.value || undefined,
+        projectId: currentAddressFilter?.id || undefined
+      };
+      prospectSelectAllMatching = true;
+      updateProspectSelectionUI();
+    }
+
+    function clearProspectSelectionState() {
+      prospectSelectAllMatching = false;
+      prospectCurrentFilters = {};
+      document.getElementById('selectAllProspects').checked = false;
+      updateProspectSelectionUI();
     }
 
     // Address/Project delete functions
@@ -7201,6 +7549,12 @@
             <option value="">Myself</option>
           </select>
         </div>
+        <div class="form-control">
+          <label class="label py-1"><span class="label-text text-xs">Call Script (optional)</span></label>
+          <select id="newCallListScript" class="select select-bordered select-sm w-full">
+            <option value="">No script</option>
+          </select>
+        </div>
         <button onclick="createCallListAndAdd()" class="btn btn-primary btn-sm w-full">Create List</button>
       </div>
 
@@ -7210,6 +7564,66 @@
     </div>
     <form method="dialog" class="modal-backdrop bg-black/50">
       <button onclick="closeCallListModal()">close</button>
+    </form>
+  </dialog>
+
+  <!-- Script Manager Modal -->
+  <dialog id="scriptManagerModal" class="modal">
+    <div class="modal-box modal-box-large bg-base-100 flex flex-col p-0">
+      <div class="flex flex-1 min-h-0">
+        <!-- Left nav - existing scripts -->
+        <div class="w-64 bg-base-200 p-3 flex flex-col min-h-0 border-r border-base-300">
+          <p class="text-xs font-semibold text-base-content/60 uppercase tracking-wide mb-2">Scripts</p>
+          <div id="scriptList" class="flex-1 space-y-1 overflow-auto">
+            <p class="text-xs text-base-content/40 py-2">No scripts yet</p>
+          </div>
+          <button onclick="clearScriptForm()" class="btn btn-ghost btn-xs mt-2 justify-start gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            New
+          </button>
+        </div>
+
+        <!-- Main content area -->
+        <div class="flex-1 flex flex-col min-h-0 p-4">
+          <!-- Header -->
+          <div class="flex items-center gap-3 mb-3">
+            <input type="hidden" id="editingScriptId" value="">
+            <input type="text" id="scriptName" placeholder="Script name..."
+              class="input input-bordered input-sm flex-1 font-medium">
+            <span id="scriptEditorTitle" class="text-xs text-base-content/50 whitespace-nowrap"></span>
+            <button onclick="saveScript()" class="btn btn-primary btn-sm">Save Script</button>
+            <button class="btn btn-ghost btn-sm" onclick="closeScriptManagerModal()">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Editor and Preview side by side -->
+          <div class="flex-1 grid grid-cols-2 gap-4 min-h-0">
+            <!-- Markdown Editor -->
+            <div class="flex flex-col min-h-0">
+              <p class="text-xs font-medium text-base-content/60 mb-1">Markdown</p>
+              <textarea id="scriptContent" placeholder="Enter your markdown script here..."
+                class="textarea textarea-bordered flex-1 w-full text-sm font-mono resize-none leading-relaxed"
+                oninput="updateScriptPreview()"></textarea>
+            </div>
+
+            <!-- Preview -->
+            <div class="flex flex-col min-h-0">
+              <p class="text-xs font-medium text-base-content/60 mb-1">Preview</p>
+              <div id="scriptPreview" class="flex-1 overflow-auto bg-base-200 rounded-lg p-4 prose prose-sm max-w-none">
+                <p class="text-base-content/40 italic">Preview will appear here...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-black/50">
+      <button onclick="closeScriptManagerModal()">close</button>
     </form>
   </dialog>
 </body>

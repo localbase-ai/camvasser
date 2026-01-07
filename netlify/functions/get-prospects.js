@@ -23,7 +23,7 @@ export async function handler(event) {
   }
 
   try {
-    const { limit, page, projectId, sortBy, sortDir, search, tag, tags, statusFilter, campaign, tenant, contactType, id } = event.queryStringParameters || {};
+    const { limit, page, projectId, sortBy, sortDir, search, tag, tags, statusFilter, campaign, tenant, contactType, id, idsOnly } = event.queryStringParameters || {};
     const limitNum = limit ? parseInt(limit) : 25;
     const pageNum = page ? parseInt(page) : 1;
     const skip = (pageNum - 1) * limitNum;
@@ -270,6 +270,19 @@ export async function handler(event) {
           { jobTitle: { contains: searchText, mode: 'insensitive' } }
         ];
       }
+    }
+
+    // If idsOnly is true, return just the IDs (for bulk operations)
+    if (idsOnly === 'true') {
+      const allIds = await prisma.prospect.findMany({
+        where,
+        select: { id: true }
+      });
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: allIds.map(p => p.id) })
+      };
     }
 
     // Build sort order
