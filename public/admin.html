@@ -175,12 +175,12 @@
             <span id="addressCountLabel" class="text-xs text-base-content/60"></span>
             <div class="flex flex-wrap gap-2 items-center flex-1">
               <input type="text" id="addressSearch" placeholder="Search addresses..." class="input input-bordered input-sm flex-1 min-w-[200px]">
-              <div class="dropdown dropdown-end">
+              <div class="dropdown dropdown-bottom">
                 <label tabindex="0" class="btn btn-sm btn-ghost gap-1 border border-base-300">
                   <span id="addressTagFilterLabel">All Tags</span>
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                 </label>
-                <div tabindex="0" class="dropdown-content z-[9999] p-2 shadow-lg bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto">
+                <div tabindex="0" class="dropdown-content z-[9999] p-2 shadow-lg bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto mt-1">
                   <div id="addressTagFilterOptions" class="space-y-1"></div>
                 </div>
               </div>
@@ -254,8 +254,8 @@
       <!-- Contacts View -->
       <div id="view-contacts" class="view hidden flex flex-col h-full">
         <!-- Sticky Header -->
-        <div class="sticky top-0 bg-base-100 z-30 py-2">
-          <div class="flex justify-between items-center gap-4">
+        <div class="sticky top-0 bg-base-100 z-30 py-2 overflow-visible">
+          <div class="flex justify-between items-center gap-4 overflow-visible">
             <div class="flex items-center gap-2">
               <h2 class="text-lg font-bold">Contacts</h2>
               <span id="prospectCountLabel" class="text-xs text-base-content/60"></span>
@@ -265,19 +265,19 @@
                 <button onclick="clearProspectAddressFilter()" class="btn btn-xs btn-ghost text-primary">Clear</button>
               </div>
             </div>
-            <div class="flex flex-wrap gap-2 items-center flex-1">
+            <div class="flex flex-wrap gap-2 items-center flex-1 overflow-visible">
               <input type="text" id="prospectSearch" placeholder="Search contacts..." class="input input-bordered input-sm flex-1 min-w-[200px]">
               <select id="contactTypeFilter" class="select select-bordered select-sm">
                 <option value="">Prospects</option>
                 <option value="org">Org Contacts</option>
                 <option value="all">All Contacts</option>
               </select>
-              <div class="dropdown dropdown-end">
+              <div class="dropdown dropdown-bottom">
                 <label tabindex="0" class="btn btn-sm btn-ghost gap-1 border border-base-300">
                   <span id="prospectTagFilterLabel">All Tags</span>
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                 </label>
-                <div tabindex="0" class="dropdown-content z-[9999] p-2 shadow-lg bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto">
+                <div tabindex="0" class="dropdown-content z-[9999] p-2 shadow-lg bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto mt-1">
                   <div id="prospectTagFilterOptions" class="space-y-1"></div>
                 </div>
               </div>
