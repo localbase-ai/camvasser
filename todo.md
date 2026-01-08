@@ -30,6 +30,8 @@
 - [✅] cleaned up 25 old estimates in QB (marked as Closed)
 
 # Next up Integrations:
+- [ ] Test Twilio integration for outbound calling
+- [ ] Set up virtual canvassing email test
 - [ ] Ring Central
 - [ ] Google Business Listings: figure out mapstacking
 - [✅] SmartLead: CSV export for leads and contacts
@@ -67,6 +69,15 @@
 
 # Lead Management / Call Flow Features
 - [✅] Update status on lead (dropdown in detail view)
+- [✅] Call scripts - create, edit, assign to call lists
+- [✅] Show call script in call list UI (collapsible panel)
+- [✅] Detail pane on call list (450px, same as other views)
+- [✅] Convert contact to lead from call list detail
+- [✅] Notes on call list contact detail
+- [ ] Image upload for scripts (R2/S3) - currently using public folder, won't scale
+- [ ] Click-to-call with Twilio (outbound)
+- [ ] Call logging / outcome tracking
+- [ ] Auto-advance to next item after call
 
 ## CompanyCam Integration
 - [ ] Get OAuth write access (fill out form) or find alternative

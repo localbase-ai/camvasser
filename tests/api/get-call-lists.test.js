@@ -78,8 +78,8 @@ describe('get-call-lists API', () => {
 
     it('should return call lists for tenant', async () => {
       const lists = [
-        factories.callList({ id: 'list_1', name: 'List 1' }),
-        factories.callList({ id: 'list_2', name: 'List 2' })
+        { ...factories.callList({ id: 'list_1', name: 'List 1' }), assignments: [] },
+        { ...factories.callList({ id: 'list_2', name: 'List 2' }), assignments: [] }
       ];
       mockPrisma.callList.findMany.mockResolvedValue(lists);
       mockPrisma.businessUser.findMany.mockResolvedValue([]);
@@ -103,11 +103,15 @@ describe('get-call-lists API', () => {
       });
       await handler(event);
 
+      // Now filters by both legacy assignedToUserId and new assignments table
       expect(mockPrisma.callList.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             tenantId: 'acme',
-            assignedToUserId: 'user_456'
+            OR: [
+              { assignedToUserId: 'user_456' },
+              { assignments: { some: { userId: 'user_456' } } }
+            ]
           })
         })
       );
@@ -131,7 +135,10 @@ describe('get-call-lists API', () => {
 
     it('should include assignee names in response', async () => {
       const lists = [
-        factories.callList({ id: 'list_1', assignedToUserId: 'user_456' })
+        {
+          ...factories.callList({ id: 'list_1', assignedToUserId: 'user_456' }),
+          assignments: [{ user: { id: 'user_456', name: 'John Doe' } }]
+        }
       ];
       const users = [{ id: 'user_456', name: 'John Doe' }];
 
@@ -145,6 +152,8 @@ describe('get-call-lists API', () => {
       const body = JSON.parse(response.body);
 
       expect(body.callLists[0].assigneeName).toBe('John Doe');
+      expect(body.callLists[0].assignedUsers).toHaveLength(1);
+      expect(body.callLists[0].assignedUsers[0].name).toBe('John Doe');
     });
 
     it('should order by createdAt desc', async () => {

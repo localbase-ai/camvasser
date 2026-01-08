@@ -23,7 +23,7 @@ export async function handler(event) {
   }
 
   try {
-    const { name, contactIds = [], leadIds = [], tenant, assignedToUserId, scriptId } = JSON.parse(event.body);
+    const { name, contactIds = [], leadIds = [], tenant, assignedToUserId, assignedUserIds = [], scriptId } = JSON.parse(event.body);
 
     if (!name || !tenant) {
       return {
@@ -33,13 +33,18 @@ export async function handler(event) {
       };
     }
 
-    // Create the call list with items
+    // Determine assignees - support both legacy single assignee and new multi-assignee
+    const userIdsToAssign = assignedUserIds.length > 0
+      ? assignedUserIds
+      : (assignedToUserId ? [assignedToUserId] : [user.userId]);
+
+    // Create the call list with items and assignments
     const callList = await prisma.callList.create({
       data: {
         name,
         tenantId: tenant,
         userId: user.userId,
-        assignedToUserId: assignedToUserId || user.userId, // default to self
+        assignedToUserId: userIdsToAssign[0] || user.userId, // legacy field - first assignee
         scriptId: scriptId || null,
         items: {
           create: [
@@ -52,11 +57,21 @@ export async function handler(event) {
               position: contactIds.length + index
             }))
           ]
+        },
+        assignments: {
+          create: userIdsToAssign.map(userId => ({ userId }))
         }
       },
       include: {
         _count: {
           select: { items: true }
+        },
+        assignments: {
+          include: {
+            user: {
+              select: { id: true, name: true }
+            }
+          }
         }
       }
     });

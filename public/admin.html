@@ -334,11 +334,12 @@
                     <th>Campaign</th>
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortProspects('status')">Status</th>
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortProspects('createdAt')">Created</th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortProspects('updatedAt')">Updated</th>
                   </tr>
                 </thead>
                 <tbody id="prospectTableBody">
                   <tr>
-                    <td colspan="10" class="text-center py-8">
+                    <td colspan="11" class="text-center py-8">
                       <span class="loading loading-spinner loading-md"></span>
                     </td>
                   </tr>
@@ -613,8 +614,27 @@
                 <input type="checkbox" id="showAllCallLists" class="toggle toggle-sm" onchange="loadCallLists()">
                 <span class="label-text text-xs">Show all lists</span>
               </label>
+              <label class="label cursor-pointer gap-2">
+                <input type="checkbox" id="hideTouchedToday" class="toggle toggle-sm" onchange="filterCallListItems()">
+                <span class="label-text text-xs">Hide touched today</span>
+              </label>
+              <label class="label cursor-pointer gap-2">
+                <input type="checkbox" id="filterHasName" class="toggle toggle-sm" onchange="filterCallListItems()">
+                <span class="label-text text-xs">Has name</span>
+              </label>
+              <label class="label cursor-pointer gap-2">
+                <input type="checkbox" id="filterHasPhone" class="toggle toggle-sm" onchange="filterCallListItems()">
+                <span class="label-text text-xs">Has phone</span>
+              </label>
+              <label class="label cursor-pointer gap-2">
+                <input type="checkbox" id="filterHasEmail" class="toggle toggle-sm" onchange="filterCallListItems()">
+                <span class="label-text text-xs">Has email</span>
+              </label>
             </div>
             <div class="flex items-center gap-2">
+              <button id="removeSelectedBtn" onclick="removeSelectedFromCallList()" class="btn btn-error btn-sm hidden">
+                Remove Selected
+              </button>
               <div id="callListCount" class="text-sm text-base-content/60">
                 0 items in list
               </div>
@@ -660,6 +680,7 @@
                 <table class="table table-sm w-full">
                   <thead class="sticky top-0 bg-base-100 z-10">
                     <tr>
+                      <th class="w-8"><input type="checkbox" id="selectAllCallItems" class="checkbox checkbox-sm" onchange="toggleAllCallItems(this.checked)"></th>
                       <th class="w-8"></th>
                       <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('name')">Name</th>
                       <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('phone')">Phone</th>
@@ -668,6 +689,7 @@
                       <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('status')">Status</th>
                       <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('updatedAt')">Updated</th>
                       <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('type')">Type</th>
+                      <th class="w-8"></th>
                     </tr>
                   </thead>
                   <tbody id="callListTableBody">
@@ -2723,7 +2745,7 @@
       const tbody = document.getElementById('prospectTableBody');
 
       if (allProspects.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-base-content/60">No contacts found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-base-content/60">No contacts found</td></tr>`;
       } else {
         tbody.innerHTML = allProspects.map(prospect => {
           // Handle org contacts differently
@@ -2739,6 +2761,7 @@
               ? [proj.address, proj.city, proj.state].filter(Boolean).join(', ')
               : [org.address, org.city, org.state].filter(Boolean).join(', ') || '-';
             const created = prospect.createdAt ? formatDate(prospect.createdAt) : '-';
+            const updated = prospect.updatedAt ? formatDate(prospect.updatedAt) : '-';
 
             return `
               <tr class="cursor-pointer hover:bg-base-200" onclick="navigateToOrg('${org.id}')">
@@ -2754,6 +2777,7 @@
                 <td class="text-sm">-</td>
                 <td>-</td>
                 <td class="text-sm text-base-content/60">${created}</td>
+                <td class="text-sm text-base-content/60">${updated}</td>
               </tr>
             `;
           }
@@ -2773,6 +2797,7 @@
 
           const status = prospect.status ? getStatusBadge(prospect.status) : '-';
           const created = prospect.createdAt ? formatDate(prospect.createdAt) : '-';
+          const updated = prospect.updatedAt ? formatDate(prospect.updatedAt) : '-';
           const isSelected = selectedProspectId === prospect.id;
 
           // Tags from project
@@ -2794,6 +2819,7 @@
               <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${prospect.campaign || '-'}</td>
               <td onclick="showProspectDetail('${prospect.id}')">${status}</td>
               <td class="text-sm text-base-content/60" onclick="showProspectDetail('${prospect.id}')">${created}</td>
+              <td class="text-sm text-base-content/60" onclick="showProspectDetail('${prospect.id}')">${updated}</td>
             </tr>
           `;
         }).join('');
@@ -4229,11 +4255,15 @@
         `).join('');
       }
 
-      // Populate assignee dropdown
-      const assigneeSelect = document.getElementById('newCallListAssignee');
-      const currentUserName = currentUser.name || currentUser.email;
-      assigneeSelect.innerHTML = `<option value="">${currentUserName}</option>` +
-        tenantUsers.filter(u => u.id !== currentUser.id).map(u => `<option value="${u.id}">${u.name || u.email}</option>`).join('');
+      // Populate assignee checkboxes (current user pre-checked)
+      const assigneesContainer = document.getElementById('newCallListAssignees');
+      const allUsers = [currentUser, ...tenantUsers.filter(u => u.id !== currentUser.id)];
+      assigneesContainer.innerHTML = allUsers.map(u => `
+        <label class="flex items-center gap-1 px-2 py-1 bg-base-200 rounded cursor-pointer hover:bg-base-300">
+          <input type="checkbox" class="checkbox checkbox-xs" value="${u.id}" ${u.id === currentUser.id ? 'checked' : ''}>
+          <span class="text-xs">${u.name || u.email}</span>
+        </label>
+      `).join('');
 
       // Default list name to current date
       const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -4331,7 +4361,9 @@
       const ids = await getSelectedIds();
       if (ids.length === 0) return;
 
-      const assignedToUserId = document.getElementById('newCallListAssignee').value || null;
+      // Get selected assignees from checkboxes
+      const assigneeCheckboxes = document.querySelectorAll('#newCallListAssignees input[type="checkbox"]:checked');
+      const assignedUserIds = Array.from(assigneeCheckboxes).map(cb => cb.value);
       const scriptId = document.getElementById('newCallListScript').value || null;
 
       try {
@@ -4346,7 +4378,7 @@
             contactIds: callListModalType === 'contact' ? ids : [],
             leadIds: callListModalType === 'lead' ? ids : [],
             tenant: currentTenant,
-            assignedToUserId,
+            assignedUserIds,
             scriptId
           })
         });
@@ -4356,8 +4388,13 @@
 
         if (data.success) {
           closeCallListModal();
-          const assigneeName = assignedToUserId ? tenantUsers.find(u => u.id === assignedToUserId)?.name : 'you';
-          showInfoModal('success', 'List Created', `Created "${name}" with ${ids.length} ${callListModalType}(s), assigned to ${assigneeName}`);
+          const assigneeNames = assignedUserIds.length > 0
+            ? assignedUserIds.map(id => {
+                if (id === currentUser.id) return currentUser.name || 'you';
+                return tenantUsers.find(u => u.id === id)?.name || 'unknown';
+              }).join(', ')
+            : 'no one';
+          showInfoModal('success', 'List Created', `Created "${name}" with ${ids.length} ${callListModalType}(s), assigned to ${assigneeNames}`);
         } else {
           showInfoModal('error', 'Error', data.error || 'Failed to create list');
         }
@@ -4398,8 +4435,12 @@
         } else {
           select.innerHTML = '<option value="">Select a list...</option>' +
             allCallLists.map(list => {
-              const assignee = list.assigneeName ? ` - ${list.assigneeName}` : '';
-              return `<option value="${list.id}">${list.name} (${list._count?.items || 0})${showAll ? assignee : ''}</option>`;
+              // Show all assignees (new multi-assignee) or fall back to legacy single assignee
+              const assignees = list.assignedUsers?.length > 0
+                ? list.assignedUsers.map(u => u.name).join(', ')
+                : list.assigneeName;
+              const assigneeText = assignees ? ` - ${assignees}` : '';
+              return `<option value="${list.id}">${list.name} (${list._count?.items || 0})${showAll ? assigneeText : ''}</option>`;
             }).join('');
           emptyState.querySelector('h3').textContent = 'Select a call list';
           emptyState.querySelector('p').innerHTML = 'Choose a list from the dropdown above';
@@ -4426,12 +4467,74 @@
       renderCallListTable();
     }
 
+    // Filter call list items (called when toggle changes)
+    function filterCallListItems() {
+      renderCallListTable();
+    }
+
     // Render the call list table (used after sorting)
     function renderCallListTable() {
       if (currentCallListItems.length === 0) return;
 
+      // Get filter states
+      const hideTouchedToday = document.getElementById('hideTouchedToday')?.checked;
+      const filterHasName = document.getElementById('filterHasName')?.checked;
+      const filterHasPhone = document.getElementById('filterHasPhone')?.checked;
+      const filterHasEmail = document.getElementById('filterHasEmail')?.checked;
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      let itemsToRender = currentCallListItems;
+
+      // Apply filters
+      if (hideTouchedToday) {
+        itemsToRender = itemsToRender.filter(item => {
+          const record = item.contact || item.lead;
+          if (!record?.updatedAt) return true;
+          const updatedAt = new Date(record.updatedAt);
+          return updatedAt < todayStart;
+        });
+      }
+
+      if (filterHasName) {
+        itemsToRender = itemsToRender.filter(item => {
+          const record = item.contact || item.lead;
+          const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim();
+          return name && name.length > 0 && name !== 'Unknown';
+        });
+      }
+
+      if (filterHasPhone) {
+        itemsToRender = itemsToRender.filter(item => {
+          const record = item.contact || item.lead;
+          const phone = record?.phones?.[0]?.phone_number || record?.phone;
+          return phone && phone.length > 0;
+        });
+      }
+
+      if (filterHasEmail) {
+        itemsToRender = itemsToRender.filter(item => {
+          const record = item.contact || item.lead;
+          const emails = record?.emails;
+          return emails && emails.length > 0 && emails[0]?.email_address;
+        });
+      }
+
+      // Update count to show filtered vs total
+      const countEl = document.getElementById('callListCount');
+      const filtered = itemsToRender.length !== currentCallListItems.length;
+      if (filtered) {
+        countEl.textContent = `${itemsToRender.length} of ${currentCallListItems.length} items (${currentCallListItems.length - itemsToRender.length} hidden)`;
+      } else {
+        countEl.textContent = `${currentCallListItems.length} item${currentCallListItems.length !== 1 ? 's' : ''} in list`;
+      }
+
+      // Reset select all checkbox
+      document.getElementById('selectAllCallItems').checked = false;
+      updateCallItemSelectionUI();
+
       // Sort items
-      const sortedItems = [...currentCallListItems].sort((a, b) => {
+      const sortedItems = [...itemsToRender].sort((a, b) => {
         const recordA = a.contact || a.lead;
         const recordB = b.contact || b.lead;
         const isContactA = !!a.contact;
@@ -4496,6 +4599,9 @@
 
         return `
           <tr class="hover:bg-base-200 cursor-pointer ${isSelected ? 'bg-base-200' : ''}" data-item-id="${item.id}" onclick="showCallDetail('${item.id}')">
+            <td onclick="event.stopPropagation()">
+              <input type="checkbox" class="checkbox checkbox-sm call-item-checkbox" data-item-id="${item.id}" onchange="updateCallItemSelectionUI()">
+            </td>
             <td>
               <a href="tel:${phone}" class="btn btn-ghost btn-xs btn-square" onclick="event.stopPropagation()">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -4510,9 +4616,103 @@
             <td>${statusBadge}</td>
             <td class="text-sm text-base-content/60">${updatedAt}</td>
             <td><span class="badge badge-sm ${isContact ? 'badge-info' : 'badge-warning'} badge-outline">${type}</span></td>
+            <td onclick="event.stopPropagation()">
+              <button onclick="removeCallListItem('${item.id}')" class="btn btn-ghost btn-xs btn-square text-error hover:bg-error hover:text-white" title="Remove from list">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </td>
           </tr>
         `;
       }).join('');
+    }
+
+    // Toggle all call list item checkboxes
+    function toggleAllCallItems(checked) {
+      document.querySelectorAll('.call-item-checkbox').forEach(cb => cb.checked = checked);
+      updateCallItemSelectionUI();
+    }
+
+    // Update selection UI (show/hide remove button, update count)
+    function updateCallItemSelectionUI() {
+      const selected = document.querySelectorAll('.call-item-checkbox:checked');
+      const removeBtn = document.getElementById('removeSelectedBtn');
+      if (selected.length > 0) {
+        removeBtn.classList.remove('hidden');
+        removeBtn.textContent = `Remove ${selected.length} Selected`;
+      } else {
+        removeBtn.classList.add('hidden');
+      }
+    }
+
+    // Remove a single item from the call list
+    async function removeCallListItem(itemId) {
+      if (!confirm('Remove this item from the call list?')) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/remove-from-call-list', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ itemIds: [itemId] })
+        });
+
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+
+        if (data.success) {
+          // Remove from local array and re-render
+          currentCallListItems = currentCallListItems.filter(i => i.id !== itemId);
+          renderCallListTable();
+          if (selectedCallItemId === itemId) {
+            closeCallDetailPane();
+          }
+        } else {
+          alert('Failed to remove item');
+        }
+      } catch (e) {
+        alert('Failed to remove item');
+      }
+    }
+
+    // Remove selected items from the call list
+    async function removeSelectedFromCallList() {
+      const selected = document.querySelectorAll('.call-item-checkbox:checked');
+      const itemIds = Array.from(selected).map(cb => cb.dataset.itemId);
+
+      if (itemIds.length === 0) return;
+      if (!confirm(`Remove ${itemIds.length} item(s) from the call list?`)) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/remove-from-call-list', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ itemIds })
+        });
+
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+
+        if (data.success) {
+          // Remove from local array and re-render
+          currentCallListItems = currentCallListItems.filter(i => !itemIds.includes(i.id));
+          renderCallListTable();
+          if (itemIds.includes(selectedCallItemId)) {
+            closeCallDetailPane();
+          }
+          showInfoModal('success', 'Removed', `Removed ${itemIds.length} item(s) from the list`);
+        } else {
+          alert('Failed to remove items');
+        }
+      } catch (e) {
+        alert('Failed to remove items');
+      }
     }
 
     // Close the call detail pane
@@ -8044,10 +8244,10 @@
           <input type="text" id="newCallListName" placeholder="List name..." class="input input-bordered input-sm w-full">
         </div>
         <div class="form-control">
-          <label class="label py-1"><span class="label-text text-xs">Assign to</span></label>
-          <select id="newCallListAssignee" class="select select-bordered select-sm w-full">
-            <option value="">Myself</option>
-          </select>
+          <label class="label py-1"><span class="label-text text-xs">Assign to (select multiple)</span></label>
+          <div id="newCallListAssignees" class="flex flex-wrap gap-1 p-2 border border-base-300 rounded-lg min-h-[40px]">
+            <!-- Populated by JS with checkboxes -->
+          </div>
         </div>
         <div class="form-control">
           <label class="label py-1"><span class="label-text text-xs">Call Script (optional)</span></label>

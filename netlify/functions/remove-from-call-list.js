@@ -23,24 +23,27 @@ export async function handler(event) {
   }
 
   try {
-    const { itemId } = JSON.parse(event.body);
+    const { itemId, itemIds } = JSON.parse(event.body);
 
-    if (!itemId) {
+    // Support both single itemId and array of itemIds
+    const idsToDelete = itemIds || (itemId ? [itemId] : []);
+
+    if (idsToDelete.length === 0) {
       return {
         statusCode: 400,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Item ID is required' })
+        body: JSON.stringify({ error: 'Item ID(s) required' })
       };
     }
 
-    await prisma.callListItem.delete({
-      where: { id: itemId }
+    const result = await prisma.callListItem.deleteMany({
+      where: { id: { in: idsToDelete } }
     });
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: true })
+      body: JSON.stringify({ success: true, deleted: result.count })
     };
 
   } catch (error) {

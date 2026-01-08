@@ -59,13 +59,13 @@ describe('remove-from-call-list API', () => {
       const response = await handler(event);
 
       expect(response.statusCode).toBe(400);
-      expect(JSON.parse(response.body).error).toContain('Item ID is required');
+      expect(JSON.parse(response.body).error).toContain('Item ID');
     });
   });
 
   describe('removing items', () => {
     it('should delete item successfully', async () => {
-      mockPrisma.callListItem.delete.mockResolvedValue(factories.callListItem());
+      mockPrisma.callListItem.deleteMany.mockResolvedValue({ count: 1 });
 
       const event = createAuthenticatedEvent({
         httpMethod: 'POST',
@@ -78,8 +78,8 @@ describe('remove-from-call-list API', () => {
       expect(body.success).toBe(true);
     });
 
-    it('should call delete with correct itemId', async () => {
-      mockPrisma.callListItem.delete.mockResolvedValue(factories.callListItem());
+    it('should call deleteMany with correct itemId', async () => {
+      mockPrisma.callListItem.deleteMany.mockResolvedValue({ count: 1 });
 
       const event = createAuthenticatedEvent({
         httpMethod: 'POST',
@@ -87,15 +87,29 @@ describe('remove-from-call-list API', () => {
       });
       await handler(event);
 
-      expect(mockPrisma.callListItem.delete).toHaveBeenCalledWith({
-        where: { id: 'specific_item_456' }
+      expect(mockPrisma.callListItem.deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: ['specific_item_456'] } }
+      });
+    });
+
+    it('should delete multiple items when itemIds array provided', async () => {
+      mockPrisma.callListItem.deleteMany.mockResolvedValue({ count: 3 });
+
+      const event = createAuthenticatedEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({ itemIds: ['item_1', 'item_2', 'item_3'] })
+      });
+      await handler(event);
+
+      expect(mockPrisma.callListItem.deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: ['item_1', 'item_2', 'item_3'] } }
       });
     });
   });
 
   describe('error handling', () => {
     it('should return 500 when database delete fails', async () => {
-      mockPrisma.callListItem.delete.mockRejectedValue(new Error('Database error'));
+      mockPrisma.callListItem.deleteMany.mockRejectedValue(new Error('Database error'));
 
       const event = createAuthenticatedEvent({
         httpMethod: 'POST',

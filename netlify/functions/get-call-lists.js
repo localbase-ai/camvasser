@@ -36,8 +36,12 @@ export async function handler(event) {
     const where = { tenantId: tenant };
 
     // Filter by assignee unless 'all' is requested
+    // Check both legacy assignedToUserId and new assignments table
     if (!all && assignedTo) {
-      where.assignedToUserId = assignedTo;
+      where.OR = [
+        { assignedToUserId: assignedTo },
+        { assignments: { some: { userId: assignedTo } } }
+      ];
     }
 
     const callLists = await prisma.callList.findMany({
@@ -45,12 +49,19 @@ export async function handler(event) {
       include: {
         _count: {
           select: { items: true }
+        },
+        assignments: {
+          include: {
+            user: {
+              select: { id: true, name: true }
+            }
+          }
         }
       },
       orderBy: { createdAt: 'desc' }
     });
 
-    // Get assignee names
+    // Get legacy assignee names (for backwards compatibility)
     const assigneeIds = [...new Set(callLists.map(l => l.assignedToUserId).filter(Boolean))];
     const assignees = assigneeIds.length > 0 ? await prisma.businessUser.findMany({
       where: { id: { in: assigneeIds } },
@@ -58,10 +69,21 @@ export async function handler(event) {
     }) : [];
     const assigneeMap = new Map(assignees.map(a => [a.id, a.name]));
 
-    const enrichedLists = callLists.map(list => ({
-      ...list,
-      assigneeName: list.assignedToUserId ? assigneeMap.get(list.assignedToUserId) : null
-    }));
+    const enrichedLists = callLists.map(list => {
+      // Combine legacy assignee with new assignments
+      const assignedUsers = list.assignments.map(a => ({ id: a.user.id, name: a.user.name }));
+      if (list.assignedToUserId && !assignedUsers.find(u => u.id === list.assignedToUserId)) {
+        const legacyName = assigneeMap.get(list.assignedToUserId);
+        if (legacyName) {
+          assignedUsers.unshift({ id: list.assignedToUserId, name: legacyName });
+        }
+      }
+      return {
+        ...list,
+        assigneeName: list.assignedToUserId ? assigneeMap.get(list.assignedToUserId) : null,
+        assignedUsers
+      };
+    });
 
     return {
       statusCode: 200,
