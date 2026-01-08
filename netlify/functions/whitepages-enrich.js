@@ -1,198 +1,179 @@
-// Enrich prospects with WhitePages data (emails, phones)
-// POST /.netlify/functions/whitepages-enrich
-// Body: { tenant, limit?, campaign? }
-
 import { PrismaClient } from '@prisma/client';
+import { verifyToken } from './lib/auth.js';
+import { getProperty } from './lib/whitepages.js';
 
 const prisma = new PrismaClient();
-const API_KEY = process.env.WHITEPAGES_API_KEY;
 
-async function lookupProperty(address, city, state, zip) {
-  const params = new URLSearchParams({
-    street: address,
-    city: city,
-    state_code: state,
-    zipcode: zip
-  });
+// Statuses that trigger REPLACE (old data was bad)
+const REPLACE_STATUSES = ['bad_number', 'wrong_number'];
 
-  const url = `https://api.whitepages.com/v2/property/?${params}`;
+function normalizePhone(phone) {
+  return (phone || '').replace(/\D/g, '').slice(-10);
+}
 
-  const response = await fetch(url, {
-    headers: { 'X-Api-Key': API_KEY }
-  });
+function mergePhones(existing, newPhones, mode) {
+  if (mode === 'replace') return newPhones;
 
-  return response.json();
+  const existingNormalized = new Set(existing.map(p => normalizePhone(p.phone_number || p.number)));
+  const merged = [...existing];
+
+  for (const phone of newPhones) {
+    const norm = normalizePhone(phone.number);
+    if (!existingNormalized.has(norm)) {
+      merged.push({
+        phone_number: phone.number.replace(/^1/, ''),
+        line_type: phone.type?.toLowerCase() || 'unknown',
+        source: 'whitepages'
+      });
+    }
+  }
+  return merged;
+}
+
+function mergeEmails(existing, newEmails, mode) {
+  if (mode === 'replace') return newEmails.map(e => e.email || e);
+
+  const existingSet = new Set((existing || []).map(e => (e.email || e).toLowerCase()));
+  const merged = [...(existing || [])];
+
+  for (const email of newEmails) {
+    const emailStr = email.email || email;
+    if (!existingSet.has(emailStr.toLowerCase())) {
+      merged.push(emailStr);
+    }
+  }
+  return merged;
 }
 
 export async function handler(event) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json'
-  };
-
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers };
-  }
-
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
-      headers,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
 
-  if (!API_KEY) {
+  const authHeader = event.headers.authorization || event.headers.Authorization;
+  const user = verifyToken(authHeader);
+
+  if (!user) {
     return {
-      statusCode: 400,
-      headers,
-      body: JSON.stringify({ error: 'WhitePages API key not configured' })
+      statusCode: 401,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Unauthorized' })
     };
   }
 
   try {
-    const { tenant, limit = 50, campaign } = JSON.parse(event.body || '{}');
+    const { tenant, limit = 50 } = JSON.parse(event.body || '{}');
 
     if (!tenant) {
       return {
         statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Tenant required' })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Tenant is required' })
       };
     }
 
-    // Find prospects that need enrichment (no emails yet)
-    const whereClause = {
-      tenant,
-      emails: null,
-      project: { isNot: null }
-    };
-
-    if (campaign) {
-      whereClause.campaign = campaign;
-    }
-
+    // Get prospects that need enrichment
     const prospects = await prisma.prospect.findMany({
-      where: whereClause,
-      include: { project: true },
-      take: limit
+      where: {
+        tenant,
+        enrichedAt: null,
+        OR: [
+          { status: null },
+          { status: { in: ['no_answer', 'bad_number', 'wrong_number'] } }
+        ],
+        project: { isNot: null }
+      },
+      include: {
+        project: true
+      },
+      take: parseInt(limit)
     });
 
-    console.log(`WhitePages enrichment: Found ${prospects.length} prospects to process`);
+    // Group by address
+    const byAddress = new Map();
+    for (const p of prospects) {
+      if (!p.project?.address) continue;
+      const key = [p.project.address, p.project.city, p.project.state]
+        .filter(Boolean).join('|').toLowerCase();
+      if (!byAddress.has(key)) {
+        byAddress.set(key, { address: p.project, prospects: [] });
+      }
+      byAddress.get(key).prospects.push(p);
+    }
 
     let processed = 0;
-    let emailsFound = 0;
     let phonesFound = 0;
-    let errors = 0;
+    let emailsFound = 0;
+    let apiCalls = 0;
 
-    for (const prospect of prospects) {
-      if (!prospect.project?.address) {
+    for (const [, { address, prospects }] of byAddress) {
+      // Call Whitepages Property API
+      let wpData;
+      try {
+        wpData = await getProperty({
+          street: address.address,
+          city: address.city,
+          state: address.state
+        });
+        apiCalls++;
+      } catch (err) {
+        console.error(`WP error for ${address.address}:`, err.message);
         continue;
       }
 
-      try {
-        const result = await lookupProperty(
-          prospect.project.address,
-          prospect.project.city || '',
-          prospect.project.state || 'KS',
-          prospect.project.postalCode || ''
-        );
+      const owner = wpData.result?.ownership_info?.person_owners?.[0];
+      if (!owner) continue;
 
-        if (result.result) {
-          // Combine residents and owners
-          const residents = result.result.residents || [];
-          const owners = result.result.ownership_info?.person_owners || [];
-          const allPeople = [...residents, ...owners];
+      for (const prospect of prospects) {
+        const existingPhones = typeof prospect.phones === 'string'
+          ? JSON.parse(prospect.phones || '[]')
+          : (prospect.phones || []);
+        const existingEmails = typeof prospect.emails === 'string'
+          ? JSON.parse(prospect.emails || '[]')
+          : (prospect.emails || []);
 
-          // Find matching person by name (fuzzy match)
-          const prospectNameLower = prospect.name?.toLowerCase() || '';
-          let matchedPerson = allPeople.find(p => {
-            const personNameLower = p.name?.toLowerCase() || '';
-            // Check if names overlap
-            const prospectParts = prospectNameLower.split(' ');
-            const personParts = personNameLower.split(' ');
-            return prospectParts.some(part => personParts.includes(part) && part.length > 2);
-          });
+        const mode = REPLACE_STATUSES.includes(prospect.status) ? 'replace' : 'merge';
 
-          // If no name match, use first person with data
-          if (!matchedPerson && allPeople.length > 0) {
-            matchedPerson = allPeople[0];
+        const newPhones = mergePhones(existingPhones, owner.phones || [], mode);
+        const newEmails = mergeEmails(existingEmails, owner.emails || [], mode);
+        const newName = (!prospect.name || prospect.name === '---') ? owner.name : prospect.name;
+
+        // Count new data found
+        phonesFound += newPhones.length - existingPhones.length;
+        emailsFound += newEmails.length - existingEmails.length;
+
+        await prisma.prospect.update({
+          where: { id: prospect.id },
+          data: {
+            name: newName,
+            phones: newPhones,
+            emails: newEmails,
+            enrichedAt: new Date()
           }
-
-          if (matchedPerson) {
-            const emails = matchedPerson.emails?.map(e => ({
-              email_address: e.email,
-              source: 'whitepages'
-            })) || [];
-
-            const phones = matchedPerson.phones?.map(p => ({
-              phone_number: p.number?.replace(/\D/g, ''),
-              line_type: p.type?.toLowerCase() || 'unknown',
-              source: 'whitepages'
-            })) || [];
-
-            // Update prospect
-            const updateData = {};
-
-            if (emails.length > 0) {
-              updateData.emails = emails;
-              emailsFound += emails.length;
-            }
-
-            // Merge phones if prospect already has some
-            if (phones.length > 0) {
-              const existingPhones = prospect.phones || [];
-              const existingNumbers = existingPhones.map(p => p.phone_number);
-              const newPhones = phones.filter(p => !existingNumbers.includes(p.phone_number));
-              if (newPhones.length > 0) {
-                updateData.phones = [...existingPhones, ...newPhones];
-                phonesFound += newPhones.length;
-              }
-            }
-
-            if (Object.keys(updateData).length > 0) {
-              // Mark as enriched with whitepages prefix
-              if (!prospect.whitepagesId?.startsWith('wp_')) {
-                updateData.whitepagesId = `wp_${prospect.whitepagesId || prospect.id}`;
-              }
-
-              await prisma.prospect.update({
-                where: { id: prospect.id },
-                data: updateData
-              });
-            }
-          }
-        }
+        });
 
         processed++;
-
-        // Rate limit: 500ms between requests
-        await new Promise(r => setTimeout(r, 500));
-
-      } catch (err) {
-        console.error(`Error enriching prospect ${prospect.id}:`, err.message);
-        errors++;
       }
     }
 
-    // Get updated stats
+    // Get total enriched count
     const enrichedCount = await prisma.prospect.count({
-      where: {
-        tenant,
-        emails: { not: null },
-        whitepagesId: { startsWith: 'wp_' }
-      }
+      where: { enrichedAt: { not: null } }
     });
 
     return {
       statusCode: 200,
-      headers,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        success: true,
         processed,
-        emailsFound,
+        apiCalls,
         phonesFound,
-        errors,
+        emailsFound,
         enrichedCount
       })
     };
@@ -201,10 +182,8 @@ export async function handler(event) {
     console.error('WhitePages enrich error:', error);
     return {
       statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: error.message })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: error.message || 'Enrichment failed' })
     };
-  } finally {
-    await prisma.$disconnect();
   }
 }
