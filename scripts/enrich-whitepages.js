@@ -84,28 +84,29 @@ async function main() {
   console.log(`Mode: ${DRY_RUN ? 'DRY RUN (no changes)' : 'LIVE'}`);
   console.log('');
 
-  // Get prospects with eligible statuses and door-hanger/melt-pattern labels
-  const prospects = await prisma.prospect.findMany({
-    where: {
-      OR: [
-        { status: null },
-        { status: { in: ['no_answer', 'bad_number', 'wrong_number'] } }
-      ],
-      project: { isNot: null }
-    },
-    include: {
-      project: { include: { labels: true } }
-    }
-  });
+  // Get prospects with Door Hanger tag via project.tags JSON field
+  // Skip already enriched records, only eligible statuses
+  const prospects = await prisma.$queryRaw`
+    SELECT
+      p.id, p.name, p.status, p.phones, p.emails, p."projectId",
+      proj.address, proj.city, proj.state, proj.tags
+    FROM "Prospect" p
+    JOIN "Project" proj ON p."projectId" = proj.id
+    WHERE proj.tags::text ILIKE '%Door Hanger%'
+      AND p."enrichedAt" IS NULL
+      AND (p.status IS NULL OR p.status IN ('no_answer', 'bad_number', 'wrong_number'))
+  `;
 
-  // Filter to door-hanger/melt-pattern
-  const filtered = prospects.filter(p => {
-    const labels = p.project?.labels || [];
-    return labels.some(l =>
-      (l.value || l.label || '').toLowerCase().includes('door') ||
-      (l.value || l.label || '').toLowerCase().includes('melt')
-    );
-  });
+  // Convert to expected format
+  const filtered = prospects.map(p => ({
+    ...p,
+    project: {
+      address: p.address,
+      city: p.city,
+      state: p.state,
+      tags: p.tags
+    }
+  }));
 
   console.log(`Found ${filtered.length} prospects with door-hanger/melt-pattern tags`);
 
@@ -237,16 +238,20 @@ async function main() {
 
       // Actually update if not dry run
       if (!DRY_RUN && diff.changes.length > 0) {
+        // Reset bad_number/wrong_number to 'new' since we have fresh data
+        const newStatus = REPLACE_STATUSES.includes(prospect.status) ? 'new' : prospect.status;
+
         await prisma.prospect.update({
           where: { id: prospect.id },
           data: {
             name: newName,
             phones: newPhones,
             emails: newEmails,
+            status: newStatus,
             enrichedAt: new Date()
           }
         });
-        console.log(`   ✓ Updated`);
+        console.log(`   ✓ Updated${newStatus !== prospect.status ? ` (status: ${prospect.status} → ${newStatus})` : ''}`);
       }
     }
   }

@@ -614,22 +614,26 @@
                 <input type="checkbox" id="showAllCallLists" class="toggle toggle-sm" onchange="loadCallLists()">
                 <span class="label-text text-xs">Show all lists</span>
               </label>
-              <label class="label cursor-pointer gap-2">
-                <input type="checkbox" id="hideTouchedToday" class="toggle toggle-sm" onchange="filterCallListItems()">
-                <span class="label-text text-xs">Hide touched today</span>
-              </label>
-              <label class="label cursor-pointer gap-2">
-                <input type="checkbox" id="filterHasName" class="toggle toggle-sm" onchange="filterCallListItems()">
-                <span class="label-text text-xs">Has name</span>
-              </label>
-              <label class="label cursor-pointer gap-2">
-                <input type="checkbox" id="filterHasPhone" class="toggle toggle-sm" onchange="filterCallListItems()">
-                <span class="label-text text-xs">Has phone</span>
-              </label>
-              <label class="label cursor-pointer gap-2">
-                <input type="checkbox" id="filterHasEmail" class="toggle toggle-sm" onchange="filterCallListItems()">
-                <span class="label-text text-xs">Has email</span>
-              </label>
+              <select id="filterTouched" class="select select-bordered select-xs" onchange="filterCallListItems()">
+                <option value="">Touched</option>
+                <option value="today">Today</option>
+                <option value="not_today">Not today</option>
+              </select>
+              <select id="filterName" class="select select-bordered select-xs" onchange="filterCallListItems()">
+                <option value="">Name</option>
+                <option value="has">Has name</option>
+                <option value="no">No name</option>
+              </select>
+              <select id="filterPhone" class="select select-bordered select-xs" onchange="filterCallListItems()">
+                <option value="">Phone</option>
+                <option value="has">Has phone</option>
+                <option value="no">No phone</option>
+              </select>
+              <select id="filterEmail" class="select select-bordered select-xs" onchange="filterCallListItems()">
+                <option value="">Email</option>
+                <option value="has">Has email</option>
+                <option value="no">No email</option>
+              </select>
             </div>
             <div class="flex items-center gap-2">
               <button id="removeSelectedBtn" onclick="removeSelectedFromCallList()" class="btn btn-error btn-sm hidden">
@@ -688,7 +692,7 @@
                       <th>Tags</th>
                       <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('status')">Status</th>
                       <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('updatedAt')">Updated</th>
-                      <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('type')">Type</th>
+                      <th>Notes</th>
                       <th class="w-8"></th>
                     </tr>
                   </thead>
@@ -4482,46 +4486,72 @@
       if (currentCallListItems.length === 0) return;
 
       // Get filter states
-      const hideTouchedToday = document.getElementById('hideTouchedToday')?.checked;
-      const filterHasName = document.getElementById('filterHasName')?.checked;
-      const filterHasPhone = document.getElementById('filterHasPhone')?.checked;
-      const filterHasEmail = document.getElementById('filterHasEmail')?.checked;
+      const filterTouched = document.getElementById('filterTouched')?.value;
+      const filterName = document.getElementById('filterName')?.value;
+      const filterPhone = document.getElementById('filterPhone')?.value;
+      const filterEmail = document.getElementById('filterEmail')?.value;
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
       let itemsToRender = currentCallListItems;
 
-      // Apply filters
-      if (hideTouchedToday) {
+      // Apply touched filter
+      if (filterTouched === 'today') {
+        itemsToRender = itemsToRender.filter(item => {
+          const record = item.contact || item.lead;
+          if (!record?.updatedAt) return false;
+          return new Date(record.updatedAt) >= todayStart;
+        });
+      } else if (filterTouched === 'not_today') {
         itemsToRender = itemsToRender.filter(item => {
           const record = item.contact || item.lead;
           if (!record?.updatedAt) return true;
-          const updatedAt = new Date(record.updatedAt);
-          return updatedAt < todayStart;
+          return new Date(record.updatedAt) < todayStart;
         });
       }
 
-      if (filterHasName) {
+      // Apply name filter
+      if (filterName === 'has') {
         itemsToRender = itemsToRender.filter(item => {
           const record = item.contact || item.lead;
           const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim();
-          return name && name.length > 0 && name !== 'Unknown';
+          return name && name.length > 0 && name !== 'Unknown' && name !== '---';
+        });
+      } else if (filterName === 'no') {
+        itemsToRender = itemsToRender.filter(item => {
+          const record = item.contact || item.lead;
+          const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim();
+          return !name || name.length === 0 || name === 'Unknown' || name === '---';
         });
       }
 
-      if (filterHasPhone) {
+      // Apply phone filter
+      if (filterPhone === 'has') {
         itemsToRender = itemsToRender.filter(item => {
           const record = item.contact || item.lead;
           const phone = record?.phones?.[0]?.phone_number || record?.phone;
           return phone && phone.length > 0;
         });
+      } else if (filterPhone === 'no') {
+        itemsToRender = itemsToRender.filter(item => {
+          const record = item.contact || item.lead;
+          const phone = record?.phones?.[0]?.phone_number || record?.phone;
+          return !phone || phone.length === 0;
+        });
       }
 
-      if (filterHasEmail) {
+      // Apply email filter
+      if (filterEmail === 'has') {
         itemsToRender = itemsToRender.filter(item => {
           const record = item.contact || item.lead;
           const emails = record?.emails;
-          return emails && emails.length > 0 && emails[0]?.email_address;
+          return emails && emails.length > 0;
+        });
+      } else if (filterEmail === 'no') {
+        itemsToRender = itemsToRender.filter(item => {
+          const record = item.contact || item.lead;
+          const emails = record?.emails;
+          return !emails || emails.length === 0;
         });
       }
 
@@ -4567,10 +4597,6 @@
             valA = recordA?.updatedAt ? new Date(recordA.updatedAt).getTime() : 0;
             valB = recordB?.updatedAt ? new Date(recordB.updatedAt).getTime() : 0;
             break;
-          case 'type':
-            valA = isContactA ? 'contact' : 'lead';
-            valB = isContactB ? 'contact' : 'lead';
-            break;
           default:
             valA = '';
             valB = '';
@@ -4589,7 +4615,6 @@
         const phone = record?.phones?.[0]?.phone_number || record?.phone || '-';
         const address = record?.lookupAddress || record?.address || '-';
         const status = record?.status || 'new';
-        const type = isContact ? 'Contact' : 'Lead';
         const isSelected = item.id === selectedCallItemId;
         const updatedAt = record?.updatedAt ? new Date(record.updatedAt).toLocaleDateString() : '-';
         const tags = isContact ? (record?.project?.tags || []) : [];
@@ -4601,6 +4626,8 @@
             }).join(' ')
           : '-';
         const statusBadge = status ? getStatusBadge(status) : '-';
+        const notes = record?.notes || '';
+        const notesTruncated = notes.length > 40 ? notes.substring(0, 40) + '...' : notes;
 
         return `
           <tr class="hover:bg-base-200 cursor-pointer ${isSelected ? 'bg-base-200' : ''}" data-item-id="${item.id}" onclick="showCallDetail('${item.id}')">
@@ -4620,7 +4647,7 @@
             <td class="text-sm whitespace-nowrap"><div class="flex gap-1">${tagsHtml !== '-' ? tagsHtml : '-'}</div></td>
             <td>${statusBadge}</td>
             <td class="text-sm text-base-content/60">${updatedAt}</td>
-            <td><span class="badge badge-sm ${isContact ? 'badge-info' : 'badge-warning'} badge-outline">${type}</span></td>
+            <td class="text-sm text-base-content/60 max-w-[150px] truncate" title="${notes.replace(/"/g, '&quot;')}">${notesTruncated || '-'}</td>
             <td onclick="event.stopPropagation()">
               <button onclick="removeCallListItem('${item.id}')" class="btn btn-ghost btn-xs btn-square text-error hover:bg-error hover:text-white" title="Remove from list">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
