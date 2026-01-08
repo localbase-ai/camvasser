@@ -175,7 +175,7 @@
             <span id="addressCountLabel" class="text-xs text-base-content/60"></span>
             <div class="flex flex-wrap gap-2 items-center flex-1">
               <input type="text" id="addressSearch" placeholder="Search addresses..." class="input input-bordered input-sm flex-1 min-w-[200px]">
-              <select id="addressTagFilter" multiple class="select select-bordered select-sm min-w-[120px]" onchange="updateAddressTagFilter()">
+              <select id="addressTagFilter" multiple size="3" class="select select-bordered select-sm min-w-[120px] h-auto" onchange="updateAddressTagFilter()">
               </select>
               <label class="label cursor-pointer gap-2">
                 <input type="checkbox" id="hasTagsFilter" class="toggle toggle-sm">
@@ -265,7 +265,7 @@
                 <option value="org">Org Contacts</option>
                 <option value="all">All Contacts</option>
               </select>
-              <select id="prospectTagFilter" multiple class="select select-bordered select-sm min-w-[120px]" onchange="updateProspectTagFilter()">
+              <select id="prospectTagFilter" multiple size="3" class="select select-bordered select-sm min-w-[120px] h-auto" onchange="updateProspectTagFilter()">
               </select>
               <select id="prospectStatusFilter" class="select select-bordered select-sm">
                 <option value="">All Statuses</option>
