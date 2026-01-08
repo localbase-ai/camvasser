@@ -6858,7 +6858,7 @@
     function getStatusBadge(status) {
       const formatted = formatStatus(status);
       const color = getStatusColor(status.toLowerCase());
-      return `<div class="badge badge-sm" style="background-color: ${color.bg}; color: ${color.text}; border: none;">${formatted}</div>`;
+      return `<div class="badge badge-sm whitespace-nowrap" style="background-color: ${color.bg}; color: ${color.text}; border: none;">${formatted}</div>`;
     }
 
     // =====================
