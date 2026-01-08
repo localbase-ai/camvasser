@@ -3120,6 +3120,82 @@
       }
     }
 
+    // Load notes for a contact in call list view
+    async function loadCallContactNotes(contactId) {
+      const container = document.getElementById('callContactNotesList');
+      if (!container) return;
+
+      try {
+        const params = new URLSearchParams({
+          entityType: 'prospect',
+          entityId: contactId,
+          tenant: currentTenant
+        });
+
+        const response = await fetch(`/.netlify/functions/notes?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to load notes');
+
+        const data = await response.json();
+
+        if (data.notes.length === 0) {
+          container.innerHTML = '<div class="text-sm text-base-content/40 italic">No notes yet</div>';
+        } else {
+          container.innerHTML = data.notes.map(note => `
+            <div class="bg-base-200 rounded p-2 text-sm">
+              <div class="text-xs text-base-content/60 mb-1">${new Date(note.createdAt).toLocaleString()}</div>
+              <div>${note.content}</div>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Error loading notes:', error);
+        container.innerHTML = '<div class="text-sm text-error">Failed to load notes</div>';
+      }
+    }
+
+    // Add a note to a contact in call list view
+    async function addCallContactNote(contactId) {
+      const input = document.getElementById('callContactNoteInput');
+      const content = input.value.trim();
+
+      if (!content) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/notes', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            entityType: 'prospect',
+            entityId: contactId,
+            content,
+            tenant: currentTenant
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to add note');
+
+        input.value = '';
+        loadCallContactNotes(contactId);
+      } catch (error) {
+        console.error('Error adding note:', error);
+        alert('Failed to add note');
+      }
+    }
+
+    // Handle Enter/Shift+Enter in call contact note textarea
+    function handleCallContactNoteKeydown(event, contactId) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        addCallContactNote(contactId);
+      }
+    }
+
     function loadProspectMap(project) {
       const container = document.getElementById('prospectMapContainer');
       if (!container) return;
@@ -4475,7 +4551,7 @@
             <td class="font-medium">${name}</td>
             <td class="text-sm">${phone}</td>
             <td class="text-sm max-w-[200px] truncate" title="${address}">${address}</td>
-            <td class="text-sm">${tagsHtml}</td>
+            <td class="text-sm whitespace-nowrap"><div class="flex gap-1">${tagsHtml !== '-' ? tagsHtml : '-'}</div></td>
             <td>${statusBadge}</td>
             <td class="text-sm text-base-content/60">${updatedAt}</td>
             <td><span class="badge badge-sm ${isContact ? 'badge-info' : 'badge-warning'} badge-outline">${type}</span></td>
@@ -4563,6 +4639,22 @@
             </div>
             ` : ''}
 
+            <!-- Notes Section -->
+            <div class="space-y-2">
+              <label class="text-xs text-base-content/60 uppercase font-medium">Notes</label>
+              <div class="flex gap-2">
+                <textarea id="callContactNoteInput" class="textarea textarea-bordered textarea-sm flex-1" placeholder="Add a note..." rows="2" onkeydown="handleCallContactNoteKeydown(event, '${record.id}')"></textarea>
+                <button onclick="addCallContactNote('${record.id}')" class="btn btn-sm btn-primary self-end">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+              <div id="callContactNotesList" class="space-y-2 max-h-[200px] overflow-y-auto">
+                <div class="text-sm text-base-content/40 italic">Loading notes...</div>
+              </div>
+            </div>
+
             <div class="pt-2 border-t border-base-300 space-y-2">
               <button onclick="convertContactToLead('${record.id}')" class="btn btn-sm btn-primary w-full">
                 Convert to Lead
@@ -4573,6 +4665,8 @@
             </div>
           </div>
         `;
+        // Load notes for this contact
+        loadCallContactNotes(record.id);
       } else {
         // Lead detail
         const name = `${record.firstName || ''} ${record.lastName || ''}`.trim() || 'Unknown';
