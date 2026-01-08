@@ -175,15 +175,8 @@
             <span id="addressCountLabel" class="text-xs text-base-content/60"></span>
             <div class="flex flex-wrap gap-2 items-center flex-1">
               <input type="text" id="addressSearch" placeholder="Search addresses..." class="input input-bordered input-sm flex-1 min-w-[200px]">
-              <div class="relative">
-                <button type="button" id="addressTagFilterBtn" class="btn btn-sm btn-ghost gap-1 border border-base-300" onclick="toggleAddressTagDropdown()">
-                  <span id="addressTagFilterLabel">All Tags</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                </button>
-                <div id="addressTagDropdown" class="hidden fixed z-[9999] p-2 shadow-lg bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto border border-base-300">
-                  <div id="addressTagFilterOptions" class="space-y-1"></div>
-                </div>
-              </div>
+              <select id="addressTagFilter" multiple class="select select-bordered select-sm min-w-[120px]" onchange="updateAddressTagFilter()">
+              </select>
               <label class="label cursor-pointer gap-2">
                 <input type="checkbox" id="hasTagsFilter" class="toggle toggle-sm">
                 <span class="label-text">Has tags</span>
@@ -272,15 +265,8 @@
                 <option value="org">Org Contacts</option>
                 <option value="all">All Contacts</option>
               </select>
-              <div class="relative">
-                <button type="button" id="prospectTagFilterBtn" class="btn btn-sm btn-ghost gap-1 border border-base-300" onclick="toggleProspectTagDropdown()">
-                  <span id="prospectTagFilterLabel">All Tags</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                </button>
-                <div id="prospectTagDropdown" class="hidden fixed z-[9999] p-2 shadow-lg bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto border border-base-300">
-                  <div id="prospectTagFilterOptions" class="space-y-1"></div>
-                </div>
-              </div>
+              <select id="prospectTagFilter" multiple class="select select-bordered select-sm min-w-[120px]" onchange="updateProspectTagFilter()">
+              </select>
               <select id="prospectStatusFilter" class="select select-bordered select-sm">
                 <option value="">All Statuses</option>
                 <option value="no_status">No Status</option>
@@ -2091,89 +2077,24 @@
 
     function populateTagFilters() {
       // Build checkbox options for addresses
-      const addressTagOptions = allTags.map(t => `
-        <label class="flex items-center gap-2 px-2 py-1 hover:bg-base-200 rounded cursor-pointer">
-          <input type="checkbox" class="checkbox checkbox-sm address-tag-checkbox" value="${t.value}" onchange="updateAddressTagFilter()">
-          <span class="text-sm">${t.display_value || t.displayValue || t.value}</span>
-        </label>
+      // Build options for native select elements
+      const tagOptions = allTags.map(t => `
+        <option value="${t.value}">${t.display_value || t.displayValue || t.value}</option>
       `).join('');
-      document.getElementById('addressTagFilterOptions').innerHTML = addressTagOptions;
-
-      // Build checkbox options for prospects/contacts
-      const prospectTagOptions = allTags.map(t => `
-        <label class="flex items-center gap-2 px-2 py-1 hover:bg-base-200 rounded cursor-pointer">
-          <input type="checkbox" class="checkbox checkbox-sm prospect-tag-checkbox" value="${t.value}" onchange="updateProspectTagFilter()">
-          <span class="text-sm">${t.display_value || t.displayValue || t.value}</span>
-        </label>
-      `).join('');
-      document.getElementById('prospectTagFilterOptions').innerHTML = prospectTagOptions;
-    }
-
-    // Toggle address tag dropdown with fixed positioning
-    function toggleAddressTagDropdown() {
-      const btn = document.getElementById('addressTagFilterBtn');
-      const dropdown = document.getElementById('addressTagDropdown');
-      const isHidden = dropdown.classList.contains('hidden');
-
-      if (isHidden) {
-        const rect = btn.getBoundingClientRect();
-        dropdown.style.top = (rect.bottom + 4) + 'px';
-        dropdown.style.left = rect.left + 'px';
-        dropdown.classList.remove('hidden');
-
-        // Close on click outside
-        setTimeout(() => {
-          document.addEventListener('click', closeAddressTagDropdown);
-        }, 0);
-      } else {
-        dropdown.classList.add('hidden');
-        document.removeEventListener('click', closeAddressTagDropdown);
-      }
-    }
-
-    function closeAddressTagDropdown(e) {
-      const dropdown = document.getElementById('addressTagDropdown');
-      const btn = document.getElementById('addressTagFilterBtn');
-      if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
-        dropdown.classList.add('hidden');
-        document.removeEventListener('click', closeAddressTagDropdown);
-      }
+      document.getElementById('addressTagFilter').innerHTML = tagOptions;
+      document.getElementById('prospectTagFilter').innerHTML = tagOptions;
     }
 
     function updateAddressTagFilter() {
-      const checkboxes = document.querySelectorAll('.address-tag-checkbox:checked');
-      selectedAddressTags = Array.from(checkboxes).map(cb => cb.value);
-
-      // Update label
-      const label = document.getElementById('addressTagFilterLabel');
-      if (selectedAddressTags.length === 0) {
-        label.textContent = 'All Tags';
-      } else if (selectedAddressTags.length === 1) {
-        const tag = allTags.find(t => t.value === selectedAddressTags[0]);
-        label.textContent = tag?.display_value || tag?.displayValue || selectedAddressTags[0];
-      } else {
-        label.textContent = `${selectedAddressTags.length} tags`;
-      }
-
+      const select = document.getElementById('addressTagFilter');
+      selectedAddressTags = Array.from(select.selectedOptions).map(opt => opt.value);
       addressPage = 1;
       searchAddresses();
     }
 
     function updateProspectTagFilter() {
-      const checkboxes = document.querySelectorAll('.prospect-tag-checkbox:checked');
-      selectedProspectTags = Array.from(checkboxes).map(cb => cb.value);
-
-      // Update label
-      const label = document.getElementById('prospectTagFilterLabel');
-      if (selectedProspectTags.length === 0) {
-        label.textContent = 'All Tags';
-      } else if (selectedProspectTags.length === 1) {
-        const tag = allTags.find(t => t.value === selectedProspectTags[0]);
-        label.textContent = tag?.display_value || tag?.displayValue || selectedProspectTags[0];
-      } else {
-        label.textContent = `${selectedProspectTags.length} tags`;
-      }
-
+      const select = document.getElementById('prospectTagFilter');
+      selectedProspectTags = Array.from(select.selectedOptions).map(opt => opt.value);
       prospectPage = 1;
       searchProspects();
     }
@@ -6072,37 +5993,6 @@
       document.getElementById('prospectAddressFilter').classList.add('hidden');
       prospectPage = 1;
       searchProspects(); // Fetch all data from server
-    }
-
-    // Toggle prospect tag dropdown with fixed positioning
-    function toggleProspectTagDropdown() {
-      const btn = document.getElementById('prospectTagFilterBtn');
-      const dropdown = document.getElementById('prospectTagDropdown');
-      const isHidden = dropdown.classList.contains('hidden');
-
-      if (isHidden) {
-        const rect = btn.getBoundingClientRect();
-        dropdown.style.top = (rect.bottom + 4) + 'px';
-        dropdown.style.left = rect.left + 'px';
-        dropdown.classList.remove('hidden');
-
-        // Close on click outside
-        setTimeout(() => {
-          document.addEventListener('click', closeProspectTagDropdown);
-        }, 0);
-      } else {
-        dropdown.classList.add('hidden');
-        document.removeEventListener('click', closeProspectTagDropdown);
-      }
-    }
-
-    function closeProspectTagDropdown(e) {
-      const dropdown = document.getElementById('prospectTagDropdown');
-      const btn = document.getElementById('prospectTagFilterBtn');
-      if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
-        dropdown.classList.add('hidden');
-        document.removeEventListener('click', closeProspectTagDropdown);
-      }
     }
 
     async function setLeadsView(mode) {
