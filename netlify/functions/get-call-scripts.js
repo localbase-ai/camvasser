@@ -37,7 +37,7 @@ export async function handler(event) {
       where: { tenantId },
       include: {
         _count: {
-          select: { callLists: true }
+          select: { CallList: true }
         }
       },
       orderBy: { createdAt: 'desc' }
