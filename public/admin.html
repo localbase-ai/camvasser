@@ -2805,12 +2805,17 @@
             .map(t => `<span class="badge badge-outline badge-xs">${t.displayValue || t.display_value || t.value}</span>`)
             .join(' ');
 
+          const isEnriched = !!prospect.enrichedAt;
+
           return `
-            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''}">
+            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''} ${isEnriched ? 'border-l-4 border-l-warning' : ''}">
               <td class="w-8" onclick="event.stopPropagation()">
                 <input type="checkbox" class="checkbox checkbox-sm prospect-checkbox" data-id="${prospect.id}" onchange="updateProspectSelectionUI()">
               </td>
-              <td class="font-medium" onclick="showProspectDetail('${prospect.id}')">${prospect.name || '-'}</td>
+              <td class="font-medium" onclick="showProspectDetail('${prospect.id}')">
+                ${prospect.name || '-'}
+                ${isEnriched ? '<span class="badge badge-warning badge-xs ml-1" title="Whitepages enriched">WP</span>' : ''}
+              </td>
               <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${prospect.project ? [prospect.project.address, prospect.project.city, prospect.project.state].filter(Boolean).join(', ') : '-'}</td>
               <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${phoneDisplay}</td>
               <td class="text-sm max-w-[200px] truncate" onclick="showProspectDetail('${prospect.id}')">${email}</td>

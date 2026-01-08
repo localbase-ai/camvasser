@@ -154,7 +154,8 @@ model Project {
 
 model Prospect {
   id                   String                   @id @default(cuid())
-  whitepagesId         String                   @unique
+  whitepagesId         String?
+  enrichedAt           DateTime?
   projectId            String?
   name                 String
   aliases              Json?

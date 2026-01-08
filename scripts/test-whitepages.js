@@ -1,132 +1,130 @@
-// Test WhitePages API with a few records
-// Usage: node scripts/test-whitepages.js
-// Docs: https://api.whitepages.com/docs/llms.txt
-
-import { PrismaClient } from '@prisma/client';
 import 'dotenv/config';
 
-const prisma = new PrismaClient();
-const API_KEY = process.env.WHITEPAGES_API_KEY;
-const TENANT = 'budroofing';
+const WHITEPAGES_API_KEY = process.env.WHITEPAGES_API_KEY;
+const BASE_URL = 'https://api.whitepages.com';
 
-async function testPropertyLookup(address, city, state, zip) {
-  const params = new URLSearchParams({
-    street: address,
-    city: city,
-    state_code: state,
-    zipcode: zip
-  });
+async function testPhoneLookup(phone) {
+  console.log(`\n📞 Phone Lookup: ${phone}`);
+  console.log('─'.repeat(50));
 
-  const url = `https://api.whitepages.com/v2/property/?${params}`;
-  console.log(`\nTesting: ${address}, ${city}, ${state}`);
+  const cleanPhone = phone.replace(/\D/g, '');
+  const url = `${BASE_URL}/v1/person?phone=${cleanPhone}`;
 
   try {
     const response = await fetch(url, {
-      headers: { 'X-Api-Key': API_KEY }
+      headers: { 'X-Api-Key': WHITEPAGES_API_KEY }
     });
+
+    if (!response.ok) {
+      console.log('HTTP Error:', response.status, await response.text());
+      return;
+    }
+
     const data = await response.json();
 
-    if (data.message) {
-      console.log('  API Error:', data.message);
-      return null;
+    if (!Array.isArray(data) || data.length === 0) {
+      console.log('No results found');
+      return;
     }
 
-    if (data.result) {
-      const result = data.result;
-      console.log('  Property ID:', result.property_id);
+    console.log(`Found ${data.length} result(s)\n`);
 
-      // Check residents
-      const residents = result.residents || [];
-      console.log('  Residents:', residents.length);
+    data.forEach((person, i) => {
+      console.log(`--- Person ${i + 1} ---`);
+      console.log('  Name:', person.name);
+      if (person.aliases?.length) console.log('  Aliases:', person.aliases.join(', '));
+      if (person.date_of_birth) console.log('  DOB:', person.date_of_birth);
+      if (person.is_dead) console.log('  Status: Deceased');
 
-      residents.slice(0, 2).forEach((r, i) => {
-        console.log(`  [${i}] Name: ${r.name}`);
-        console.log(`      Phones: ${r.phones?.length || 0}`, r.phones?.map(p => p.number) || []);
-        console.log(`      Emails: ${r.emails?.length || 0}`, r.emails?.map(e => e.email) || []);
-      });
-
-      // Check owners
-      const owners = result.ownership_info?.person_owners || [];
-      if (owners.length > 0) {
-        console.log('  Owners:', owners.length);
-        owners.slice(0, 2).forEach((o, i) => {
-          console.log(`  [owner ${i}] Name: ${o.name}`);
-          console.log(`      Emails: ${o.emails?.length || 0}`, o.emails?.map(e => e.email) || []);
+      if (person.phones?.length) {
+        console.log('  Phones:');
+        person.phones.forEach(p => {
+          console.log(`    ${p.number} (${p.type || 'unknown'}) score: ${p.score || 'n/a'}`);
         });
       }
-    } else {
-      console.log('  No result found');
-    }
 
-    return data;
+      if (person.emails?.length) {
+        console.log('  Emails:', person.emails.join(', '));
+      }
+
+      if (person.current_addresses?.length) {
+        console.log('  Current Addresses:');
+        person.current_addresses.forEach(a => console.log(`    ${a.address}`));
+      }
+
+      if (person.company_name) console.log('  Company:', person.company_name);
+      if (person.job_title) console.log('  Title:', person.job_title);
+      if (person.linkedin_url) console.log('  LinkedIn:', person.linkedin_url);
+
+      if (person.relatives?.length) {
+        console.log('  Relatives:', person.relatives.map(r => r.name).join(', '));
+      }
+
+      console.log('');
+    });
+
+    // Uncomment to see raw response
+    // console.log('\nRaw:', JSON.stringify(data, null, 2));
+
   } catch (err) {
-    console.log('  Fetch error:', err.message, err.cause || '');
-    return null;
+    console.error('Request failed:', err.message);
   }
 }
 
-async function main() {
-  console.log('WhitePages Pro API Test');
-  console.log('=======================');
-  console.log('API Key:', API_KEY ? `${API_KEY.substring(0, 8)}...` : 'NOT SET');
+async function testPersonSearch(name, city, state) {
+  console.log(`\n👤 Person Search: ${name} in ${city}, ${state}`);
+  console.log('─'.repeat(50));
 
-  if (!API_KEY) {
-    console.error('No API key found. Set WHITEPAGES_API_KEY in .env');
-    process.exit(1);
-  }
+  const params = new URLSearchParams({ name, city, state_code: state });
+  const url = `${BASE_URL}/v1/person?${params}`;
 
-  // Get 10 prospects from the Clay import that have phones but no emails
-  const prospects = await prisma.prospect.findMany({
-    where: {
-      tenant: TENANT,
-      campaign: '66206 List'
-    },
-    include: {
-      project: true
-    },
-    take: 10
-  });
+  try {
+    const response = await fetch(url, {
+      headers: { 'X-Api-Key': WHITEPAGES_API_KEY }
+    });
 
-  console.log(`\nFound ${prospects.length} prospects to test\n`);
-
-  let successCount = 0;
-  let emailsFound = 0;
-
-  for (const prospect of prospects) {
-    if (!prospect.project?.address) {
-      console.log(`Skipping ${prospect.name}: no address`);
-      continue;
+    if (!response.ok) {
+      console.log('HTTP Error:', response.status, await response.text());
+      return;
     }
 
-    const result = await testPropertyLookup(
-      prospect.project.address,
-      prospect.project.city || 'Leawood',
-      prospect.project.state || 'KS',
-      prospect.project.postalCode || '66206'
-    );
+    const data = await response.json();
 
-    if (result && result.result) {
-      successCount++;
-      const residents = result.result.residents || [];
-      const owners = result.result.ownership_info?.person_owners || [];
-      const allEmails = [...residents, ...owners].flatMap(p => p.emails || []);
-      emailsFound += allEmails.length;
+    if (!Array.isArray(data) || data.length === 0) {
+      console.log('No results found');
+      return;
     }
 
-    // Small delay to avoid rate limiting
-    await new Promise(r => setTimeout(r, 500));
+    console.log(`Found ${data.length} result(s)\n`);
+    data.slice(0, 3).forEach((person, i) => {
+      console.log(`${i + 1}. ${person.name}`);
+      if (person.current_addresses?.[0]) console.log(`   ${person.current_addresses[0].address}`);
+      if (person.phones?.[0]) console.log(`   ${person.phones[0].number}`);
+    });
+
+  } catch (err) {
+    console.error('Request failed:', err.message);
   }
-
-  console.log('\n=======================');
-  console.log('Test Summary');
-  console.log(`  Successful lookups: ${successCount}/${prospects.length}`);
-  console.log(`  Emails found: ${emailsFound}`);
-
-  await prisma.$disconnect();
 }
 
-main().catch(e => {
-  console.error(e);
-  prisma.$disconnect();
-  process.exit(1);
-});
+// Main
+console.log('='.repeat(50));
+console.log('Whitepages API Test (New v1 API)');
+console.log('='.repeat(50));
+console.log('API Key:', WHITEPAGES_API_KEY ? `${WHITEPAGES_API_KEY.slice(0, 8)}...` : 'NOT SET');
+
+const arg = process.argv[2];
+
+if (arg && /^\d+$/.test(arg.replace(/\D/g, ''))) {
+  // Phone number provided
+  await testPhoneLookup(arg);
+} else if (arg) {
+  // Name provided - search
+  const [name, city = 'Seattle', state = 'WA'] = arg.split(',').map(s => s.trim());
+  await testPersonSearch(name, city, state);
+} else {
+  // Default test
+  console.log('\nUsage: node scripts/test-whitepages.js <phone|"name,city,state">');
+  console.log('\nRunning default phone test...');
+  await testPhoneLookup('2069735100');
+}
