@@ -86,8 +86,7 @@ model BusinessUser {
   email        String       @unique
   phone        String?
   companyName  String?
-  domain       String?
-  slug         String?      @unique
+  slug         String?
   createdAt    DateTime     @default(now())
   approvedAt   DateTime?
   status       String       @default("pending")
