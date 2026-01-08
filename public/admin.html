@@ -175,12 +175,12 @@
             <span id="addressCountLabel" class="text-xs text-base-content/60"></span>
             <div class="flex flex-wrap gap-2 items-center flex-1">
               <input type="text" id="addressSearch" placeholder="Search addresses..." class="input input-bordered input-sm flex-1 min-w-[200px]">
-              <div class="dropdown dropdown-bottom">
-                <label tabindex="0" class="btn btn-sm btn-ghost gap-1 border border-base-300">
+              <div class="relative">
+                <button type="button" id="addressTagFilterBtn" class="btn btn-sm btn-ghost gap-1 border border-base-300" onclick="toggleAddressTagDropdown()">
                   <span id="addressTagFilterLabel">All Tags</span>
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                </label>
-                <div tabindex="0" class="dropdown-content z-[9999] p-2 shadow-lg bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto mt-1">
+                </button>
+                <div id="addressTagDropdown" class="hidden fixed z-[9999] p-2 shadow-lg bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto border border-base-300">
                   <div id="addressTagFilterOptions" class="space-y-1"></div>
                 </div>
               </div>
@@ -272,12 +272,12 @@
                 <option value="org">Org Contacts</option>
                 <option value="all">All Contacts</option>
               </select>
-              <div class="dropdown dropdown-bottom">
-                <label tabindex="0" class="btn btn-sm btn-ghost gap-1 border border-base-300">
+              <div class="relative">
+                <button type="button" id="prospectTagFilterBtn" class="btn btn-sm btn-ghost gap-1 border border-base-300" onclick="toggleProspectTagDropdown()">
                   <span id="prospectTagFilterLabel">All Tags</span>
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                </label>
-                <div tabindex="0" class="dropdown-content z-[9999] p-2 shadow-lg bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto mt-1">
+                </button>
+                <div id="prospectTagDropdown" class="hidden fixed z-[9999] p-2 shadow-lg bg-base-100 rounded-box w-56 max-h-64 overflow-y-auto border border-base-300">
                   <div id="prospectTagFilterOptions" class="space-y-1"></div>
                 </div>
               </div>
@@ -2107,6 +2107,37 @@
         </label>
       `).join('');
       document.getElementById('prospectTagFilterOptions').innerHTML = prospectTagOptions;
+    }
+
+    // Toggle address tag dropdown with fixed positioning
+    function toggleAddressTagDropdown() {
+      const btn = document.getElementById('addressTagFilterBtn');
+      const dropdown = document.getElementById('addressTagDropdown');
+      const isHidden = dropdown.classList.contains('hidden');
+
+      if (isHidden) {
+        const rect = btn.getBoundingClientRect();
+        dropdown.style.top = (rect.bottom + 4) + 'px';
+        dropdown.style.left = rect.left + 'px';
+        dropdown.classList.remove('hidden');
+
+        // Close on click outside
+        setTimeout(() => {
+          document.addEventListener('click', closeAddressTagDropdown);
+        }, 0);
+      } else {
+        dropdown.classList.add('hidden');
+        document.removeEventListener('click', closeAddressTagDropdown);
+      }
+    }
+
+    function closeAddressTagDropdown(e) {
+      const dropdown = document.getElementById('addressTagDropdown');
+      const btn = document.getElementById('addressTagFilterBtn');
+      if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+        dropdown.classList.add('hidden');
+        document.removeEventListener('click', closeAddressTagDropdown);
+      }
     }
 
     function updateAddressTagFilter() {
@@ -6041,6 +6072,37 @@
       document.getElementById('prospectAddressFilter').classList.add('hidden');
       prospectPage = 1;
       searchProspects(); // Fetch all data from server
+    }
+
+    // Toggle prospect tag dropdown with fixed positioning
+    function toggleProspectTagDropdown() {
+      const btn = document.getElementById('prospectTagFilterBtn');
+      const dropdown = document.getElementById('prospectTagDropdown');
+      const isHidden = dropdown.classList.contains('hidden');
+
+      if (isHidden) {
+        const rect = btn.getBoundingClientRect();
+        dropdown.style.top = (rect.bottom + 4) + 'px';
+        dropdown.style.left = rect.left + 'px';
+        dropdown.classList.remove('hidden');
+
+        // Close on click outside
+        setTimeout(() => {
+          document.addEventListener('click', closeProspectTagDropdown);
+        }, 0);
+      } else {
+        dropdown.classList.add('hidden');
+        document.removeEventListener('click', closeProspectTagDropdown);
+      }
+    }
+
+    function closeProspectTagDropdown(e) {
+      const dropdown = document.getElementById('prospectTagDropdown');
+      const btn = document.getElementById('prospectTagFilterBtn');
+      if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+        dropdown.classList.add('hidden');
+        document.removeEventListener('click', closeProspectTagDropdown);
+      }
     }
 
     async function setLeadsView(mode) {
