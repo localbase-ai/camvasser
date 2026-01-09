@@ -4760,12 +4760,24 @@
             <div class="space-y-2">
               <label class="text-xs text-base-content/60 uppercase font-medium">Status</label>
               <select class="select select-sm select-bordered w-full" onchange="updateCallItemStatus('contact', '${record.id}', this.value)">
-                <option value="new" ${status === 'new' ? 'selected' : ''}>New</option>
-                <option value="contacted" ${status === 'contacted' ? 'selected' : ''}>Contacted</option>
-                <option value="qualified" ${status === 'qualified' ? 'selected' : ''}>Qualified</option>
-                <option value="converted" ${status === 'converted' ? 'selected' : ''}>Converted</option>
-                <option value="not_interested" ${status === 'not_interested' ? 'selected' : ''}>Not Interested</option>
-                <option value="do_not_contact" ${status === 'do_not_contact' ? 'selected' : ''}>Do Not Contact</option>
+                <option value="" ${!status ? 'selected' : ''}>No Status</option>
+                <optgroup label="Calling">
+                  <option value="new_lead" ${status === 'new_lead' ? 'selected' : ''}>New lead</option>
+                  <option value="left_voicemail" ${status === 'left_voicemail' ? 'selected' : ''}>Left voicemail</option>
+                  <option value="no_answer" ${status === 'no_answer' ? 'selected' : ''}>No answer</option>
+                  <option value="callback" ${status === 'callback' ? 'selected' : ''}>Callback</option>
+                  <option value="appointment_set" ${status === 'appointment_set' ? 'selected' : ''}>Appointment set</option>
+                  <option value="not_interested" ${status === 'not_interested' ? 'selected' : ''}>Not interested</option>
+                  <option value="wrong_number" ${status === 'wrong_number' ? 'selected' : ''}>Wrong number</option>
+                  <option value="bad_number" ${status === 'bad_number' ? 'selected' : ''}>Bad number</option>
+                </optgroup>
+                <optgroup label="Email">
+                  <option value="emailed" ${status === 'emailed' ? 'selected' : ''}>Emailed</option>
+                  <option value="opened" ${status === 'opened' ? 'selected' : ''}>Opened</option>
+                  <option value="clicked" ${status === 'clicked' ? 'selected' : ''}>Clicked</option>
+                  <option value="replied" ${status === 'replied' ? 'selected' : ''}>Replied</option>
+                  <option value="bounced" ${status === 'bounced' ? 'selected' : ''}>Bounced</option>
+                </optgroup>
               </select>
             </div>
 
