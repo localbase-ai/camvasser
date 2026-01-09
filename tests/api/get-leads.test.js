@@ -274,6 +274,65 @@ describe('get-leads API', () => {
       expect(body).toHaveProperty('totalPages');
       expect(body).toHaveProperty('leads');
     });
+
+    it('should return distinctOwners and distinctStatuses', async () => {
+      const lead = factories.lead();
+      // First two calls are main query + count, next two are distinct queries
+      mockPrisma.lead.findMany
+        .mockResolvedValueOnce([lead])  // main query
+        .mockResolvedValueOnce([{ ownerName: 'John' }, { ownerName: 'Jane' }])  // owners
+        .mockResolvedValueOnce([{ status: 'new' }, { status: 'contacted' }]);   // statuses
+      mockPrisma.lead.count.mockResolvedValue(1);
+
+      const event = createAuthenticatedEvent();
+      const response = await handler(event);
+      const body = JSON.parse(response.body);
+
+      expect(body).toHaveProperty('distinctOwners');
+      expect(body).toHaveProperty('distinctStatuses');
+      expect(body.distinctOwners).toContain('John');
+      expect(body.distinctStatuses).toContain('new');
+    });
+  });
+
+  describe('distinct filter queries', () => {
+    it('should query for distinct owners filtering out empty strings', async () => {
+      mockPrisma.lead.findMany.mockResolvedValue([]);
+      mockPrisma.lead.count.mockResolvedValue(0);
+
+      const event = createAuthenticatedEvent({
+        queryStringParameters: { tenant: 'test-tenant' }
+      });
+      await handler(event);
+
+      // Check that one of the findMany calls was for distinct owners
+      const calls = mockPrisma.lead.findMany.mock.calls;
+      const ownersCall = calls.find(call =>
+        call[0]?.distinct?.includes('ownerName')
+      );
+      expect(ownersCall).toBeDefined();
+      expect(ownersCall[0].where).toHaveProperty('ownerName');
+      expect(ownersCall[0].where.ownerName).toEqual({ not: '' });
+    });
+
+    it('should query for distinct statuses filtering out empty strings', async () => {
+      mockPrisma.lead.findMany.mockResolvedValue([]);
+      mockPrisma.lead.count.mockResolvedValue(0);
+
+      const event = createAuthenticatedEvent({
+        queryStringParameters: { tenant: 'test-tenant' }
+      });
+      await handler(event);
+
+      // Check that one of the findMany calls was for distinct statuses
+      const calls = mockPrisma.lead.findMany.mock.calls;
+      const statusCall = calls.find(call =>
+        call[0]?.distinct?.includes('status')
+      );
+      expect(statusCall).toBeDefined();
+      expect(statusCall[0].where).toHaveProperty('status');
+      expect(statusCall[0].where.status).toEqual({ not: '' });
+    });
   });
 
   describe('error handling', () => {
