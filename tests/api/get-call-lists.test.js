@@ -78,8 +78,8 @@ describe('get-call-lists API', () => {
 
     it('should return call lists for tenant', async () => {
       const lists = [
-        { ...factories.callList({ id: 'list_1', name: 'List 1' }), assignments: [] },
-        { ...factories.callList({ id: 'list_2', name: 'List 2' }), assignments: [] }
+        { ...factories.callList({ id: 'list_1', name: 'List 1' }), CallListAssignment: [], _count: { CallListItem: 0 } },
+        { ...factories.callList({ id: 'list_2', name: 'List 2' }), CallListAssignment: [], _count: { CallListItem: 0 } }
       ];
       mockPrisma.callList.findMany.mockResolvedValue(lists);
       mockPrisma.businessUser.findMany.mockResolvedValue([]);
@@ -103,14 +103,14 @@ describe('get-call-lists API', () => {
       });
       await handler(event);
 
-      // Now filters by both legacy assignedToUserId and new assignments table
+      // Now filters by both legacy assignedToUserId and new CallListAssignment table
       expect(mockPrisma.callList.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             tenantId: 'acme',
             OR: [
               { assignedToUserId: 'user_456' },
-              { assignments: { some: { userId: 'user_456' } } }
+              { CallListAssignment: { some: { userId: 'user_456' } } }
             ]
           })
         })
@@ -137,7 +137,8 @@ describe('get-call-lists API', () => {
       const lists = [
         {
           ...factories.callList({ id: 'list_1', assignedToUserId: 'user_456' }),
-          assignments: [{ user: { id: 'user_456', name: 'John Doe' } }]
+          CallListAssignment: [{ BusinessUser: { id: 'user_456', name: 'John Doe' } }],
+          _count: { CallListItem: 5 }
         }
       ];
       const users = [{ id: 'user_456', name: 'John Doe' }];
@@ -154,6 +155,7 @@ describe('get-call-lists API', () => {
       expect(body.callLists[0].assigneeName).toBe('John Doe');
       expect(body.callLists[0].assignedUsers).toHaveLength(1);
       expect(body.callLists[0].assignedUsers[0].name).toBe('John Doe');
+      expect(body.callLists[0].itemCount).toBe(5);
     });
 
     it('should order by createdAt desc', async () => {

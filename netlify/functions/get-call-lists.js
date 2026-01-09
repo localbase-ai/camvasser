@@ -40,7 +40,7 @@ export async function handler(event) {
     if (!all && assignedTo) {
       where.OR = [
         { assignedToUserId: assignedTo },
-        { assignments: { some: { userId: assignedTo } } }
+        { CallListAssignment: { some: { userId: assignedTo } } }
       ];
     }
 
@@ -48,11 +48,11 @@ export async function handler(event) {
       where,
       include: {
         _count: {
-          select: { items: true }
+          select: { CallListItem: true }
         },
-        assignments: {
+        CallListAssignment: {
           include: {
-            user: {
+            BusinessUser: {
               select: { id: true, name: true }
             }
           }
@@ -71,7 +71,7 @@ export async function handler(event) {
 
     const enrichedLists = callLists.map(list => {
       // Combine legacy assignee with new assignments
-      const assignedUsers = list.assignments.map(a => ({ id: a.user.id, name: a.user.name }));
+      const assignedUsers = list.CallListAssignment.map(a => ({ id: a.BusinessUser.id, name: a.BusinessUser.name }));
       if (list.assignedToUserId && !assignedUsers.find(u => u.id === list.assignedToUserId)) {
         const legacyName = assigneeMap.get(list.assignedToUserId);
         if (legacyName) {
@@ -80,6 +80,7 @@ export async function handler(event) {
       }
       return {
         ...list,
+        itemCount: list._count.CallListItem,
         assigneeName: list.assignedToUserId ? assigneeMap.get(list.assignedToUserId) : null,
         assignedUsers
       };
