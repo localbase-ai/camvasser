@@ -37,6 +37,36 @@ model Appointment {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Lead {
+  id            String    @id @default(cuid())
+  firstName     String
+  lastName      String    @default("")
+  email         String?
+  phone         String?
+  address       String?
+  city          String?
+  state         String?
+  postalCode    String?
+  projectId     String?
+  tenant        String
+  status        String    @default("new")
+  source        String?
+  leadSource    String?
+  dataSource    String?
+  ownerName     String?
+  notes         String?
+  coordinates   Json?
+  flowData      Json?
+  search_vector Unsupported("tsvector")?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tenant])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model BackgroundJob {
   id        String   @id
   type      String
