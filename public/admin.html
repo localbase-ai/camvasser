@@ -4473,80 +4473,58 @@
       renderCallListTable();
     }
 
-    // Filter call list items (called when toggle changes)
+    // Filter call list items (called when toggle changes) - fast visibility toggle
     function filterCallListItems() {
-      renderCallListTable();
-    }
-
-    // Render the call list table (used after sorting)
-    function renderCallListTable() {
-      if (currentCallListItems.length === 0) return;
-
-      // Get filter states (checkboxes)
       const filterUntouched = document.getElementById('filterUntouched')?.checked;
       const filterHasName = document.getElementById('filterHasName')?.checked;
       const filterHasPhone = document.getElementById('filterHasPhone')?.checked;
       const filterHasEmail = document.getElementById('filterHasEmail')?.checked;
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
+      const todayTs = todayStart.getTime();
 
-      let itemsToRender = currentCallListItems;
+      let visibleCount = 0;
+      const rows = document.querySelectorAll('#callListTableBody tr[data-item-id]');
 
-      // Apply untouched filter (not updated today)
-      if (filterUntouched) {
-        itemsToRender = itemsToRender.filter(item => {
-          const record = item.contact || item.lead;
-          if (!record?.updatedAt) return true;
-          return new Date(record.updatedAt) < todayStart;
-        });
-      }
+      rows.forEach(row => {
+        let show = true;
 
-      // Apply has name filter
-      if (filterHasName) {
-        itemsToRender = itemsToRender.filter(item => {
-          const record = item.contact || item.lead;
-          const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim();
-          return name && name.length > 0 && name !== 'Unknown' && name !== '---';
-        });
-      }
+        if (filterUntouched) {
+          const updatedAt = parseInt(row.dataset.updatedAt || '0', 10);
+          if (updatedAt >= todayTs) show = false;
+        }
+        if (show && filterHasName) {
+          if (row.dataset.hasName !== '1') show = false;
+        }
+        if (show && filterHasPhone) {
+          if (row.dataset.hasPhone !== '1') show = false;
+        }
+        if (show && filterHasEmail) {
+          if (row.dataset.hasEmail !== '1') show = false;
+        }
 
-      // Apply has phone filter
-      if (filterHasPhone) {
-        itemsToRender = itemsToRender.filter(item => {
-          const record = item.contact || item.lead;
-          const phone = record?.phones?.[0]?.phone_number || record?.phone;
-          return phone && phone.length > 0;
-        });
-      }
+        row.classList.toggle('hidden', !show);
+        if (show) visibleCount++;
+      });
 
-      // Apply has email filter
-      if (filterHasEmail) {
-        itemsToRender = itemsToRender.filter(item => {
-          const record = item.contact || item.lead;
-          const emails = record?.emails;
-          return emails && emails.length > 0;
-        });
-      }
-
-      // Update count to show filtered vs total
+      // Update count
       const countEl = document.getElementById('callListCount');
-      const filtered = itemsToRender.length !== currentCallListItems.length;
-      if (filtered) {
-        countEl.textContent = `${itemsToRender.length} of ${currentCallListItems.length} items (${currentCallListItems.length - itemsToRender.length} hidden)`;
+      const total = rows.length;
+      if (visibleCount !== total) {
+        countEl.textContent = `${visibleCount} of ${total} items (${total - visibleCount} hidden)`;
       } else {
-        countEl.textContent = `${currentCallListItems.length} item${currentCallListItems.length !== 1 ? 's' : ''} in list`;
+        countEl.textContent = `${total} item${total !== 1 ? 's' : ''} in list`;
       }
+    }
 
-      // Reset select all checkbox
-      document.getElementById('selectAllCallItems').checked = false;
-      updateCallItemSelectionUI();
+    // Render the call list table (used after sorting)
+    function renderCallListTable() {
+      if (currentCallListItems.length === 0) return;
 
-      // Sort items
-      const sortedItems = [...itemsToRender].sort((a, b) => {
+      // Sort items first
+      const sortedItems = [...currentCallListItems].sort((a, b) => {
         const recordA = a.contact || a.lead;
         const recordB = b.contact || b.lead;
-        const isContactA = !!a.contact;
-        const isContactB = !!b.contact;
 
         let valA, valB;
         switch (callListSort.column) {
@@ -4586,6 +4564,10 @@
         return 0;
       });
 
+      // Reset select all checkbox
+      document.getElementById('selectAllCallItems').checked = false;
+      updateCallItemSelectionUI();
+
       const tbody = document.getElementById('callListTableBody');
       tbody.innerHTML = sortedItems.map(item => {
         const record = item.contact || item.lead;
@@ -4609,9 +4591,13 @@
         const statusBadge = status ? getStatusBadge(status) : '-';
         const notes = record?.notes || '';
         const notesTruncated = notes.length > 40 ? notes.substring(0, 40) + '...' : notes;
+        const updatedAtTs = record?.updatedAt ? new Date(record.updatedAt).getTime() : 0;
+        const hasName = name && name !== 'Unknown' && name !== '---' && name !== '-' ? '1' : '0';
+        const hasPhone = phone && phone !== '-' ? '1' : '0';
+        const hasEmail = email && email !== '-' ? '1' : '0';
 
         return `
-          <tr class="hover:bg-base-200 cursor-pointer ${isSelected ? 'bg-base-200' : ''}" data-item-id="${item.id}" onclick="showCallDetail('${item.id}')">
+          <tr class="hover:bg-base-200 cursor-pointer ${isSelected ? 'bg-base-200' : ''}" data-item-id="${item.id}" data-updated-at="${updatedAtTs}" data-has-name="${hasName}" data-has-phone="${hasPhone}" data-has-email="${hasEmail}" onclick="showCallDetail('${item.id}')">
             <td onclick="event.stopPropagation()">
               <input type="checkbox" class="checkbox checkbox-sm call-item-checkbox" data-item-id="${item.id}" onchange="updateCallItemSelectionUI()">
             </td>
@@ -4640,6 +4626,9 @@
           </tr>
         `;
       }).join('');
+
+      // Apply current filters (fast visibility toggle)
+      filterCallListItems();
     }
 
     // Toggle all call list item checkboxes
