@@ -79,7 +79,7 @@ describe('get-user-tenants API', () => {
         where: { id: 'user_123' },
         include: {
           UserTenant: {
-            include: { tenant: true }
+            include: { Tenant: true }
           }
         }
       });
@@ -105,7 +105,7 @@ describe('get-user-tenants API', () => {
         UserTenant: [
           {
             role: 'owner',
-            tenant: tenant
+            Tenant: tenant
           }
         ]
       });
@@ -152,7 +152,7 @@ describe('get-user-tenants API', () => {
       const tenant = factories.tenant({ slug: 'first-tenant' });
       const user = factories.businessUser({
         slug: null,
-        UserTenant: [{ role: 'member', tenant }]
+        UserTenant: [{ role: 'member', Tenant: tenant }]
       });
       mockPrisma.businessUser.findUnique.mockResolvedValue(user);
 
@@ -179,8 +179,8 @@ describe('get-user-tenants API', () => {
 
     it('should return multiple tenants', async () => {
       const UserTenant = [
-        { role: 'owner', tenant: factories.tenant({ slug: 'tenant-1', name: 'Tenant 1' }) },
-        { role: 'member', tenant: factories.tenant({ slug: 'tenant-2', name: 'Tenant 2' }) }
+        { role: 'owner', Tenant: factories.tenant({ slug: 'tenant-1', name: 'Tenant 1' }) },
+        { role: 'member', Tenant: factories.tenant({ slug: 'tenant-2', name: 'Tenant 2' }) }
       ];
       const user = factories.businessUser({ UserTenant });
       mockPrisma.businessUser.findUnique.mockResolvedValue(user);

@@ -29,7 +29,7 @@ export async function handler(event) {
       include: {
         UserTenant: {
           include: {
-            tenant: true
+            Tenant: true
           }
         }
       }
@@ -45,11 +45,11 @@ export async function handler(event) {
 
     // Format the response
     const tenants = businessUser.UserTenant.map(ut => ({
-      id: ut.tenant.id,
-      slug: ut.tenant.slug,
-      name: ut.tenant.name,
-      domain: ut.tenant.domain,
-      logoUrl: ut.tenant.logoUrl,
+      id: ut.Tenant.id,
+      slug: ut.Tenant.slug,
+      name: ut.Tenant.name,
+      domain: ut.Tenant.domain,
+      logoUrl: ut.Tenant.logoUrl,
       role: ut.role
     }));
 
