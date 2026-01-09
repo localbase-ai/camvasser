@@ -684,6 +684,7 @@
                       <th class="w-8"></th>
                       <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('name')">Name</th>
                       <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('phone')">Phone</th>
+                      <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('email')">Email</th>
                       <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('address')">Address</th>
                       <th>Tags</th>
                       <th class="cursor-pointer hover:bg-base-200" onclick="sortCallList('status')">Status</th>
@@ -4557,6 +4558,12 @@
             valA = recordA?.phones?.[0]?.phone_number || recordA?.phone || '';
             valB = recordB?.phones?.[0]?.phone_number || recordB?.phone || '';
             break;
+          case 'email':
+            const emailObjA = recordA?.emails?.[0];
+            const emailObjB = recordB?.emails?.[0];
+            valA = (emailObjA?.email_address || emailObjA?.address || (typeof emailObjA === 'string' ? emailObjA : '') || recordA?.email || '').toLowerCase();
+            valB = (emailObjB?.email_address || emailObjB?.address || (typeof emailObjB === 'string' ? emailObjB : '') || recordB?.email || '').toLowerCase();
+            break;
           case 'address':
             valA = (recordA?.lookupAddress || recordA?.address || '').toLowerCase();
             valB = (recordB?.lookupAddress || recordB?.address || '').toLowerCase();
@@ -4585,6 +4592,8 @@
         const isContact = !!item.contact;
         const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim() || 'Unknown';
         const phone = record?.phones?.[0]?.phone_number || record?.phone || '-';
+        const emailObj = record?.emails?.[0];
+        const email = emailObj?.email_address || emailObj?.address || (typeof emailObj === 'string' ? emailObj : null) || record?.email || '-';
         const address = record?.lookupAddress || record?.address || '-';
         const status = record?.status || 'new';
         const isSelected = item.id === selectedCallItemId;
@@ -4615,6 +4624,7 @@
             </td>
             <td class="font-medium">${name}</td>
             <td class="text-sm">${phone}</td>
+            <td class="text-sm max-w-[180px] truncate" title="${email}">${email}</td>
             <td class="text-sm max-w-[200px] truncate" title="${address}">${address}</td>
             <td class="text-sm whitespace-nowrap"><div class="flex gap-1">${tagsHtml !== '-' ? tagsHtml : '-'}</div></td>
             <td>${statusBadge}</td>
