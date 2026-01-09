@@ -89,7 +89,7 @@ describe('convert-contact-to-lead API', () => {
       projectId: 'proj_123',
       tenant: 'acme',
       notes: 'Test notes',
-      project: {
+      Project: {
         address: '123 Main St',
         city: 'Denver',
         state: 'CO',
@@ -234,7 +234,7 @@ describe('convert-contact-to-lead API', () => {
       const noProjectAddressProspect = {
         ...mockProspect,
         lookupAddress: '789 Fallback Rd',
-        project: { address: null, city: null, state: null, postalCode: null, coordinates: null }
+        Project: { address: null, city: null, state: null, postalCode: null, coordinates: null }
       };
       mockPrisma.prospect.findUnique.mockResolvedValue(noProjectAddressProspect);
       mockPrisma.lead.create.mockResolvedValue(mockCreatedLead);
@@ -261,7 +261,7 @@ describe('convert-contact-to-lead API', () => {
       emails: [],
       projectId: 'proj_123',
       tenant: 'acme',
-      project: { address: '123 Main St', city: null, state: null, postalCode: null, coordinates: null }
+      Project: { address: '123 Main St', city: null, state: null, postalCode: null, coordinates: null }
     };
 
     it('should not delete prospect when deleteProspect is false', async () => {
@@ -305,7 +305,7 @@ describe('convert-contact-to-lead API', () => {
         name: 'John Doe',
         phones: [],
         emails: [],
-        project: null
+        Project: null
       });
       mockPrisma.lead.create.mockRejectedValue(new Error('Database error'));
 

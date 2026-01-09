@@ -192,7 +192,7 @@ export async function handler(event) {
     // Fetch the complete project with labels
     const completeProject = await prisma.project.findUnique({
       where: { id },
-      include: { labels: true }
+      include: { ProjectLabel: true }
     });
 
     console.log(`[create-project] Created project ${id} at ${finalAddress}, ${finalCity}`);

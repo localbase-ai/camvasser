@@ -85,10 +85,10 @@ export async function handler(event) {
           { status: null },
           { status: { in: ['no_answer', 'bad_number', 'wrong_number'] } }
         ],
-        project: { isNot: null }
+        Project: { isNot: null }
       },
       include: {
-        project: true
+        Project: true
       },
       take: parseInt(limit)
     });
@@ -96,11 +96,11 @@ export async function handler(event) {
     // Group by address
     const byAddress = new Map();
     for (const p of prospects) {
-      if (!p.project?.address) continue;
-      const key = [p.project.address, p.project.city, p.project.state]
+      if (!p.Project?.address) continue;
+      const key = [p.Project.address, p.Project.city, p.Project.state]
         .filter(Boolean).join('|').toLowerCase();
       if (!byAddress.has(key)) {
-        byAddress.set(key, { address: p.project, prospects: [] });
+        byAddress.set(key, { address: p.Project, prospects: [] });
       }
       byAddress.get(key).prospects.push(p);
     }

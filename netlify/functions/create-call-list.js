@@ -58,7 +58,7 @@ export async function handler(event) {
             }))
           ]
         },
-        assignments: {
+        CallListAssignment: {
           create: userIdsToAssign.map(userId => ({ userId }))
         }
       },
@@ -66,9 +66,9 @@ export async function handler(event) {
         _count: {
           select: { items: true }
         },
-        assignments: {
+        CallListAssignment: {
           include: {
-            user: {
+            BusinessUser: {
               select: { id: true, name: true }
             }
           }

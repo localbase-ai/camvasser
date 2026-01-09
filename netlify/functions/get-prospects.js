@@ -33,12 +33,12 @@ export async function handler(event) {
       const prospect = await prisma.prospect.findUnique({
         where: { id },
         include: {
-          project: {
+          Project: {
             select: { id: true, address: true, city: true, state: true, postalCode: true, publicUrl: true, tags: true, coordinates: true, notepad: true }
           },
-          organizationContacts: {
+          OrganizationContact: {
             include: {
-              organization: {
+              Organization: {
                 select: { id: true, name: true, type: true }
               }
             }
@@ -202,13 +202,13 @@ export async function handler(event) {
           where.AND.push({
             OR: [
               { project: null },
-              { project: { address: null } },
-              { project: { address: '' } }
+              { Project: { address: null } },
+              { Project: { address: '' } }
             ]
           });
         } else {
           where.AND.push({
-            project: {
+            Project: {
               AND: [
                 { address: { not: null } },
                 { address: { not: '' } }
@@ -307,12 +307,12 @@ export async function handler(event) {
         take: limitNum,
         skip,
         include: {
-          project: {
+          Project: {
             select: { id: true, address: true, city: true, state: true, postalCode: true, publicUrl: true, tags: true, coordinates: true, notepad: true }
           },
-          organizationContacts: {
+          OrganizationContact: {
             include: {
-              organization: {
+              Organization: {
                 select: { id: true, name: true, type: true }
               }
             }
@@ -374,7 +374,7 @@ async function handleOrgContacts(event, user, contactType) {
 
   // Build org contact where clause
   const orgWhere = {
-    organization: { tenant: tenantSlug }
+    Organization: { tenant: tenantSlug }
   };
 
   if (search) {
@@ -383,7 +383,7 @@ async function handleOrgContacts(event, user, contactType) {
       { email: { contains: search, mode: 'insensitive' } },
       { phone: { contains: search, mode: 'insensitive' } },
       { title: { contains: search, mode: 'insensitive' } },
-      { organization: { name: { contains: search, mode: 'insensitive' } } }
+      { Organization: { name: { contains: search, mode: 'insensitive' } } }
     ];
   }
 
@@ -396,10 +396,10 @@ async function handleOrgContacts(event, user, contactType) {
         take: limitNum,
         skip,
         include: {
-          organization: { select: { id: true, name: true, type: true, address: true, city: true, state: true, postalCode: true } },
+          Organization: { select: { id: true, name: true, type: true, address: true, city: true, state: true, postalCode: true } },
           prospect: {
             include: {
-              project: { select: { id: true, address: true, city: true, state: true, postalCode: true } }
+              Project: { select: { id: true, address: true, city: true, state: true, postalCode: true } }
             }
           }
         }
@@ -414,11 +414,11 @@ async function handleOrgContacts(event, user, contactType) {
       name: oc.name,
       phones: oc.phone ? [{ phone_number: oc.phone }] : null,
       emails: oc.email ? [{ email_address: oc.email }] : null,
-      companyName: oc.organization?.name,
+      companyName: oc.Organization?.name,
       jobTitle: oc.title,
       isOrgContact: true,
-      organization: oc.organization,
-      project: oc.prospect?.project || null,
+      organization: oc.Organization,
+      project: oc.prospect?.Project || null,
       createdAt: oc.createdAt,
       notes: oc.notes
     }));
@@ -454,7 +454,7 @@ async function handleOrgContacts(event, user, contactType) {
       take: limitNum,
       skip,
       include: {
-        project: { select: { id: true, address: true, city: true, state: true, postalCode: true, publicUrl: true, tags: true, coordinates: true, notepad: true } }
+        Project: { select: { id: true, address: true, city: true, state: true, postalCode: true, publicUrl: true, tags: true, coordinates: true, notepad: true } }
       }
     }),
     prisma.prospect.count({ where: prospectWhere }),
@@ -464,7 +464,7 @@ async function handleOrgContacts(event, user, contactType) {
       take: limitNum,
       skip,
       include: {
-        organization: { select: { id: true, name: true, type: true, address: true, city: true, state: true, postalCode: true } }
+        Organization: { select: { id: true, name: true, type: true, address: true, city: true, state: true, postalCode: true } }
       }
     }),
     prisma.organizationContact.count({ where: orgWhere })
@@ -477,10 +477,10 @@ async function handleOrgContacts(event, user, contactType) {
     name: oc.name,
     phones: oc.phone ? [{ phone_number: oc.phone }] : null,
     emails: oc.email ? [{ email_address: oc.email }] : null,
-    companyName: oc.organization?.name,
+    companyName: oc.Organization?.name,
     jobTitle: oc.title,
     isOrgContact: true,
-    organization: oc.organization,
+    organization: oc.Organization,
     createdAt: oc.createdAt,
     notes: oc.notes
   }));

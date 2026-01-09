@@ -38,7 +38,7 @@ export async function handler(event) {
     const prospect = await prisma.prospect.findUnique({
       where: { id: prospectId },
       include: {
-        project: {
+        Project: {
           select: {
             address: true,
             city: true,
@@ -72,10 +72,10 @@ export async function handler(event) {
 
     // Build address string
     const addressParts = [];
-    if (prospect.project?.address) addressParts.push(prospect.project.address);
-    if (prospect.project?.city) addressParts.push(prospect.project.city);
-    if (prospect.project?.state) addressParts.push(prospect.project.state);
-    if (prospect.project?.postalCode) addressParts.push(prospect.project.postalCode);
+    if (prospect.Project?.address) addressParts.push(prospect.Project.address);
+    if (prospect.Project?.city) addressParts.push(prospect.Project.city);
+    if (prospect.Project?.state) addressParts.push(prospect.Project.state);
+    if (prospect.Project?.postalCode) addressParts.push(prospect.Project.postalCode);
     const fullAddress = addressParts.join(', ') || prospect.lookupAddress || null;
 
     // Create the lead
@@ -86,11 +86,11 @@ export async function handler(event) {
         email: primaryEmail,
         phone: primaryPhone,
         address: fullAddress,
-        projectId: prospect.projectId,
+        projectId: prospect.ProjectId,
         tenant: prospect.tenant || user.slug,
         status: 'new',
         source: 'converted_from_contact',
-        coordinates: prospect.project?.coordinates || null,
+        coordinates: prospect.Project?.coordinates || null,
         notes: prospect.notes || null
       }
     });

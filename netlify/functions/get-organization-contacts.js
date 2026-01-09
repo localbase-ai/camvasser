@@ -36,7 +36,7 @@ export async function handler(event) {
     const contacts = await prisma.organizationContact.findMany({
       where: { organizationId },
       include: {
-        prospect: {
+        Prospect: {
           select: {
             id: true,
             name: true,

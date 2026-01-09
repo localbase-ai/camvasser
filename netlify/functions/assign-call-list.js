@@ -36,7 +36,7 @@ export async function handler(event) {
     // Verify the call list exists
     const callList = await prisma.callList.findUnique({
       where: { id: callListId },
-      include: { assignments: true }
+      include: { CallListAssignment: true }
     });
 
     if (!callList) {
@@ -48,7 +48,7 @@ export async function handler(event) {
     }
 
     // Get current assignment user IDs
-    const currentUserIds = callList.assignments.map(a => a.userId);
+    const currentUserIds = callList.CallListAssignment.map(a => a.userId);
 
     // Determine what to add and remove
     const toAdd = userIds.filter(id => !currentUserIds.includes(id));
@@ -78,9 +78,9 @@ export async function handler(event) {
     const updatedList = await prisma.callList.findUnique({
       where: { id: callListId },
       include: {
-        assignments: {
+        CallListAssignment: {
           include: {
-            user: {
+            BusinessUser: {
               select: { id: true, name: true }
             }
           }
@@ -93,7 +93,7 @@ export async function handler(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         success: true,
-        assignedUsers: updatedList.assignments.map(a => ({ id: a.user.id, name: a.user.name }))
+        assignedUsers: updatedList.CallListAssignment.map(a => ({ id: a.BusinessUser.id, name: a.BusinessUser.name }))
       })
     };
 

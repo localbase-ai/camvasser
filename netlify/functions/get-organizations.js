@@ -65,8 +65,8 @@ export async function handler(event) {
         include: {
           _count: {
             select: {
-              contacts: true,
-              properties: true
+              OrganizationContact: true,
+              OrganizationProperty: true
             }
           }
         }
