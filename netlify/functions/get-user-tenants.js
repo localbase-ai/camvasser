@@ -27,7 +27,7 @@ export async function handler(event) {
     const businessUser = await prisma.businessUser.findUnique({
       where: { id: user.userId },
       include: {
-        tenants: {
+        UserTenant: {
           include: {
             tenant: true
           }
@@ -44,7 +44,7 @@ export async function handler(event) {
     }
 
     // Format the response
-    const tenants = businessUser.tenants.map(ut => ({
+    const tenants = businessUser.UserTenant.map(ut => ({
       id: ut.tenant.id,
       slug: ut.tenant.slug,
       name: ut.tenant.name,

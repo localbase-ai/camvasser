@@ -66,7 +66,7 @@ describe('get-user-tenants API', () => {
     it('should look up user by userId from token', async () => {
       const user = factories.businessUser({
         id: 'user_123',
-        tenants: []
+        UserTenant: []
       });
       mockPrisma.businessUser.findUnique.mockResolvedValue(user);
 
@@ -78,7 +78,7 @@ describe('get-user-tenants API', () => {
       expect(mockPrisma.businessUser.findUnique).toHaveBeenCalledWith({
         where: { id: 'user_123' },
         include: {
-          tenants: {
+          UserTenant: {
             include: { tenant: true }
           }
         }
@@ -102,7 +102,7 @@ describe('get-user-tenants API', () => {
         email: 'test@example.com',
         isAdmin: false,
         slug: 'acme',
-        tenants: [
+        UserTenant: [
           {
             role: 'owner',
             tenant: tenant
@@ -137,7 +137,7 @@ describe('get-user-tenants API', () => {
     it('should return defaultTenant from user slug', async () => {
       const user = factories.businessUser({
         slug: 'user-default-tenant',
-        tenants: []
+        UserTenant: []
       });
       mockPrisma.businessUser.findUnique.mockResolvedValue(user);
 
@@ -152,7 +152,7 @@ describe('get-user-tenants API', () => {
       const tenant = factories.tenant({ slug: 'first-tenant' });
       const user = factories.businessUser({
         slug: null,
-        tenants: [{ role: 'member', tenant }]
+        UserTenant: [{ role: 'member', tenant }]
       });
       mockPrisma.businessUser.findUnique.mockResolvedValue(user);
 
@@ -166,7 +166,7 @@ describe('get-user-tenants API', () => {
     it('should return null defaultTenant when user has no slug and no tenants', async () => {
       const user = factories.businessUser({
         slug: null,
-        tenants: []
+        UserTenant: []
       });
       mockPrisma.businessUser.findUnique.mockResolvedValue(user);
 
@@ -178,11 +178,11 @@ describe('get-user-tenants API', () => {
     });
 
     it('should return multiple tenants', async () => {
-      const tenants = [
+      const UserTenant = [
         { role: 'owner', tenant: factories.tenant({ slug: 'tenant-1', name: 'Tenant 1' }) },
         { role: 'member', tenant: factories.tenant({ slug: 'tenant-2', name: 'Tenant 2' }) }
       ];
-      const user = factories.businessUser({ tenants });
+      const user = factories.businessUser({ UserTenant });
       mockPrisma.businessUser.findUnique.mockResolvedValue(user);
 
       const event = createAuthenticatedEvent();
