@@ -92,12 +92,12 @@ export async function handler(event) {
     const tenantWhere = tenant ? { tenant } : {};
     const [ownersResult, statusesResult] = await Promise.all([
       prisma.lead.findMany({
-        where: { ...tenantWhere, ownerName: { not: null } },
+        where: { ...tenantWhere, NOT: { ownerName: null } },
         select: { ownerName: true },
         distinct: ['ownerName']
       }),
       prisma.lead.findMany({
-        where: { ...tenantWhere, status: { not: null } },
+        where: { ...tenantWhere, NOT: { status: null } },
         select: { status: true },
         distinct: ['status']
       })
