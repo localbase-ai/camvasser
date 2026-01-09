@@ -614,26 +614,22 @@
                 <input type="checkbox" id="showAllCallLists" class="toggle toggle-sm" onchange="loadCallLists()">
                 <span class="label-text text-xs">Show all lists</span>
               </label>
-              <select id="filterTouched" class="select select-bordered select-xs" onchange="filterCallListItems()">
-                <option value="">Touched</option>
-                <option value="today">Today</option>
-                <option value="not_today">Not today</option>
-              </select>
-              <select id="filterName" class="select select-bordered select-xs" onchange="filterCallListItems()">
-                <option value="">Name</option>
-                <option value="has">Has name</option>
-                <option value="no">No name</option>
-              </select>
-              <select id="filterPhone" class="select select-bordered select-xs" onchange="filterCallListItems()">
-                <option value="">Phone</option>
-                <option value="has">Has phone</option>
-                <option value="no">No phone</option>
-              </select>
-              <select id="filterEmail" class="select select-bordered select-xs" onchange="filterCallListItems()">
-                <option value="">Email</option>
-                <option value="has">Has email</option>
-                <option value="no">No email</option>
-              </select>
+              <label class="label cursor-pointer gap-1">
+                <input type="checkbox" id="filterUntouched" class="checkbox checkbox-xs" onchange="filterCallListItems()">
+                <span class="label-text text-xs">Untouched</span>
+              </label>
+              <label class="label cursor-pointer gap-1">
+                <input type="checkbox" id="filterHasName" class="checkbox checkbox-xs" onchange="filterCallListItems()">
+                <span class="label-text text-xs">Has name</span>
+              </label>
+              <label class="label cursor-pointer gap-1">
+                <input type="checkbox" id="filterHasPhone" class="checkbox checkbox-xs" onchange="filterCallListItems()">
+                <span class="label-text text-xs">Has phone</span>
+              </label>
+              <label class="label cursor-pointer gap-1">
+                <input type="checkbox" id="filterHasEmail" class="checkbox checkbox-xs" onchange="filterCallListItems()">
+                <span class="label-text text-xs">Has email</span>
+              </label>
             </div>
             <div class="flex items-center gap-2">
               <button id="removeSelectedBtn" onclick="removeSelectedFromCallList()" class="btn btn-error btn-sm hidden">
@@ -4485,24 +4481,18 @@
     function renderCallListTable() {
       if (currentCallListItems.length === 0) return;
 
-      // Get filter states
-      const filterTouched = document.getElementById('filterTouched')?.value;
-      const filterName = document.getElementById('filterName')?.value;
-      const filterPhone = document.getElementById('filterPhone')?.value;
-      const filterEmail = document.getElementById('filterEmail')?.value;
+      // Get filter states (checkboxes)
+      const filterUntouched = document.getElementById('filterUntouched')?.checked;
+      const filterHasName = document.getElementById('filterHasName')?.checked;
+      const filterHasPhone = document.getElementById('filterHasPhone')?.checked;
+      const filterHasEmail = document.getElementById('filterHasEmail')?.checked;
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
       let itemsToRender = currentCallListItems;
 
-      // Apply touched filter
-      if (filterTouched === 'today') {
-        itemsToRender = itemsToRender.filter(item => {
-          const record = item.contact || item.lead;
-          if (!record?.updatedAt) return false;
-          return new Date(record.updatedAt) >= todayStart;
-        });
-      } else if (filterTouched === 'not_today') {
+      // Apply untouched filter (not updated today)
+      if (filterUntouched) {
         itemsToRender = itemsToRender.filter(item => {
           const record = item.contact || item.lead;
           if (!record?.updatedAt) return true;
@@ -4510,48 +4500,30 @@
         });
       }
 
-      // Apply name filter
-      if (filterName === 'has') {
+      // Apply has name filter
+      if (filterHasName) {
         itemsToRender = itemsToRender.filter(item => {
           const record = item.contact || item.lead;
           const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim();
           return name && name.length > 0 && name !== 'Unknown' && name !== '---';
         });
-      } else if (filterName === 'no') {
-        itemsToRender = itemsToRender.filter(item => {
-          const record = item.contact || item.lead;
-          const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim();
-          return !name || name.length === 0 || name === 'Unknown' || name === '---';
-        });
       }
 
-      // Apply phone filter
-      if (filterPhone === 'has') {
+      // Apply has phone filter
+      if (filterHasPhone) {
         itemsToRender = itemsToRender.filter(item => {
           const record = item.contact || item.lead;
           const phone = record?.phones?.[0]?.phone_number || record?.phone;
           return phone && phone.length > 0;
         });
-      } else if (filterPhone === 'no') {
-        itemsToRender = itemsToRender.filter(item => {
-          const record = item.contact || item.lead;
-          const phone = record?.phones?.[0]?.phone_number || record?.phone;
-          return !phone || phone.length === 0;
-        });
       }
 
-      // Apply email filter
-      if (filterEmail === 'has') {
+      // Apply has email filter
+      if (filterHasEmail) {
         itemsToRender = itemsToRender.filter(item => {
           const record = item.contact || item.lead;
           const emails = record?.emails;
           return emails && emails.length > 0;
-        });
-      } else if (filterEmail === 'no') {
-        itemsToRender = itemsToRender.filter(item => {
-          const record = item.contact || item.lead;
-          const emails = record?.emails;
-          return !emails || emails.length === 0;
         });
       }
 
