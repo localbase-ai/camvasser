@@ -1,4 +1,7 @@
 import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 // Fail hard if JWT_SECRET is not set - this is a critical security requirement
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -42,6 +45,25 @@ export function signToken(payload, expiresIn = '7d') {
   }
 
   return jwt.sign(payload, JWT_SECRET, { expiresIn });
+}
+
+/**
+ * Get all tenants a user belongs to
+ * @param {string} userId - The user's ID
+ * @returns {Promise<Array>} - Array of tenant objects with slug and role
+ */
+export async function getUserTenants(userId) {
+  const userTenants = await prisma.userTenant.findMany({
+    where: { userId },
+    include: { Tenant: true }
+  });
+
+  return userTenants.map(ut => ({
+    id: ut.Tenant.id,
+    slug: ut.Tenant.slug,
+    name: ut.Tenant.name,
+    role: ut.role
+  }));
 }
 
 export { JWT_SECRET };

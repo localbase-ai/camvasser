@@ -23,7 +23,7 @@ export async function handler(event) {
   }
 
   try {
-    const { listId } = event.queryStringParameters || {};
+    const { listId, limit, offset } = event.queryStringParameters || {};
 
     if (!listId) {
       return {
@@ -33,15 +33,26 @@ export async function handler(event) {
       };
     }
 
-    // Fetch the call list with script
-    const callList = await prisma.callList.findUnique({
+    // Parse pagination params (default: no limit = all items for backwards compatibility)
+    const take = limit ? parseInt(limit, 10) : undefined;
+    const skip = offset ? parseInt(offset, 10) : 0;
+
+    // Fetch the call list with script (only on first request)
+    const callList = skip === 0 ? await prisma.callList.findUnique({
       where: { id: listId },
       include: { CallScript: true }
+    }) : null;
+
+    // Get total count for pagination
+    const total = await prisma.callListItem.count({
+      where: { callListId: listId }
     });
 
     const items = await prisma.callListItem.findMany({
       where: { callListId: listId },
-      orderBy: { position: 'asc' }
+      orderBy: { position: 'asc' },
+      ...(take && { take }),
+      skip
     });
 
     // Fetch associated contacts and leads
@@ -87,7 +98,10 @@ export async function handler(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         items: enrichedItems,
-        script: callList?.CallScript || null
+        script: callList?.CallScript || null,
+        total,
+        offset: skip,
+        hasMore: take ? (skip + items.length) < total : false
       })
     };
 

@@ -13,7 +13,11 @@
     "deploy": "netlify deploy --prod",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "db:migrate": "./scripts/prisma-safe.sh migrate dev",
+    "db:reset": "./scripts/prisma-safe.sh migrate reset",
+    "db:push": "./scripts/prisma-safe.sh db push",
+    "db:studio": "npx prisma studio"
   },
   "keywords": [
     "companycam",
