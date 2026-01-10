@@ -5,6 +5,16 @@
 [functions]
   directory = "netlify/functions"
 
+# Security headers for all pages
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(self), microphone=()"
+
 # push-to-smartlead is a background function (15 min timeout)
 # Background functions are configured via export const config = { type: 'background' }
 # No timeout override needed here

@@ -71,8 +71,22 @@ export async function handler(event) {
     // Build where clause
     const where = {};
 
-    // Filter by tenant from query param, fall back to user.slug for backwards compat
-    const tenantSlug = tenant || user.slug;
+    // Filter by tenant - verify user has access to requested tenant
+    const requestedTenant = tenant || user.slug;
+    if (requestedTenant && requestedTenant !== user.slug) {
+      // User requesting different tenant - verify they have access
+      const hasAccess = await prisma.userTenant.findFirst({
+        where: { userId: user.userId, Tenant: { slug: requestedTenant } }
+      });
+      if (!hasAccess) {
+        return {
+          statusCode: 403,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Access denied to this tenant' })
+        };
+      }
+    }
+    const tenantSlug = requestedTenant;
     if (tenantSlug) {
       where.tenant = tenantSlug;
     }
@@ -106,13 +120,14 @@ export async function handler(event) {
     // Support both single tag (tag) and multiple tags (tags, comma-separated)
     const tagList = tags ? tags.split(',').filter(Boolean) : (tag ? [tag] : []);
     if (tagList.length > 0) {
-      // Find projects with matching any of the tags using raw SQL
-      const tagPatterns = tagList.map(t => `%"value": "${t}"%`);
-      const whereClause = tagPatterns.map(p => `tags::text ILIKE '${p}'`).join(' OR ');
-      const projectIds = await prisma.$queryRawUnsafe(`
-        SELECT id FROM "Project"
-        WHERE ${whereClause}
-      `);
+      // Find projects with matching any of the tags using parameterized query
+      // Build OR conditions with parameterized placeholders
+      const tagPatterns = tagList.map(t => `%"value": "${t.replace(/"/g, '')}"%`);
+      const conditions = tagPatterns.map((_, i) => `tags::text ILIKE $${i + 1}`);
+      const projectIds = await prisma.$queryRawUnsafe(
+        `SELECT id FROM "Project" WHERE ${conditions.join(' OR ')}`,
+        ...tagPatterns
+      );
       const ids = projectIds.map(p => p.id);
       if (ids.length === 0) {
         return {

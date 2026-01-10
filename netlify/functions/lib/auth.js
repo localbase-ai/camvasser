@@ -35,10 +35,10 @@ export function verifyToken(authHeader) {
 /**
  * Sign a new JWT token
  * @param {object} payload - The payload to sign
- * @param {string} expiresIn - Token expiration (default: '7d')
+ * @param {string} expiresIn - Token expiration (default: '24h')
  * @returns {string|null} - The signed token or null if JWT_SECRET not set
  */
-export function signToken(payload, expiresIn = '7d') {
+export function signToken(payload, expiresIn = '24h') {
   if (!JWT_SECRET) {
     console.error('JWT_SECRET is not configured');
     return null;

@@ -6,14 +6,20 @@ vi.mock('@prisma/client', () => {
     create: vi.fn()
   };
 
+  const mockTenantMethods = {
+    findUnique: vi.fn().mockResolvedValue({ id: 'tenant-123' })
+  };
+
   return {
     PrismaClient: function() {
       this.lead = mockLeadMethods;
+      this.tenant = mockTenantMethods;
       this.$disconnect = vi.fn();
       return this;
     },
     __mockMethods: {
-      lead: mockLeadMethods
+      lead: mockLeadMethods,
+      tenant: mockTenantMethods
     }
   };
 });
@@ -123,13 +129,15 @@ describe('Save Flow Lead', () => {
 
   it('should handle CORS preflight', async () => {
     const event = {
-      httpMethod: 'OPTIONS'
+      httpMethod: 'OPTIONS',
+      headers: { origin: 'https://budroofing.com' }
     };
 
     const response = await saveFlowLeadHandler(event);
 
     expect(response.statusCode).toBe(200);
-    expect(response.headers['Access-Control-Allow-Origin']).toBe('*');
+    // CORS now validates origin - returns specific origin or default
+    expect(response.headers['Access-Control-Allow-Origin']).toBe('https://budroofing.com');
     expect(response.headers['Access-Control-Allow-Methods']).toContain('POST');
   });
 

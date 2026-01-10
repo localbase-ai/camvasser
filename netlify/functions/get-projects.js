@@ -58,9 +58,23 @@ export async function handler(event) {
     // Build where clause
     const where = {};
 
-    // Filter by tenant if provided (required for non-admin users)
-    if (tenant) {
-      where.tenant = tenant;
+    // Filter by tenant - verify user has access to requested tenant
+    const requestedTenant = tenant || user.slug;
+    if (requestedTenant && requestedTenant !== user.slug) {
+      // User requesting different tenant - verify they have access
+      const hasAccess = await prisma.userTenant.findFirst({
+        where: { userId: user.userId, Tenant: { slug: requestedTenant } }
+      });
+      if (!hasAccess) {
+        return {
+          statusCode: 403,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Access denied to this tenant' })
+        };
+      }
+    }
+    if (requestedTenant) {
+      where.tenant = requestedTenant;
     }
 
     if (status) {
@@ -210,17 +224,23 @@ export async function handler(event) {
       }
     }
 
-    // Filter by tag(s) if provided - use raw SQL for PostgreSQL JSON search
+    // Filter by tag(s) if provided - use parameterized SQL for PostgreSQL JSON search
     // Support both single tag (tag) and multiple tags (tags, comma-separated)
     const tagList = tags ? tags.split(',').filter(Boolean) : (tag ? [tag] : []);
     if (tagList.length > 0) {
-      // Build tag patterns - any tag matches (OR)
-      const tagPatterns = tagList.map(t => `%"value": "${t}"%`);
-      const tagOrCondition = tagPatterns.map(p => `tags::text ILIKE '${p.replace(/'/g, "''")}'`).join(' OR ');
+      // Build tag patterns with sanitization (strip quotes to prevent injection)
+      const tagPatterns = tagList.map(t => `%"value": "${t.replace(/"/g, '')}"%`);
 
-      // Build conditions for the tag query
-      const tagConditions = [`(${tagOrCondition})`];
-      if (tenant) tagConditions.push(`tenant = '${tenant}'`);
+      // Build parameterized query
+      let paramIndex = 1;
+      const tagConditions = tagPatterns.map(() => `tags::text ILIKE $${paramIndex++}`);
+      const params = [...tagPatterns];
+
+      let tenantCondition = '';
+      if (tenant) {
+        tenantCondition = ` AND tenant = $${paramIndex++}`;
+        params.push(tenant);
+      }
 
       // Handle hasProspects in the tag query
       let tagQuery;
@@ -228,21 +248,21 @@ export async function handler(event) {
         tagQuery = `
           SELECT DISTINCT p.id FROM "Project" p
           INNER JOIN "Prospect" pr ON pr."projectId" = p.id
-          WHERE ${tagConditions.join(' AND ')}
+          WHERE (${tagConditions.join(' OR ')})${tenantCondition}
         `;
       } else if (hasProspects === 'false') {
         tagQuery = `
           SELECT p.id FROM "Project" p
           LEFT JOIN "Prospect" pr ON pr."projectId" = p.id
-          WHERE ${tagConditions.join(' AND ')}
+          WHERE (${tagConditions.join(' OR ')})${tenantCondition}
           GROUP BY p.id
           HAVING COUNT(pr.id) = 0
         `;
       } else {
-        tagQuery = `SELECT id FROM "Project" WHERE ${tagConditions.join(' AND ')}`;
+        tagQuery = `SELECT id FROM "Project" WHERE (${tagConditions.join(' OR ')})${tenantCondition}`;
       }
 
-      const projectIds = await prisma.$queryRawUnsafe(tagQuery);
+      const projectIds = await prisma.$queryRawUnsafe(tagQuery, ...params);
       const ids = projectIds.map(p => p.id);
       if (ids.length === 0) {
         // No projects match these tags, return empty result
@@ -267,29 +287,56 @@ export async function handler(event) {
 
     let projects, totalCount;
 
+    // Helper to build parameterized WHERE conditions
+    function buildWhereConditions(where, searchText, hasTags) {
+      const conditions = [];
+      const params = [];
+      let paramIndex = 1;
+
+      if (where.tenant) {
+        conditions.push(`p.tenant = $${paramIndex++}`);
+        params.push(where.tenant);
+      }
+      if (where.status) {
+        conditions.push(`p.status = $${paramIndex++}`);
+        params.push(where.status);
+      }
+      if (where.id?.in && where.id.in.length > 0) {
+        const placeholders = where.id.in.map(() => `$${paramIndex++}`);
+        conditions.push(`p.id IN (${placeholders.join(',')})`);
+        params.push(...where.id.in);
+      }
+      if (hasTags === 'true') {
+        conditions.push(`p.tags IS NOT NULL AND p.tags::text != '[]' AND p.tags::text != 'null'`);
+      }
+      if (where.OR && where.OR.length > 0) {
+        const orConditions = [];
+        for (const cond of where.OR) {
+          const field = Object.keys(cond)[0];
+          const allowedFields = ['address', 'city', 'state', 'postalCode', 'name'];
+          if (allowedFields.includes(field)) {
+            orConditions.push(`p."${field}" ILIKE $${paramIndex++}`);
+            params.push(`%${cond[field].contains}%`);
+          }
+        }
+        if (searchText) {
+          orConditions.push(`p.tags::text ILIKE $${paramIndex++}`);
+          params.push(`%${searchText}%`);
+        }
+        if (orConditions.length > 0) {
+          conditions.push(`(${orConditions.join(' OR ')})`);
+        }
+      }
+
+      return { conditions, params, nextParamIndex: paramIndex };
+    }
+
     {
       // Handle special sorting cases
       if (sortBy === 'tags') {
-        // Sort by first tag value alphabetically using raw SQL
-        // Build WHERE conditions
-        const conditions = [];
-        if (where.tenant) conditions.push(`p.tenant = '${where.tenant}'`);
-        if (where.status) conditions.push(`p.status = '${where.status}'`);
-        if (where.id?.in) conditions.push(`p.id IN (${where.id.in.map(id => `'${id}'`).join(',')})`);
-        if (hasTags === 'true') conditions.push(`p.tags IS NOT NULL AND p.tags::text != '[]' AND p.tags::text != 'null'`);
-        // Add search OR conditions (including tags JSON search)
-        if (where.OR) {
-          const orConditions = where.OR.map(cond => {
-            const field = Object.keys(cond)[0];
-            const value = cond[field].contains.replace(/'/g, "''");
-            return `p."${field}" ILIKE '%${value}%'`;
-          });
-          // Also search in tags JSON
-          if (searchText) {
-            orConditions.push(`p.tags::text ILIKE '%${searchText.replace(/'/g, "''")}%'`);
-          }
-          if (orConditions.length > 0) conditions.push(`(${orConditions.join(' OR ')})`);
-        }
+        // Sort by first tag value alphabetically using parameterized raw SQL
+        const { conditions, params, nextParamIndex } = buildWhereConditions(where, searchText, hasTags);
+        let paramIndex = nextParamIndex;
 
         // Handle hasProspects filter
         let hasProspectsJoin = '';
@@ -303,7 +350,10 @@ export async function handler(event) {
         }
 
         const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-        const orderDirection = sortDirection.toUpperCase();
+        const orderDirection = sortDirection === 'asc' ? 'ASC' : 'DESC';
+
+        const limitParam = `$${paramIndex++}`;
+        const offsetParam = `$${paramIndex++}`;
 
         const tagSortQuery = hasProspects ? `
           SELECT p.id, p.address, p.city, p.state, p."postalCode", p.status, p."photoCount",
@@ -314,7 +364,7 @@ export async function handler(event) {
           ${whereClause}
           ${hasProspectsCondition}
           ORDER BY (p.tags->0->>'value') ${orderDirection} NULLS LAST, p."ccCreatedAt" DESC
-          LIMIT $1 OFFSET $2
+          LIMIT ${limitParam} OFFSET ${offsetParam}
         ` : `
           SELECT p.id, p.address, p.city, p.state, p."postalCode", p.status, p."photoCount",
                  p."publicUrl", p."featureImage", p.tags, p."ccCreatedAt", p."ccUpdatedAt", p."lastSyncedAt", p.tenant, p.coordinates,
@@ -322,7 +372,7 @@ export async function handler(event) {
           FROM "Project" p
           ${whereClause}
           ORDER BY (tags->0->>'value') ${orderDirection} NULLS LAST, "ccCreatedAt" DESC
-          LIMIT $1 OFFSET $2
+          LIMIT ${limitParam} OFFSET ${offsetParam}
         `;
 
         const countQuery = hasProspects ? `
@@ -334,8 +384,8 @@ export async function handler(event) {
         ` : `SELECT COUNT(*) as count FROM "Project" p ${whereClause}`;
 
         const [rawProjects, countResults] = await Promise.all([
-          prisma.$queryRawUnsafe(tagSortQuery, limitNum, skip),
-          prisma.$queryRawUnsafe(countQuery)
+          prisma.$queryRawUnsafe(tagSortQuery, ...params, limitNum, skip),
+          prisma.$queryRawUnsafe(countQuery, ...params)
         ]);
 
         // Fetch prospects for these projects
@@ -360,26 +410,10 @@ export async function handler(event) {
         }));
         totalCount = Number(countResults[0]?.count || 0);
       } else if (sortBy === 'ccCreatedAt' || sortBy === 'ccUpdatedAt' || !sortBy) {
-        // Use raw SQL for date fields to handle NULLS LAST
+        // Use parameterized raw SQL for date fields to handle NULLS LAST
         const dateSortField = sortBy === 'ccUpdatedAt' ? 'ccUpdatedAt' : 'ccCreatedAt';
-        const conditions = [];
-        if (where.tenant) conditions.push(`p.tenant = '${where.tenant}'`);
-        if (where.status) conditions.push(`p.status = '${where.status}'`);
-        if (where.id?.in) conditions.push(`p.id IN (${where.id.in.map(id => `'${id}'`).join(',')})`);
-        if (hasTags === 'true') conditions.push(`p.tags IS NOT NULL AND p.tags::text != '[]' AND p.tags::text != 'null'`);
-        // Add search OR conditions (including tags JSON search)
-        if (where.OR) {
-          const orConditions = where.OR.map(cond => {
-            const field = Object.keys(cond)[0];
-            const value = cond[field].contains.replace(/'/g, "''");
-            return `p."${field}" ILIKE '%${value}%'`;
-          });
-          // Also search in tags JSON
-          if (searchText) {
-            orConditions.push(`p.tags::text ILIKE '%${searchText.replace(/'/g, "''")}%'`);
-          }
-          if (orConditions.length > 0) conditions.push(`(${orConditions.join(' OR ')})`);
-        }
+        const { conditions, params, nextParamIndex } = buildWhereConditions(where, searchText, hasTags);
+        let paramIndex = nextParamIndex;
 
         let hasProspectsJoin = '';
         let hasProspectsCondition = '';
@@ -392,7 +426,10 @@ export async function handler(event) {
         }
 
         const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-        const orderDirection = sortDirection.toUpperCase();
+        const orderDirection = sortDirection === 'asc' ? 'ASC' : 'DESC';
+
+        const limitParam = `$${paramIndex++}`;
+        const offsetParam = `$${paramIndex++}`;
 
         const dateQuery = hasProspects ? `
           SELECT p.id, p.address, p.city, p.state, p."postalCode", p.status, p."photoCount",
@@ -403,7 +440,7 @@ export async function handler(event) {
           ${whereClause}
           ${hasProspectsCondition}
           ORDER BY p."${dateSortField}" ${orderDirection} NULLS LAST
-          LIMIT $1 OFFSET $2
+          LIMIT ${limitParam} OFFSET ${offsetParam}
         ` : `
           SELECT p.id, p.address, p.city, p.state, p."postalCode", p.status, p."photoCount",
                  p."publicUrl", p."featureImage", p.tags, p."ccCreatedAt", p."ccUpdatedAt", p."lastSyncedAt", p.tenant, p.coordinates,
@@ -411,7 +448,7 @@ export async function handler(event) {
           FROM "Project" p
           ${whereClause}
           ORDER BY p."${dateSortField}" ${orderDirection} NULLS LAST
-          LIMIT $1 OFFSET $2
+          LIMIT ${limitParam} OFFSET ${offsetParam}
         `;
 
         const countQuery = hasProspects ? `
@@ -423,8 +460,8 @@ export async function handler(event) {
         ` : `SELECT COUNT(*) as count FROM "Project" p ${whereClause}`;
 
         const [rawProjects, countResults] = await Promise.all([
-          prisma.$queryRawUnsafe(dateQuery, limitNum, skip),
-          prisma.$queryRawUnsafe(countQuery)
+          prisma.$queryRawUnsafe(dateQuery, ...params, limitNum, skip),
+          prisma.$queryRawUnsafe(countQuery, ...params)
         ]);
 
         // Fetch prospects for these projects

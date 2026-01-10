@@ -33,6 +33,33 @@ export async function handler(event) {
       };
     }
 
+    // Verify user has access to this organization's tenant
+    const organization = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { tenant: true }
+    });
+
+    if (!organization) {
+      return {
+        statusCode: 404,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Organization not found' })
+      };
+    }
+
+    // Check tenant access - user must belong to the organization's tenant
+    const hasAccess = organization.tenant === user.slug || await prisma.userTenant.findFirst({
+      where: { userId: user.userId, Tenant: { slug: organization.tenant } }
+    });
+
+    if (!hasAccess) {
+      return {
+        statusCode: 403,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Access denied to this organization' })
+      };
+    }
+
     const contacts = await prisma.organizationContact.findMany({
       where: { organizationId },
       include: {
