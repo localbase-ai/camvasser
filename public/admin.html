@@ -1181,7 +1181,7 @@
     // =====================
     let authToken = null;
     let currentUser = null;
-    let currentView = 'leads';
+    let currentView = 'calls';
     let currentTenant = null;  // Currently selected tenant slug
     let userTenants = [];      // List of tenants user has access to
 
@@ -1419,10 +1419,14 @@
         switchView(hash, false);
       });
 
-      // Check initial hash
+      // Check initial hash, then localStorage, then default to 'calls'
       const initialHash = window.location.hash.slice(1);
-      if (initialHash && ['calls', 'addresses', 'contacts', 'leads', 'map', 'calendar', 'integrations'].includes(initialHash)) {
+      const validViews = ['calls', 'addresses', 'contacts', 'leads', 'map', 'calendar', 'integrations'];
+      if (initialHash && validViews.includes(initialHash)) {
         switchView(initialHash, false);
+      } else {
+        const savedView = localStorage.getItem('lastView');
+        switchView(validViews.includes(savedView) ? savedView : 'calls', false);
       }
       // Handle deep link to specific lead: #lead/{leadId}
       if (initialHash.startsWith('lead/')) {
@@ -1483,6 +1487,7 @@
 
     function switchView(view, updateHash = true) {
       currentView = view;
+      localStorage.setItem('lastView', view);
 
       // Update nav active state
       document.querySelectorAll('.nav-link').forEach(link => {
