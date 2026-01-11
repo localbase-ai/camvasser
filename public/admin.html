@@ -229,7 +229,7 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="addressDetailPane" class="hidden absolute top-0 right-0 h-full w-[600px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
+          <div id="addressDetailPane" class="hidden absolute top-0 right-0 h-full w-[400px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
             <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Address Details</h3>
               <button onclick="closeAddressDetail()" class="btn btn-ghost btn-xs btn-square">
@@ -351,7 +351,7 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="prospectDetailPane" class="hidden absolute top-0 right-0 h-full w-[600px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
+          <div id="prospectDetailPane" class="hidden absolute top-0 right-0 h-full w-[400px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
             <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Contact Details</h3>
               <button onclick="closeProspectDetail()" class="btn btn-ghost btn-xs btn-square">
@@ -472,7 +472,7 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="leadDetailPane" class="hidden absolute top-0 right-0 h-full w-[600px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
+          <div id="leadDetailPane" class="hidden absolute top-0 right-0 h-full w-[400px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
             <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Lead Details</h3>
               <button onclick="closeLeadDetail()" class="btn btn-ghost btn-xs btn-square">
@@ -536,7 +536,7 @@
         <div class="flex-1 relative min-h-0">
           <div id="mapContainer" class="absolute inset-0"></div>
           <!-- Map Detail Popup -->
-          <div id="mapDetailPopup" class="hidden absolute top-4 right-4 w-[600px] max-h-[calc(100%-2rem)] bg-base-100 shadow-xl border border-base-300 overflow-y-auto z-[1000]">
+          <div id="mapDetailPopup" class="hidden absolute top-4 right-4 w-[400px] max-h-[calc(100%-2rem)] bg-base-100 shadow-xl border border-base-300 overflow-y-auto z-[1000]">
             <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Details</h3>
               <button onclick="closeMapPopup()" class="btn btn-ghost btn-xs btn-square">
@@ -712,7 +712,7 @@
             </div>
 
             <!-- Right: Detail Pane (shown when row is clicked) -->
-            <div id="callDetailPane" class="hidden w-[600px] border-l border-base-300 bg-base-100 overflow-y-auto flex-shrink-0 h-full">
+            <div id="callDetailPane" class="hidden w-[400px] border-l border-base-300 bg-base-100 overflow-y-auto flex-shrink-0 h-full">
               <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
                 <h3 class="font-semibold text-sm">Details</h3>
                 <button onclick="closeCallDetailPane()" class="btn btn-ghost btn-xs btn-square">
@@ -1151,7 +1151,7 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="orgDetailPane" class="hidden absolute top-0 right-0 h-full w-[600px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
+          <div id="orgDetailPane" class="hidden absolute top-0 right-0 h-full w-[400px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
             <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Organization Details</h3>
               <button onclick="closeOrgDetail()" class="btn btn-ghost btn-xs btn-square">
@@ -4911,15 +4911,20 @@
         ? (record.project ? [record.project.address, record.project.city, record.project.state].filter(Boolean).join(', ') : record.lookupAddress || '')
         : (record.address || '');
       const projectId = isContact ? record.projectId : null;
-      const coords = isContact ? record.project?.coordinates : null;
+      const coords = isContact ? record.project?.coordinates : (record.coordinates || null);
+
+      // Google Maps key for static maps and geocoding
+      const googleMapsKey = 'AIzaSyCZ5lvfGnhxr5d5IYAwMcp9a6Gn1rgUxi8';
 
       // Build Google Static Maps URL if we have coordinates
-      const lon = coords?.lon || coords?.lng;
-      const lat = coords?.lat;
-      const googleMapsKey = 'AIzaSyCZ5lvfGnhxr5d5IYAwMcp9a6Gn1rgUxi8';
-      const mapPreviewUrl = lat && lon
+      let lon = coords?.lon || coords?.lng;
+      let lat = coords?.lat;
+      let mapPreviewUrl = lat && lon
         ? `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=17&size=300x120&scale=2&maptype=roadmap&markers=color:red%7C${lat},${lon}&key=${googleMapsKey}`
         : null;
+
+      // Flag to indicate we need to geocode
+      const needsGeocode = !mapPreviewUrl && address;
 
       // Build script HTML (collapsed by default)
       const scriptHtml = currentCallScript ? `
@@ -4946,22 +4951,28 @@
         </button>
       `;
 
-      // Street View URL
-      const streetViewUrl = lat && lon
+      // Street View URL (will be updated after geocoding if needed)
+      let streetViewUrl = lat && lon
         ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`
         : null;
 
-      // Address section with map preview and link to Street View
+      // Address section with map preview placeholder (will be filled by geocoding if needed)
       const addressHtml = address ? `
         <div class="py-2 border-b border-base-300">
           <label class="text-xs text-base-content/60 uppercase font-medium block mb-1">Address</label>
-          ${mapPreviewUrl ? `
-            <div class="mb-2">
-              <a href="${streetViewUrl || '#'}" target="_blank" rel="noopener">
+          <div id="callDetailMapContainer" class="mb-2">
+            ${mapPreviewUrl ? `
+              <a href="${streetViewUrl}" target="_blank" rel="noopener" id="callDetailMapLink">
                 <img src="${mapPreviewUrl}" alt="Map preview" class="w-full h-[100px] object-cover bg-base-200 cursor-pointer hover:opacity-90" loading="lazy">
               </a>
-            </div>
-          ` : ''}
+            ` : `
+              <div class="w-full h-[100px] bg-base-200 flex items-center justify-center text-base-content/40" id="callDetailMapPlaceholder">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+              </div>
+            `}
+          </div>
           <div class="flex items-start gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -4969,9 +4980,7 @@
             </svg>
             <div class="flex-1">
               <span class="text-sm">${address}</span>
-              ${streetViewUrl ? `
-                <a href="${streetViewUrl}" target="_blank" rel="noopener" class="link link-primary text-xs block mt-1">View Street View</a>
-              ` : ''}
+              <a href="${streetViewUrl || '#'}" target="_blank" rel="noopener" class="link link-primary text-xs block mt-1" id="callDetailStreetViewLink" ${!streetViewUrl ? 'style="display:none"' : ''}>View Street View</a>
             </div>
           </div>
         </div>
@@ -5038,7 +5047,62 @@
       // Load notes
       loadCallDetailNotes(recordType, record.id);
 
+      // Geocode address if we don't have coordinates
+      if (needsGeocode) {
+        geocodeForCallDetail(address, googleMapsKey);
+      }
+
       pane.classList.remove('hidden');
+    }
+
+    // Geocode address and update map preview in call detail pane
+    async function geocodeForCallDetail(address, apiKey) {
+      const mapContainer = document.getElementById('callDetailMapContainer');
+      const placeholder = document.getElementById('callDetailMapPlaceholder');
+      const streetViewLink = document.getElementById('callDetailStreetViewLink');
+
+      if (!mapContainer || !placeholder) return;
+
+      try {
+        const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`);
+        const data = await response.json();
+
+        if (data.status === 'OK' && data.results[0]) {
+          const location = data.results[0].geometry.location;
+          const lat = location.lat;
+          const lon = location.lng;
+
+          // Build map URL
+          const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=17&size=300x120&scale=2&maptype=roadmap&markers=color:red%7C${lat},${lon}&key=${apiKey}`;
+          const streetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
+
+          // Replace placeholder with map
+          mapContainer.innerHTML = `
+            <a href="${streetViewUrl}" target="_blank" rel="noopener" id="callDetailMapLink">
+              <img src="${mapUrl}" alt="Map preview" class="w-full h-[100px] object-cover bg-base-200 cursor-pointer hover:opacity-90" loading="lazy">
+            </a>
+          `;
+
+          // Show street view link
+          if (streetViewLink) {
+            streetViewLink.href = streetViewUrl;
+            streetViewLink.style.display = '';
+          }
+        } else {
+          // Geocoding failed - show static placeholder
+          placeholder.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+          `;
+        }
+      } catch (error) {
+        console.error('Geocoding error:', error);
+        // Keep placeholder on error
+        if (placeholder) {
+          placeholder.classList.remove('animate-pulse');
+        }
+      }
     }
 
     // Load notes for call detail pane (supports both contacts and leads)
