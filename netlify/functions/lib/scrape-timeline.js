@@ -1,5 +1,3 @@
-import axios from 'axios';
-
 /**
  * Scrapes media URLs from a CompanyCam public timeline page
  * @param {string} publicUrl - The public timeline URL (e.g., https://app.companycam.com/timeline/...)
@@ -7,14 +5,22 @@ import axios from 'axios';
  */
 export async function scrapeTimelineMedia(publicUrl) {
   try {
-    const response = await axios.get(publicUrl, {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(publicUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
-      timeout: 10000
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
-    const html = response.data;
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+
+    const html = await response.text();
     const media = [];
 
     // Extract photo-grid items - these are the actual project media
