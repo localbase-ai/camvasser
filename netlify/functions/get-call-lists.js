@@ -80,7 +80,9 @@ export async function handler(event) {
       }
       return {
         ...list,
+        createdById: list.userId, // Expose creator for "my lists" filtering
         itemCount: list._count.CallListItem,
+        _count: { items: list._count.CallListItem },
         assigneeName: list.assignedToUserId ? assigneeMap.get(list.assignedToUserId) : null,
         assignedUsers
       };

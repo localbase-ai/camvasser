@@ -591,58 +591,68 @@
       </div>
 
       <!-- Calls View -->
-      <div id="view-calls" class="view hidden flex flex-col h-full">
-        <div class="py-4">
-          <h2 class="text-2xl font-bold mb-2">Calls</h2>
-          <p class="text-base-content/60">Track your daily calling activity</p>
+      <div id="view-calls" class="view hidden flex flex-col h-full relative">
+        <!-- Drawer backdrop -->
+        <div id="callListDrawerBackdrop" class="hidden absolute inset-0 bg-black/20 z-40" onclick="closeCallListDrawer()"></div>
+
+        <!-- Drawer panel -->
+        <div id="callListDrawer" class="absolute left-0 top-0 h-full w-64 bg-base-100 shadow-xl z-50 transform -translate-x-full transition-transform duration-200 flex flex-col">
+          <div class="p-3 border-b border-base-300 flex items-center justify-between">
+            <span class="font-semibold">Call Lists</span>
+            <button onclick="closeCallListDrawer()" class="btn btn-ghost btn-sm btn-square">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div id="callListDrawerContent" class="flex-1 overflow-y-auto p-2"></div>
+          <div id="callListDrawerToggle" class="border-t border-base-300 p-3 hidden">
+            <label class="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" id="showAllListsToggle" class="checkbox checkbox-sm" onchange="renderCallListDrawer()">
+              Show all lists
+            </label>
+          </div>
         </div>
 
         <!-- Call List Content -->
         <div class="flex-1 flex flex-col min-h-0">
           <!-- Header row with controls -->
-          <div class="flex justify-between items-center mb-4">
-            <div class="flex items-center gap-2">
-              <select id="callListSelect" class="select select-bordered select-sm" onchange="loadCallList(this.value)">
-                <option value="">Select a list...</option>
-              </select>
-              <button id="deleteCallListBtn" onclick="deleteSelectedCallList()" class="btn btn-ghost btn-sm btn-square text-error hidden" title="Delete list">
+          <div class="flex justify-between items-center py-3">
+            <div class="flex items-center gap-3">
+              <button onclick="openCallListDrawer()" class="btn btn-ghost gap-2 px-2">
+                <span id="currentListName" class="text-lg font-semibold">Select a list</span>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              <label class="label cursor-pointer gap-2">
-                <input type="checkbox" id="showAllCallLists" class="toggle toggle-sm" onchange="loadCallLists()">
-                <span class="label-text text-xs">Show all lists</span>
-              </label>
-              <label class="label cursor-pointer gap-1">
-                <input type="checkbox" id="filterUntouched" class="checkbox checkbox-xs" onchange="filterCallListItems()">
-                <span class="label-text text-xs">Untouched today</span>
-              </label>
-              <label class="label cursor-pointer gap-1">
-                <input type="checkbox" id="filterHasName" class="checkbox checkbox-xs" onchange="filterCallListItems()">
-                <span class="label-text text-xs">Has name</span>
-              </label>
-              <label class="label cursor-pointer gap-1">
-                <input type="checkbox" id="filterHasPhone" class="checkbox checkbox-xs" onchange="filterCallListItems()">
-                <span class="label-text text-xs">Has phone</span>
-              </label>
-              <label class="label cursor-pointer gap-1">
-                <input type="checkbox" id="filterHasEmail" class="checkbox checkbox-xs" onchange="filterCallListItems()">
-                <span class="label-text text-xs">Has email</span>
-              </label>
+              <span id="callListCount" class="text-sm text-base-content/60"></span>
             </div>
             <div class="flex items-center gap-2">
+              <div id="callListFilters" class="hidden flex items-center gap-2">
+                <label class="label cursor-pointer gap-1">
+                  <input type="checkbox" id="filterUntouched" class="checkbox checkbox-xs" onchange="filterCallListItems()">
+                  <span class="label-text text-xs">Untouched</span>
+                </label>
+                <label class="label cursor-pointer gap-1">
+                  <input type="checkbox" id="filterHasName" class="checkbox checkbox-xs" onchange="filterCallListItems()">
+                  <span class="label-text text-xs">Has name</span>
+                </label>
+                <label class="label cursor-pointer gap-1">
+                  <input type="checkbox" id="filterHasPhone" class="checkbox checkbox-xs" onchange="filterCallListItems()">
+                  <span class="label-text text-xs">Has phone</span>
+                </label>
+                <label class="label cursor-pointer gap-1">
+                  <input type="checkbox" id="filterHasEmail" class="checkbox checkbox-xs" onchange="filterCallListItems()">
+                  <span class="label-text text-xs">Has email</span>
+                </label>
+              </div>
               <button id="removeSelectedBtn" onclick="removeSelectedFromCallList()" class="btn btn-error btn-sm hidden">
                 Remove Selected
               </button>
-              <div id="callListCount" class="text-sm text-base-content/60">
-                0 items in list
-              </div>
-              <button onclick="openScriptManagerModal()" class="btn btn-ghost btn-sm">
+              <button onclick="openScriptManagerModal()" class="btn btn-ghost btn-sm btn-square" title="Manage Scripts">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Manage Scripts
               </button>
             </div>
           </div>
@@ -1184,6 +1194,12 @@
     let currentView = 'calls';
     let currentTenant = null;  // Currently selected tenant slug
     let userTenants = [];      // List of tenants user has access to
+
+    // Helper to check if current user is admin for current tenant
+    function isCurrentUserAdmin() {
+      const tenant = userTenants.find(t => t.slug === currentTenant);
+      return tenant?.role === 'admin' || tenant?.role === 'owner';
+    }
 
     // Data stores
     let allAddresses = [];
@@ -4430,48 +4446,66 @@
       }
     }
 
+    // Drawer functions
+    function openCallListDrawer() {
+      document.getElementById('callListDrawer').classList.remove('-translate-x-full');
+      document.getElementById('callListDrawerBackdrop').classList.remove('hidden');
+    }
+
+    function closeCallListDrawer() {
+      document.getElementById('callListDrawer').classList.add('-translate-x-full');
+      document.getElementById('callListDrawerBackdrop').classList.add('hidden');
+    }
+
+    function renderCallListDrawer() {
+      const container = document.getElementById('callListDrawerContent');
+      const toggleContainer = document.getElementById('callListDrawerToggle');
+      const showAllToggle = document.getElementById('showAllListsToggle');
+      const isAdmin = isCurrentUserAdmin();
+
+      // Admins see all by default, non-admins can toggle
+      const showAll = isAdmin || showAllToggle?.checked;
+
+      // Show toggle only for non-admins
+      toggleContainer.classList.toggle('hidden', isAdmin);
+
+      // Filter lists
+      let listsToShow = showAll ? allCallLists : allCallLists.filter(list => {
+        const isAssigned = list.assignedUsers?.some(u => u.id === currentUser?.userId);
+        return isAssigned;
+      });
+
+      if (listsToShow.length === 0) {
+        container.innerHTML = '<p class="text-sm text-base-content/60 p-2">No lists available</p>';
+        return;
+      }
+
+      container.innerHTML = listsToShow.map(list => {
+        const count = list._count?.CallListItem || list._count?.items || 0;
+        const isActive = currentCallListId === list.id;
+        const assignees = list.assignedUsers?.map(u => u.name).join(', ') || '';
+        return `
+          <button onclick="loadCallList('${list.id}')" class="w-full text-left p-2 rounded hover:bg-base-200 ${isActive ? 'bg-primary/10 border-l-2 border-primary' : ''} mb-1">
+            <div class="font-medium text-sm">${escapeHtml(list.name)}</div>
+            <div class="text-xs text-base-content/60">${count} items${assignees ? ' · ' + escapeHtml(assignees) : ''}</div>
+          </button>
+        `;
+      }).join('');
+    }
+
     // Load call lists for the Calls view
     async function loadCallLists() {
       try {
-        const showAllCheckbox = document.getElementById('showAllCallLists');
-        // Admin users see all lists by default
-        const showAll = showAllCheckbox?.checked || currentUser?.isAdmin;
-        let url = `/.netlify/functions/get-call-lists?tenant=${currentTenant}`;
-        if (showAll) {
-          url += '&all=true';
-        } else {
-          url += `&assignedTo=${currentUser.id}`;
-        }
-
-        const response = await fetch(url, {
+        // Always fetch all lists - filtering happens in the drawer
+        const response = await fetch(`/.netlify/functions/get-call-lists?tenant=${currentTenant}&all=true`, {
           headers: { 'Authorization': `Bearer ${authToken}` }
         });
         if (response.status === 401) { logout(); return; }
         const data = await response.json();
         allCallLists = data.callLists || [];
 
-        const select = document.getElementById('callListSelect');
-        const emptyState = document.getElementById('callListEmpty');
-
-        if (allCallLists.length === 0) {
-          select.innerHTML = '<option value="">No lists yet</option>';
-          emptyState.classList.remove('hidden');
-          document.getElementById('callListTable').classList.add('hidden');
-          emptyState.querySelector('h3').textContent = showAll ? 'No call lists yet' : 'No lists assigned to you';
-          emptyState.querySelector('p').innerHTML = 'Select contacts or leads and click<br>"Add to Call List" to create one';
-        } else {
-          select.innerHTML = '<option value="">Select a list...</option>' +
-            allCallLists.map(list => {
-              // Show all assignees (new multi-assignee) or fall back to legacy single assignee
-              const assignees = list.assignedUsers?.length > 0
-                ? list.assignedUsers.map(u => u.name).join(', ')
-                : list.assigneeName;
-              const assigneeText = assignees ? ` - ${assignees}` : '';
-              return `<option value="${list.id}">${list.name} (${list._count?.items || 0})${showAll ? assigneeText : ''}</option>`;
-            }).join('');
-          emptyState.querySelector('h3').textContent = 'Select a call list';
-          emptyState.querySelector('p').innerHTML = 'Choose a list from the dropdown above';
-        }
+        // Render the drawer
+        renderCallListDrawer();
       } catch (e) {
         console.error('Error loading call lists:', e);
       }
@@ -4988,29 +5022,40 @@
     // Load a specific call list's items
     async function loadCallList(listId) {
       const scriptPanel = document.getElementById('callScriptPanel');
-      const deleteBtn = document.getElementById('deleteCallListBtn');
       const detailPane = document.getElementById('callDetailPane');
       const loadingEl = document.getElementById('callListLoading');
+      const filtersEl = document.getElementById('callListFilters');
+      const listNameEl = document.getElementById('currentListName');
 
       if (!listId) {
         document.getElementById('callListEmpty').classList.remove('hidden');
         document.getElementById('callListTable').classList.add('hidden');
         loadingEl.classList.add('hidden');
-        document.getElementById('callListCount').textContent = '0 items in list';
+        document.getElementById('callListCount').textContent = '';
+        filtersEl?.classList.add('hidden');
         scriptPanel.classList.add('hidden');
         detailPane.classList.add('hidden');
-        deleteBtn.classList.add('hidden');
+        listNameEl.textContent = 'Select a list';
         currentCallListItems = [];
         currentCallListId = null;
         callListState.checkedItems.clear();
         callListState.sortedItems = [];
+        renderCallListDrawer();
         return;
       }
 
       currentCallListId = listId;
 
-      // Show delete button when a list is selected
-      deleteBtn.classList.remove('hidden');
+      // Close drawer and update header
+      closeCallListDrawer();
+      const list = allCallLists.find(l => l.id === listId);
+      listNameEl.textContent = list?.name || 'Call List';
+
+      // Show filters when list is selected
+      filtersEl?.classList.remove('hidden');
+
+      // Re-render drawer to show active state
+      renderCallListDrawer();
 
       // Show loading state
       loadingEl.classList.remove('hidden');
