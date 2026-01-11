@@ -48,7 +48,7 @@
   <div class="flex min-h-screen">
 
     <!-- Left Sidebar -->
-    <aside id="sidebar" class="w-64 bg-base-100 border-r border-base-300 flex flex-col h-screen sticky top-0 transition-all duration-200">
+    <aside id="sidebar" class="w-64 bg-base-100 border-r border-base-300 flex flex-col h-screen sticky top-0 transition-all duration-200 shadow-none">
       <!-- Logo/Header -->
       <div class="p-4 border-b border-base-300">
         <div class="flex items-center gap-3">
@@ -147,7 +147,7 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col overflow-auto">
+    <main class="flex-1 flex flex-col overflow-auto shadow-none">
       <!-- Top Bar -->
       <div class="flex justify-between items-center px-4 py-2">
         <!-- Tenant Switcher -->
@@ -617,10 +617,12 @@
         <!-- Call List Content -->
         <div class="flex-1 flex flex-col min-h-0">
           <!-- Header row with controls -->
-          <div class="flex justify-between items-center py-3">
-            <div class="flex items-center gap-3">
+          <div class="flex justify-between items-center py-2">
+            <div class="flex items-center gap-3 pl-4">
+              <h2 class="text-lg font-bold">Call Lists</h2>
+              <span class="text-base-content/30">•</span>
               <button onclick="openCallListDrawer()" class="btn btn-ghost gap-2 px-2">
-                <span id="currentListName" class="text-lg font-semibold">Select a list</span>
+                <span id="currentListName" class="font-medium">Select a list</span>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
@@ -655,21 +657,6 @@
                 </svg>
               </button>
             </div>
-          </div>
-
-          <!-- Script Panel (collapsible accordion, shown when list has script) -->
-          <div id="callScriptPanel" class="hidden mb-3">
-            <details class="collapse collapse-arrow bg-base-200 rounded-lg">
-              <summary class="collapse-title py-2 min-h-0 font-medium flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span id="callScriptPanelName">Call Script</span>
-              </summary>
-              <div class="collapse-content">
-                <div id="callScriptPanelContent" class="prose prose-sm max-w-none max-h-[300px] overflow-y-auto"></div>
-              </div>
-            </details>
           </div>
 
           <!-- Main content area with table and detail pane -->
@@ -4519,6 +4506,7 @@
     let currentCallListItems = [];
     let currentCallListId = null;
     let selectedCallItemId = null;
+    let currentCallScript = null;
     let callListSort = { column: 'name', direction: 'asc' };
 
     // Call list state
@@ -4824,7 +4812,7 @@
       document.querySelectorAll('#callListTableBody tr').forEach(tr => tr.classList.remove('bg-base-200'));
     }
 
-    // Show detail pane for a call list item
+    // Show detail pane for a call list item - focused calling UI
     function showCallDetail(itemId) {
       const item = currentCallListItems.find(i => i.id === itemId);
       if (!item) return;
@@ -4840,157 +4828,86 @@
         tr.classList.toggle('bg-base-200', tr.dataset.itemId === itemId);
       });
 
-      if (isContact) {
-        // Contact detail
-        const name = record.name || 'Unknown';
-        const phones = record.phones || [];
-        const emails = record.emails || [];
-        const address = record.lookupAddress || '';
-        const status = record.status || 'new';
+      // Get common fields
+      const name = isContact ? (record.name || 'Unknown') : `${record.firstName || ''} ${record.lastName || ''}`.trim() || 'Unknown';
+      const phone = isContact ? (record.phones?.[0]?.phone_number || '') : (record.phone || '');
+      const status = record.status || '';
+      const recordType = isContact ? 'contact' : 'lead';
 
-        content.innerHTML = `
-          <div class="space-y-4">
-            <div>
-              <h4 class="font-semibold text-lg">${name}</h4>
-              <span class="badge badge-sm badge-ghost">Contact</span>
+      // Call outcome statuses for quick buttons
+      const callStatuses = [
+        { value: 'no_answer', label: 'No Answer', icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z' },
+        { value: 'left_voicemail', label: 'Voicemail', icon: 'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z' },
+        { value: 'callback', label: 'Callback', icon: 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6' },
+        { value: 'appointment_set', label: 'Appt Set', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', success: true },
+        { value: 'not_interested', label: 'Not Interested', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' },
+        { value: 'wrong_number', label: 'Wrong #', icon: 'M6 18L18 6M6 6l12 12' },
+        { value: 'bad_number', label: 'Bad #', icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' }
+      ];
+
+      // Build script HTML
+      const scriptHtml = currentCallScript ? `
+        <div class="border-t border-base-300 pt-3">
+          <div class="flex items-center gap-2 mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span class="text-xs font-medium text-base-content/60 uppercase">${currentCallScript.name}</span>
+          </div>
+          <div class="prose prose-sm max-w-none text-sm bg-base-200 rounded-lg p-3 max-h-[300px] overflow-y-auto">
+            ${marked.parse(currentCallScript.content)}
+          </div>
+        </div>
+      ` : '';
+
+      // View full details link
+      const viewDetailsLink = isContact ? '' : `
+        <button onclick="showLeadDetail('${record.id}')" class="link link-primary text-xs flex items-center gap-1">
+          View full details
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      `;
+
+      content.innerHTML = `
+        <div class="flex flex-col h-full">
+          <!-- Header: Name + Phone -->
+          <div class="pb-3">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <h4 class="text-xl font-semibold">${name}</h4>
+                ${phone ? `
+                  <a href="tel:${phone}" class="text-lg link link-primary font-medium">${phone}</a>
+                ` : '<span class="text-base-content/40 text-sm">No phone</span>'}
+              </div>
+              <span class="badge badge-sm badge-ghost">${isContact ? 'Contact' : 'Lead'}</span>
             </div>
+            ${viewDetailsLink}
+          </div>
 
-            <div class="space-y-2">
-              <label class="text-xs text-base-content/60 uppercase font-medium">Status</label>
-              <select class="select select-sm select-bordered w-full" onchange="updateCallItemStatus('contact', '${record.id}', this.value)">
-                <option value="" ${!status ? 'selected' : ''}>No Status</option>
-                <optgroup label="Calling">
-                  <option value="new_lead" ${status === 'new_lead' ? 'selected' : ''}>New lead</option>
-                  <option value="left_voicemail" ${status === 'left_voicemail' ? 'selected' : ''}>Left voicemail</option>
-                  <option value="no_answer" ${status === 'no_answer' ? 'selected' : ''}>No answer</option>
-                  <option value="callback" ${status === 'callback' ? 'selected' : ''}>Callback</option>
-                  <option value="appointment_set" ${status === 'appointment_set' ? 'selected' : ''}>Appointment set</option>
-                  <option value="not_interested" ${status === 'not_interested' ? 'selected' : ''}>Not interested</option>
-                  <option value="wrong_number" ${status === 'wrong_number' ? 'selected' : ''}>Wrong number</option>
-                  <option value="bad_number" ${status === 'bad_number' ? 'selected' : ''}>Bad number</option>
-                </optgroup>
-                <optgroup label="Email">
-                  <option value="emailed" ${status === 'emailed' ? 'selected' : ''}>Emailed</option>
-                  <option value="opened" ${status === 'opened' ? 'selected' : ''}>Opened</option>
-                  <option value="clicked" ${status === 'clicked' ? 'selected' : ''}>Clicked</option>
-                  <option value="replied" ${status === 'replied' ? 'selected' : ''}>Replied</option>
-                  <option value="bounced" ${status === 'bounced' ? 'selected' : ''}>Bounced</option>
-                </optgroup>
-              </select>
-            </div>
-
-            ${phones.length > 0 ? `
-            <div class="space-y-1">
-              <label class="text-xs text-base-content/60 uppercase font-medium">Phone</label>
-              ${phones.map(p => `
-                <div class="flex items-center gap-2">
-                  <a href="tel:${p.phone_number}" class="link link-primary">${p.phone_number}</a>
-                  ${p.type ? `<span class="badge badge-xs">${p.type}</span>` : ''}
-                </div>
-              `).join('')}
-            </div>
-            ` : ''}
-
-            ${emails.length > 0 ? `
-            <div class="space-y-1">
-              <label class="text-xs text-base-content/60 uppercase font-medium">Email</label>
-              ${emails.map(e => `
-                <a href="mailto:${e.email}" class="link link-primary block">${e.email}</a>
-              `).join('')}
-            </div>
-            ` : ''}
-
-            ${address ? `
-            <div class="space-y-1">
-              <label class="text-xs text-base-content/60 uppercase font-medium">Address</label>
-              <p class="text-sm">${address}</p>
-            </div>
-            ` : ''}
-
-            <!-- Notes Section -->
-            <div class="space-y-2">
-              <label class="text-xs text-base-content/60 uppercase font-medium">Notes</label>
-              <div class="flex gap-2">
-                <textarea id="callContactNoteInput" class="textarea textarea-bordered textarea-sm flex-1" placeholder="Add a note..." rows="2" onkeydown="handleCallContactNoteKeydown(event, '${record.id}')"></textarea>
-                <button onclick="addCallContactNote('${record.id}')" class="btn btn-sm btn-primary self-end">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          <!-- Quick Status Buttons -->
+          <div class="pb-3 border-b border-base-300">
+            <label class="text-xs text-base-content/60 uppercase font-medium block mb-2">Call Outcome</label>
+            <div class="grid grid-cols-2 gap-2">
+              ${callStatuses.map(s => `
+                <button
+                  onclick="updateCallItemStatus('${recordType}', '${record.id}', '${s.value}')"
+                  class="btn btn-sm ${status === s.value ? (s.success ? 'btn-success' : 'btn-primary') : 'btn-ghost border-base-300'} justify-start gap-2 h-auto py-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${s.icon}" />
                   </svg>
+                  <span class="text-xs">${s.label}</span>
                 </button>
-              </div>
-              <div id="callContactNotesList" class="space-y-2 max-h-[200px] overflow-y-auto">
-                <div class="text-sm text-base-content/40 italic">Loading notes...</div>
-              </div>
-            </div>
-
-            <div class="pt-2 border-t border-base-300 space-y-2">
-              <button onclick="convertContactToLead('${record.id}')" class="btn btn-sm btn-primary w-full">
-                Convert to Lead
-              </button>
-              <button onclick="removeFromCallList('${currentCallListId}', '${item.id}')" class="btn btn-sm btn-outline btn-error w-full">
-                Remove from List
-              </button>
+              `).join('')}
             </div>
           </div>
-        `;
-        // Load notes for this contact
-        loadCallContactNotes(record.id);
-      } else {
-        // Lead detail
-        const name = `${record.firstName || ''} ${record.lastName || ''}`.trim() || 'Unknown';
-        const phone = record.phone || '';
-        const email = record.email || '';
-        const address = record.address || '';
-        const status = record.status || 'new';
 
-        content.innerHTML = `
-          <div class="space-y-4">
-            <div>
-              <h4 class="font-semibold text-lg">${name}</h4>
-              <span class="badge badge-sm badge-ghost">Lead</span>
-            </div>
-
-            <div class="space-y-2">
-              <label class="text-xs text-base-content/60 uppercase font-medium">Status</label>
-              <select class="select select-sm select-bordered w-full" onchange="updateCallItemStatus('lead', '${record.id}', this.value)">
-                <option value="new" ${status === 'new' ? 'selected' : ''}>New</option>
-                <option value="contacted" ${status === 'contacted' ? 'selected' : ''}>Contacted</option>
-                <option value="qualified" ${status === 'qualified' ? 'selected' : ''}>Qualified</option>
-                <option value="proposal" ${status === 'proposal' ? 'selected' : ''}>Proposal</option>
-                <option value="won" ${status === 'won' ? 'selected' : ''}>Won</option>
-                <option value="lost" ${status === 'lost' ? 'selected' : ''}>Lost</option>
-              </select>
-            </div>
-
-            ${phone ? `
-            <div class="space-y-1">
-              <label class="text-xs text-base-content/60 uppercase font-medium">Phone</label>
-              <a href="tel:${phone}" class="link link-primary block">${phone}</a>
-            </div>
-            ` : ''}
-
-            ${email ? `
-            <div class="space-y-1">
-              <label class="text-xs text-base-content/60 uppercase font-medium">Email</label>
-              <a href="mailto:${email}" class="link link-primary block">${email}</a>
-            </div>
-            ` : ''}
-
-            ${address ? `
-            <div class="space-y-1">
-              <label class="text-xs text-base-content/60 uppercase font-medium">Address</label>
-              <p class="text-sm">${address}</p>
-            </div>
-            ` : ''}
-
-            <div class="pt-2 border-t border-base-300">
-              <button onclick="removeFromCallList('${currentCallListId}', '${item.id}')" class="btn btn-sm btn-outline btn-error w-full">
-                Remove from List
-              </button>
-            </div>
-          </div>
-        `;
-      }
+          <!-- Script Section -->
+          ${scriptHtml}
+        </div>
+      `;
 
       pane.classList.remove('hidden');
     }
@@ -5025,7 +4942,6 @@
 
     // Load a specific call list's items
     async function loadCallList(listId) {
-      const scriptPanel = document.getElementById('callScriptPanel');
       const detailPane = document.getElementById('callDetailPane');
       const loadingEl = document.getElementById('callListLoading');
       const filtersEl = document.getElementById('callListFilters');
@@ -5037,7 +4953,6 @@
         loadingEl.classList.add('hidden');
         document.getElementById('callListCount').textContent = '';
         filtersEl?.classList.add('hidden');
-        scriptPanel.classList.add('hidden');
         detailPane.classList.add('hidden');
         listNameEl.textContent = 'Select a list';
         currentCallListItems = [];
@@ -5082,14 +4997,8 @@
         // Hide loading state
         loadingEl.classList.add('hidden');
 
-        // Show/hide script panel
-        if (script) {
-          document.getElementById('callScriptPanelName').textContent = script.name;
-          document.getElementById('callScriptPanelContent').innerHTML = marked.parse(script.content);
-          scriptPanel.classList.remove('hidden');
-        } else {
-          scriptPanel.classList.add('hidden');
-        }
+        // Store script for detail pane
+        currentCallScript = script || null;
 
         if (items.length === 0) {
           document.getElementById('callListEmpty').classList.remove('hidden');

@@ -108,3 +108,9 @@ body {
 #sidebar.collapsed .btn-logout svg {
   margin: 0;
 }
+
+/* Remove any shadow/gradient from sidebar and main */
+#sidebar, main {
+  box-shadow: none !important;
+  filter: none !important;
+}
