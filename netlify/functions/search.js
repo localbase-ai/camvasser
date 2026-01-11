@@ -68,7 +68,40 @@ export async function handler(event, context) {
     let page = 1;
     let hasMore = true;
     const perPage = 50; // CompanyCam API default
+
+    // Normalize address for comparison
+    function normalizeAddress(addr) {
+      return addr
+        .toLowerCase()
+        .trim()
+        // Normalize directionals
+        .replace(/\bsw\b/g, 'southwest')
+        .replace(/\bse\b/g, 'southeast')
+        .replace(/\bnw\b/g, 'northwest')
+        .replace(/\bne\b/g, 'northeast')
+        .replace(/\bn\b/g, 'north')
+        .replace(/\bs\b/g, 'south')
+        .replace(/\be\b/g, 'east')
+        .replace(/\bw\b/g, 'west')
+        // Normalize street types
+        .replace(/\bdr\b/g, 'drive')
+        .replace(/\bst\b/g, 'street')
+        .replace(/\bave\b/g, 'avenue')
+        .replace(/\brd\b/g, 'road')
+        .replace(/\bln\b/g, 'lane')
+        .replace(/\bct\b/g, 'court')
+        .replace(/\bpl\b/g, 'place')
+        .replace(/\bblvd\b/g, 'boulevard')
+        .replace(/\bcir\b/g, 'circle')
+        .replace(/\bter\b/g, 'terrace')
+        .replace(/\bterr\b/g, 'terrace')
+        .replace(/\bpkwy\b/g, 'parkway')
+        // Remove extra spaces
+        .replace(/\s+/g, ' ');
+    }
+
     const searchLower = address.toLowerCase().trim();
+    const searchNormalized = normalizeAddress(address);
     const searchNumbers = searchLower.match(/\d+/g)?.join('') || '';
 
     // Fetch pages until we find a match or run out of pages
@@ -133,17 +166,33 @@ export async function handler(event, context) {
         // - Projects exist for a reason and should be findable
 
         const addr = p.address.street_address_1.toLowerCase().trim();
+        const addrNormalized = normalizeAddress(p.address.street_address_1);
         const addrNumbers = addr.match(/\d+/g)?.join('') || '';
 
-        // Check if street numbers match
+        // Check if street numbers match AND normalized street names match
         if (searchNumbers && addrNumbers && searchNumbers === addrNumbers) {
-          console.log(`Number match: ${p.address.street_address_1} (${addrNumbers} === ${searchNumbers})`);
+          // Extract street name (everything after the number)
+          const searchStreet = searchNormalized.replace(/^\d+\s*/, '');
+          const addrStreet = addrNormalized.replace(/^\d+\s*/, '');
+
+          // Check if street names are similar
+          if (searchStreet && addrStreet &&
+              (searchStreet.includes(addrStreet) || addrStreet.includes(searchStreet) ||
+               searchStreet === addrStreet)) {
+            console.log(`Normalized match: ${p.address.street_address_1} (${addrNormalized} ~ ${searchNormalized})`);
+            return true;
+          }
+        }
+
+        // Check if full normalized address matches
+        if (addrNormalized.includes(searchNormalized) || searchNormalized.includes(addrNormalized)) {
+          console.log(`Text match: ${p.address.street_address_1}`);
           return true;
         }
 
-        // Check if full address matches
+        // Fallback: exact address contains match
         if (addr.includes(searchLower) || searchLower.includes(addr)) {
-          console.log(`Text match: ${p.address.street_address_1}`);
+          console.log(`Exact match: ${p.address.street_address_1}`);
           return true;
         }
 
