@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { updateCustomerNotes, getCustomer } from './lib/quickbooks.js';
 
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Valid entity types
 const VALID_ENTITY_TYPES = ['lead', 'prospect', 'project'];
