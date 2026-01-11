@@ -43,9 +43,14 @@ body {
   padding: 0.5rem 0.75rem !important;
 }
 
+/* Remove default thead background */
+.table thead, .table thead tr, .table th {
+  background: transparent !important;
+}
+
 /* Align first column with header */
 .table th:first-child, .table td:first-child {
-  padding-left: 0 !important;
+  padding-left: 12px !important;
 }
 
 /* Compact view headers */
