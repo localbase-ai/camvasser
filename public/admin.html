@@ -229,7 +229,7 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="addressDetailPane" class="hidden absolute top-0 right-0 h-full w-[450px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
+          <div id="addressDetailPane" class="hidden absolute top-0 right-0 h-full w-[600px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
             <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Address Details</h3>
               <button onclick="closeAddressDetail()" class="btn btn-ghost btn-xs btn-square">
@@ -351,7 +351,7 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="prospectDetailPane" class="hidden absolute top-0 right-0 h-full w-[450px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
+          <div id="prospectDetailPane" class="hidden absolute top-0 right-0 h-full w-[600px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
             <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Contact Details</h3>
               <button onclick="closeProspectDetail()" class="btn btn-ghost btn-xs btn-square">
@@ -472,7 +472,7 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="leadDetailPane" class="hidden absolute top-0 right-0 h-full w-[450px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
+          <div id="leadDetailPane" class="hidden absolute top-0 right-0 h-full w-[600px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
             <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Lead Details</h3>
               <button onclick="closeLeadDetail()" class="btn btn-ghost btn-xs btn-square">
@@ -712,7 +712,7 @@
             </div>
 
             <!-- Right: Detail Pane (shown when row is clicked) -->
-            <div id="callDetailPane" class="hidden w-[450px] border-l border-base-300 bg-base-100 overflow-y-auto flex-shrink-0 h-full">
+            <div id="callDetailPane" class="hidden w-[600px] border-l border-base-300 bg-base-100 overflow-y-auto flex-shrink-0 h-full">
               <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
                 <h3 class="font-semibold text-sm">Details</h3>
                 <button onclick="closeCallDetailPane()" class="btn btn-ghost btn-xs btn-square">
@@ -1151,7 +1151,7 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="orgDetailPane" class="hidden absolute top-0 right-0 h-full w-[450px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
+          <div id="orgDetailPane" class="hidden absolute top-0 right-0 h-full w-[600px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
             <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Organization Details</h3>
               <button onclick="closeOrgDetail()" class="btn btn-ghost btn-xs btn-square">
@@ -2492,7 +2492,7 @@
           const isSelected = selectedAddressId === addr.id;
 
           return `
-            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''}" onclick="showAddressDetail('${addr.id}')">
+            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''}" data-id="${addr.id}" tabindex="0" onclick="showAddressDetail('${addr.id}')">
               <td onclick="event.stopPropagation()">
                 <input type="checkbox" class="checkbox checkbox-sm address-checkbox" data-id="${addr.id}" data-contacts="${addr.prospectCount || 0}" onchange="updateAddressSelectionUI()">
               </td>
@@ -2832,7 +2832,7 @@
           const isEnriched = !!prospect.enrichedAt;
 
           return `
-            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''} ${isEnriched ? 'border-l-4 border-l-warning' : ''}">
+            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''} ${isEnriched ? 'border-l-4 border-l-warning' : ''}" data-id="${prospect.id}" tabindex="0" onclick="showProspectDetail('${prospect.id}')">
               <td class="w-8" onclick="event.stopPropagation()">
                 <input type="checkbox" class="checkbox checkbox-sm prospect-checkbox" data-id="${prospect.id}" onchange="updateProspectSelectionUI()">
               </td>
@@ -3296,7 +3296,7 @@
           const jobValueDisplay = jobValue ? `$${jobValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '-';
 
           return `
-            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''}">
+            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''}" data-id="${lead.id}" tabindex="0" onclick="showLeadDetail('${lead.id}')">
               <td class="w-8" onclick="event.stopPropagation()">
                 <input type="checkbox" class="checkbox checkbox-sm lead-checkbox" data-id="${lead.id}" onchange="updateLeadSelectionUI()">
               </td>
@@ -4659,7 +4659,7 @@
       const updatedAtTs = record?.updatedAt ? new Date(record.updatedAt).getTime() : 0;
 
       return `
-        <tr class="hover:bg-base-200 cursor-pointer ${isSelected ? 'bg-base-200' : ''}" data-has-name="${hasName}" data-has-phone="${hasPhone}" data-has-email="${hasEmail}" data-updated="${updatedAtTs}" onclick="showCallDetail('${item.id}')">
+        <tr class="hover:bg-base-200 cursor-pointer ${isSelected ? 'bg-base-200' : ''}" data-has-name="${hasName}" data-has-phone="${hasPhone}" data-has-email="${hasEmail}" data-updated="${updatedAtTs}" data-item-id="${item.id}" tabindex="0" onclick="showCallDetail('${item.id}')">
           <td class="w-10" onclick="event.stopPropagation()">
             <input type="checkbox" class="checkbox checkbox-sm call-item-checkbox" data-item-id="${item.id}" ${isChecked ? 'checked' : ''} onchange="handleCallItemCheckbox(this)">
           </td>
@@ -4811,6 +4811,69 @@
       document.querySelectorAll('#callListTableBody tr').forEach(tr => tr.classList.remove('bg-base-200'));
     }
 
+    // Generic keyboard navigation for table views
+    function createTableKeyboardHandler(config) {
+      return function(e) {
+        const rows = Array.from(document.querySelectorAll(config.rowSelector));
+        if (rows.length === 0) return;
+
+        const selectedId = config.getSelectedId();
+        const currentIndex = rows.findIndex(r => r.dataset.id === selectedId);
+
+        if (e.key === 'Enter') {
+          const focusedRow = document.activeElement.closest(config.rowSelector);
+          if (focusedRow) {
+            config.showDetail(focusedRow.dataset.id);
+          } else if (selectedId) {
+            config.showDetail(selectedId);
+          } else if (rows.length > 0) {
+            config.showDetail(rows[0].dataset.id);
+          }
+          e.preventDefault();
+        } else if (e.key === 'ArrowDown') {
+          const nextIndex = currentIndex < rows.length - 1 ? currentIndex + 1 : 0;
+          rows[nextIndex].focus();
+          e.preventDefault();
+        } else if (e.key === 'ArrowUp') {
+          const prevIndex = currentIndex > 0 ? currentIndex - 1 : rows.length - 1;
+          rows[prevIndex].focus();
+          e.preventDefault();
+        } else if (e.key === 'Escape' && config.closeDetail) {
+          config.closeDetail();
+          e.preventDefault();
+        }
+      };
+    }
+
+    // Set up keyboard listeners for all table views
+    document.getElementById('view-calls')?.addEventListener('keydown', createTableKeyboardHandler({
+      rowSelector: '#callListTableBody tr[data-id]',
+      getSelectedId: () => selectedCallItemId,
+      showDetail: (id) => showCallDetail(id),
+      closeDetail: closeCallDetailPane
+    }));
+
+    document.getElementById('view-leads')?.addEventListener('keydown', createTableKeyboardHandler({
+      rowSelector: '#leadsTableBody tr[data-id]',
+      getSelectedId: () => selectedLeadId,
+      showDetail: (id) => showLeadDetail(id),
+      closeDetail: closeLeadDetail
+    }));
+
+    document.getElementById('view-contacts')?.addEventListener('keydown', createTableKeyboardHandler({
+      rowSelector: '#prospectsTable tr[data-id]',
+      getSelectedId: () => selectedProspectId,
+      showDetail: (id) => showProspectDetail(id),
+      closeDetail: closeProspectDetail
+    }));
+
+    document.getElementById('view-addresses')?.addEventListener('keydown', createTableKeyboardHandler({
+      rowSelector: '#addressTable tr[data-id]',
+      getSelectedId: () => selectedAddressId,
+      showDetail: (id) => showAddressDetail(id),
+      closeDetail: closeAddressDetail
+    }));
+
     // Show detail pane for a call list item - focused calling UI
     function showCallDetail(itemId) {
       const item = currentCallListItems.find(i => i.id === itemId);
@@ -4843,19 +4906,34 @@
         { value: 'wrong_number', label: 'Wrong #', icon: 'M6 18L18 6M6 6l12 12' }
       ];
 
-      // Build script HTML
+      // Get address info
+      const address = isContact
+        ? (record.project ? [record.project.address, record.project.city, record.project.state].filter(Boolean).join(', ') : record.lookupAddress || '')
+        : (record.address || '');
+      const projectId = isContact ? record.projectId : null;
+      const coords = isContact ? record.project?.coordinates : null;
+
+      // Build Google Static Maps URL if we have coordinates
+      const lon = coords?.lon || coords?.lng;
+      const lat = coords?.lat;
+      const googleMapsKey = 'AIzaSyCZ5lvfGnhxr5d5IYAwMcp9a6Gn1rgUxi8';
+      const mapPreviewUrl = lat && lon
+        ? `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=17&size=300x120&scale=2&maptype=roadmap&markers=color:red%7C${lat},${lon}&key=${googleMapsKey}`
+        : null;
+
+      // Build script HTML (collapsed by default)
       const scriptHtml = currentCallScript ? `
-        <div class="border-t border-base-300 pt-3">
-          <div class="flex items-center gap-2 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <details class="border-t border-base-300 pt-3">
+          <summary class="flex items-center gap-2 cursor-pointer text-xs font-medium text-base-content/60 uppercase hover:text-base-content">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <span class="text-xs font-medium text-base-content/60 uppercase">${currentCallScript.name}</span>
-          </div>
-          <div class="prose prose-sm max-w-none text-sm bg-base-200 rounded-lg p-3 max-h-[300px] overflow-y-auto">
+            ${currentCallScript.name}
+          </summary>
+          <div class="prose prose-sm max-w-none text-sm bg-base-200 rounded-lg p-3 mt-2">
             ${marked.parse(currentCallScript.content)}
           </div>
-        </div>
+        </details>
       ` : '';
 
       // View full details link
@@ -4868,10 +4946,41 @@
         </button>
       `;
 
+      // Street View URL
+      const streetViewUrl = lat && lon
+        ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`
+        : null;
+
+      // Address section with map preview and link to Street View
+      const addressHtml = address ? `
+        <div class="py-2 border-b border-base-300">
+          <label class="text-xs text-base-content/60 uppercase font-medium block mb-1">Address</label>
+          ${mapPreviewUrl ? `
+            <div class="mb-2">
+              <a href="${streetViewUrl || '#'}" target="_blank" rel="noopener">
+                <img src="${mapPreviewUrl}" alt="Map preview" class="w-full h-[100px] object-cover bg-base-200 cursor-pointer hover:opacity-90" loading="lazy">
+              </a>
+            </div>
+          ` : ''}
+          <div class="flex items-start gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <div class="flex-1">
+              <span class="text-sm">${address}</span>
+              ${streetViewUrl ? `
+                <a href="${streetViewUrl}" target="_blank" rel="noopener" class="link link-primary text-xs block mt-1">View Street View</a>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      ` : '';
+
       content.innerHTML = `
         <div class="flex flex-col h-full">
           <!-- Header: Name + Phone -->
-          <div class="pb-3">
+          <div class="pb-3 border-b border-base-300">
             <div class="flex items-start justify-between gap-2">
               <div>
                 <h4 class="text-xl font-semibold">${name}</h4>
@@ -4884,8 +4993,11 @@
             ${viewDetailsLink}
           </div>
 
+          <!-- Address Section -->
+          ${addressHtml}
+
           <!-- Quick Status Buttons -->
-          <div class="pb-3 border-b border-base-300">
+          <div class="py-3 border-b border-base-300">
             <label class="text-xs text-base-content/60 uppercase font-medium block mb-2">Call Outcome</label>
             <div class="grid grid-cols-2 gap-2">
               ${callStatuses.map(s => `
@@ -4902,25 +5014,115 @@
             </div>
           </div>
 
-          <!-- Script Section -->
+          <!-- Notes Section -->
+          <div class="py-3 border-b border-base-300">
+            <label class="text-xs text-base-content/60 uppercase font-medium block mb-2">Notes</label>
+            <div class="flex gap-2">
+              <textarea id="callDetailNoteInput" class="textarea textarea-bordered textarea-sm flex-1" placeholder="Add a note..." rows="4"></textarea>
+              <button onclick="addCallDetailNote('${recordType}', '${record.id}')" class="btn btn-sm btn-primary self-end">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+            <div id="callDetailNotesList" class="space-y-2 mt-2 max-h-[150px] overflow-y-auto">
+              <div class="text-sm text-base-content/40 italic">Loading notes...</div>
+            </div>
+          </div>
+
+          <!-- Script Section (collapsed) -->
           ${scriptHtml}
         </div>
       `;
 
+      // Load notes
+      loadCallDetailNotes(recordType, record.id);
+
       pane.classList.remove('hidden');
+    }
+
+    // Load notes for call detail pane (supports both contacts and leads)
+    async function loadCallDetailNotes(type, recordId) {
+      const container = document.getElementById('callDetailNotesList');
+      if (!container) return;
+
+      try {
+        const entityType = type === 'contact' ? 'prospect' : 'lead';
+        const params = new URLSearchParams({
+          entityType,
+          entityId: recordId,
+          tenant: currentTenant
+        });
+
+        const response = await fetch(`/.netlify/functions/notes?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to load notes');
+
+        const data = await response.json();
+
+        if (data.notes.length === 0) {
+          container.innerHTML = '<div class="text-sm text-base-content/40 italic">No notes yet</div>';
+        } else {
+          container.innerHTML = data.notes.map(note => `
+            <div class="bg-base-200 rounded p-2 text-sm">
+              <div class="text-xs text-base-content/60 mb-1">${new Date(note.createdAt).toLocaleString()}</div>
+              <div>${escapeHtml(note.content)}</div>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Error loading notes:', error);
+        container.innerHTML = '<div class="text-sm text-error">Failed to load notes</div>';
+      }
+    }
+
+    // Add a note from call detail pane
+    async function addCallDetailNote(type, recordId) {
+      const input = document.getElementById('callDetailNoteInput');
+      const content = input.value.trim();
+
+      if (!content) return;
+
+      try {
+        const entityType = type === 'contact' ? 'prospect' : 'lead';
+        const response = await fetch('/.netlify/functions/notes', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            entityType,
+            entityId: recordId,
+            content,
+            tenant: currentTenant
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to add note');
+
+        input.value = '';
+        loadCallDetailNotes(type, recordId);
+      } catch (error) {
+        console.error('Error adding note:', error);
+        alert('Failed to add note');
+      }
     }
 
     // Update status for a contact or lead from call detail pane
     async function updateCallItemStatus(type, recordId, newStatus) {
       try {
         const endpoint = type === 'contact' ? 'update-prospect-status' : 'update-lead-status';
+        const idField = type === 'contact' ? 'prospectId' : 'leadId';
         const response = await fetch(`/.netlify/functions/${endpoint}`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ id: recordId, status: newStatus })
+          body: JSON.stringify({ [idField]: recordId, status: newStatus })
         });
         if (response.status === 401) { logout(); return; }
         if (response.ok) {
@@ -6988,9 +7190,18 @@
     function viewLeadFromMap(leadId) {
       closeMapPopup();
       switchView('leads');
-      setTimeout(() => {
-        showLeadDetail(leadId);
-      }, 100);
+      // Wait for leads to load, then show detail
+      let attempts = 0;
+      const checkAndShow = () => {
+        attempts++;
+        const lead = allLeads.find(l => l.id === leadId);
+        if (lead) {
+          showLeadDetail(leadId);
+        } else if (attempts < 20) {
+          setTimeout(checkAndShow, 200);
+        }
+      };
+      setTimeout(checkAndShow, 100);
     }
 
     // =====================

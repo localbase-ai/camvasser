@@ -69,11 +69,11 @@ export async function handler(event) {
       }) : []
     ]);
 
-    // Get project IDs from contacts and fetch projects for tags
+    // Get project IDs from contacts and fetch projects for tags and coordinates
     const projectIds = [...new Set(contacts.filter(c => c.projectId).map(c => c.projectId))];
     const projects = projectIds.length > 0 ? await prisma.project.findMany({
       where: { id: { in: projectIds } },
-      select: { id: true, tags: true }
+      select: { id: true, tags: true, address: true, city: true, state: true, coordinates: true }
     }) : [];
     const projectMap = new Map(projects.map(p => [p.id, p]));
 
