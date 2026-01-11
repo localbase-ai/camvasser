@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { loadTenantConfig } from './lib/tenant-config.js';
 import { syncProject } from './lib/project-sync.js';
 
@@ -116,19 +115,27 @@ export async function handler(event, context) {
         console.log(`Search timed out after ${page - 1} pages`);
         break;
       }
-      const response = await axios.get('https://api.companycam.com/v2/projects', {
-        params: {
-          per_page: perPage,
-          page: page
-        },
+      const url = new URL('https://api.companycam.com/v2/projects');
+      url.searchParams.set('per_page', perPage);
+      url.searchParams.set('page', page);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), requestTimeout);
+
+      const response = await fetch(url.toString(), {
         headers: {
           'Authorization': `Bearer ${apiToken}`,
           'Accept': 'application/json'
         },
-        timeout: requestTimeout
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
 
-      const projects = response.data || [];
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const projects = await response.json() || [];
 
       if (projects.length === 0) {
         // No more results
@@ -229,22 +236,29 @@ export async function handler(event, context) {
       // Fetch photos for the project (up to 5)
       let photos = [];
       try {
-        const photosResponse = await axios.get(`https://api.companycam.com/v2/projects/${bestMatch.id}/photos`, {
-          params: {
-            per_page: 5
-          },
+        const photosUrl = new URL(`https://api.companycam.com/v2/projects/${bestMatch.id}/photos`);
+        photosUrl.searchParams.set('per_page', '5');
+
+        const photosController = new AbortController();
+        const photosTimeoutId = setTimeout(() => photosController.abort(), 5000);
+
+        const photosResponse = await fetch(photosUrl.toString(), {
           headers: {
             'Authorization': `Bearer ${apiToken}`,
             'Accept': 'application/json'
           },
-          timeout: 5000
+          signal: photosController.signal
         });
+        clearTimeout(photosTimeoutId);
 
-        photos = (photosResponse.data || []).map(photo => ({
-          thumbnail: photo.uris?.find(u => u.type === 'thumbnail')?.uri ||
-                     photo.uris?.find(u => u.type === 'web')?.uri ||
-                     photo.uris?.[0]?.uri
-        })).filter(p => p.thumbnail);
+        if (photosResponse.ok) {
+          const photosData = await photosResponse.json() || [];
+          photos = photosData.map(photo => ({
+            thumbnail: photo.uris?.find(u => u.type === 'thumbnail')?.uri ||
+                       photo.uris?.find(u => u.type === 'web')?.uri ||
+                       photo.uris?.[0]?.uri
+          })).filter(p => p.thumbnail);
+        }
       } catch (error) {
         console.error('Error fetching photos:', error);
       }

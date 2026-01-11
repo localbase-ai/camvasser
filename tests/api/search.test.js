@@ -1,11 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock axios before importing handler
-vi.mock('axios', () => ({
-  default: {
-    get: vi.fn()
-  }
-}));
+// Mock fetch globally
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
 
 // Mock tenant config
 vi.mock('../../netlify/functions/lib/tenant-config.js', () => ({
@@ -28,7 +25,6 @@ vi.mock('../../netlify/functions/lib/project-sync.js', () => ({
 process.env.COMPANYCAM_API_TOKEN_BUDROOFING = 'test-token';
 
 // Import after mocking
-import axios from 'axios';
 const { handler } = await import('../../netlify/functions/search.js');
 
 // Helper to create mock event
@@ -52,6 +48,15 @@ function createMockProject(overrides = {}) {
     photo_count: overrides.photo_count ?? 10,
     public_url: overrides.public_url || 'https://app.companycam.com/projects/12345'
   };
+}
+
+// Helper to create mock fetch response
+function createMockResponse(data, ok = true) {
+  return Promise.resolve({
+    ok,
+    status: ok ? 200 : 500,
+    json: () => Promise.resolve(data)
+  });
 }
 
 describe('search API', () => {
@@ -102,11 +107,9 @@ describe('search API', () => {
   describe('address normalization matching', () => {
     it('should match SW to Southwest', async () => {
       // Mock first call for projects, second for photos
-      axios.get
-        .mockResolvedValueOnce({
-          data: [createMockProject({ address: '1002 Southwest Fiord Drive' })]
-        })
-        .mockResolvedValueOnce({ data: [] });
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse([createMockProject({ address: '1002 Southwest Fiord Drive' })]))
+        .mockResolvedValueOnce(createMockResponse([]));
 
       const event = createMockEvent({
         queryStringParameters: { address: '1002 SW Fiord Dr', tenant: 'budroofing' }
@@ -119,11 +122,9 @@ describe('search API', () => {
     });
 
     it('should match Dr to Drive', async () => {
-      axios.get
-        .mockResolvedValueOnce({
-          data: [createMockProject({ address: '456 Oak Drive' })]
-        })
-        .mockResolvedValueOnce({ data: [] });
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse([createMockProject({ address: '456 Oak Drive' })]))
+        .mockResolvedValueOnce(createMockResponse([]));
 
       const event = createMockEvent({
         queryStringParameters: { address: '456 Oak Dr', tenant: 'budroofing' }
@@ -135,11 +136,9 @@ describe('search API', () => {
     });
 
     it('should match St to Street', async () => {
-      axios.get
-        .mockResolvedValueOnce({
-          data: [createMockProject({ address: '789 Elm Street' })]
-        })
-        .mockResolvedValueOnce({ data: [] });
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse([createMockProject({ address: '789 Elm Street' })]))
+        .mockResolvedValueOnce(createMockResponse([]));
 
       const event = createMockEvent({
         queryStringParameters: { address: '789 Elm St', tenant: 'budroofing' }
@@ -151,11 +150,9 @@ describe('search API', () => {
     });
 
     it('should match NE to Northeast', async () => {
-      axios.get
-        .mockResolvedValueOnce({
-          data: [createMockProject({ address: '200 Northeast 5th Street' })]
-        })
-        .mockResolvedValueOnce({ data: [] });
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse([createMockProject({ address: '200 Northeast 5th Street' })]))
+        .mockResolvedValueOnce(createMockResponse([]));
 
       const event = createMockEvent({
         queryStringParameters: { address: '200 NE 5th St', tenant: 'budroofing' }
@@ -169,11 +166,9 @@ describe('search API', () => {
 
   describe('search matching', () => {
     it('should find exact address match', async () => {
-      axios.get
-        .mockResolvedValueOnce({
-          data: [createMockProject({ address: '123 Main Street' })]
-        })
-        .mockResolvedValueOnce({ data: [] });
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse([createMockProject({ address: '123 Main Street' })]))
+        .mockResolvedValueOnce(createMockResponse([]));
 
       const event = createMockEvent({
         queryStringParameters: { address: '123 Main Street', tenant: 'budroofing' }
@@ -185,9 +180,7 @@ describe('search API', () => {
     });
 
     it('should return not found when no match exists', async () => {
-      axios.get.mockResolvedValueOnce({
-        data: [createMockProject({ address: '999 Different Road' })]
-      });
+      mockFetch.mockResolvedValueOnce(createMockResponse([createMockProject({ address: '999 Different Road' })]));
 
       const event = createMockEvent({
         queryStringParameters: { address: '123 Main St', tenant: 'budroofing' }
@@ -199,14 +192,12 @@ describe('search API', () => {
     });
 
     it('should skip deleted projects', async () => {
-      axios.get
-        .mockResolvedValueOnce({
-          data: [
-            createMockProject({ id: 'deleted1', address: '123 Main Street', status: 'deleted' }),
-            createMockProject({ id: 'active1', address: '123 Main Street', status: 'active' })
-          ]
-        })
-        .mockResolvedValueOnce({ data: [] });
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse([
+          createMockProject({ id: 'deleted1', address: '123 Main Street', status: 'deleted' }),
+          createMockProject({ id: 'active1', address: '123 Main Street', status: 'active' })
+        ]))
+        .mockResolvedValueOnce(createMockResponse([]));
 
       const event = createMockEvent({
         queryStringParameters: { address: '123 Main Street', tenant: 'budroofing' }
@@ -219,11 +210,9 @@ describe('search API', () => {
     });
 
     it('should handle case-insensitive matching', async () => {
-      axios.get
-        .mockResolvedValueOnce({
-          data: [createMockProject({ address: '123 MAIN STREET' })]
-        })
-        .mockResolvedValueOnce({ data: [] });
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse([createMockProject({ address: '123 MAIN STREET' })]))
+        .mockResolvedValueOnce(createMockResponse([]));
 
       const event = createMockEvent({
         queryStringParameters: { address: '123 main street', tenant: 'budroofing' }
@@ -237,19 +226,15 @@ describe('search API', () => {
 
   describe('response format', () => {
     it('should return project details when found', async () => {
-      axios.get
-        .mockResolvedValueOnce({
-          data: [createMockProject({
-            id: 'proj123',
-            address: '123 Main Street',
-            city: 'Kansas City',
-            state: 'MO',
-            photo_count: 15
-          })]
-        })
-        .mockResolvedValueOnce({
-          data: [{ uris: [{ type: 'thumbnail', uri: 'https://example.com/thumb.jpg' }] }]
-        });
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse([createMockProject({
+          id: 'proj123',
+          address: '123 Main Street',
+          city: 'Kansas City',
+          state: 'MO',
+          photo_count: 15
+        })]))
+        .mockResolvedValueOnce(createMockResponse([{ uris: [{ type: 'thumbnail', uri: 'https://example.com/thumb.jpg' }] }]));
 
       const event = createMockEvent({
         queryStringParameters: { address: '123 Main Street', tenant: 'budroofing' }
@@ -264,7 +249,7 @@ describe('search API', () => {
     });
 
     it('should include CORS headers', async () => {
-      axios.get.mockResolvedValueOnce({ data: [] });
+      mockFetch.mockResolvedValueOnce(createMockResponse([]));
 
       const event = createMockEvent({
         queryStringParameters: { address: '123 Main St', tenant: 'budroofing' }
@@ -277,7 +262,7 @@ describe('search API', () => {
 
   describe('error handling', () => {
     it('should handle CompanyCam API errors gracefully', async () => {
-      axios.get.mockRejectedValueOnce(new Error('API timeout'));
+      mockFetch.mockRejectedValueOnce(new Error('API timeout'));
 
       const event = createMockEvent({
         queryStringParameters: { address: '123 Main St', tenant: 'budroofing' }
