@@ -1,6 +1,8 @@
 # Camvasser TODO
 
-## Marketing Site
+## Launch
+- [ ] make the scripts ui less crap
+- [ ] test with twilio
 - [ ] Clean up marketing site and launch
 
 # Bugs

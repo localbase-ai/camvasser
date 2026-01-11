@@ -9,7 +9,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const VERBOSE = process.argv.includes('--verbose');
 
 // Statuses that trigger REPLACE (old data was bad)
-const REPLACE_STATUSES = ['bad_number', 'wrong_number'];
+const REPLACE_STATUSES = ['wrong_number'];
 // Statuses that trigger MERGE (add new, keep existing)
 const MERGE_STATUSES = [null, 'no_answer'];
 
@@ -94,7 +94,7 @@ async function main() {
     JOIN "Project" proj ON p."projectId" = proj.id
     WHERE proj.tags::text ILIKE '%Door Hanger%'
       AND p."enrichedAt" IS NULL
-      AND (p.status IS NULL OR p.status IN ('no_answer', 'bad_number', 'wrong_number'))
+      AND (p.status IS NULL OR p.status IN ('no_answer', 'wrong_number'))
   `;
 
   // Convert to expected format

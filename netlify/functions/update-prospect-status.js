@@ -10,7 +10,6 @@ const VALID_STATUSES = [
   'wrong_number',
   'callback',
   'appointment_set',
-  'bad_number',
   'follow_up_email_sent',
   'roof_replaced',
   'not_interested',

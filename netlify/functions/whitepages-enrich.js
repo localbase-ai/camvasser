@@ -5,7 +5,7 @@ import { getProperty } from './lib/whitepages.js';
 const prisma = new PrismaClient();
 
 // Statuses that trigger REPLACE (old data was bad)
-const REPLACE_STATUSES = ['bad_number', 'wrong_number'];
+const REPLACE_STATUSES = ['wrong_number'];
 
 function normalizePhone(phone) {
   return (phone || '').replace(/\D/g, '').slice(-10);
@@ -83,7 +83,7 @@ export async function handler(event) {
         enrichedAt: null,
         OR: [
           { status: null },
-          { status: { in: ['no_answer', 'bad_number', 'wrong_number'] } }
+          { status: { in: ['no_answer', 'wrong_number'] } }
         ],
         Project: { isNot: null }
       },
