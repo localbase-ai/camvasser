@@ -21,3 +21,7 @@ config/credentials/
 
 # Data files
 *.csv
+
+# Playwright
+playwright-report/
+test-results/
