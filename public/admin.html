@@ -5154,6 +5154,16 @@
             </div>
           </div>
 
+          <!-- Schedule Appointment Section -->
+          <div class="py-3 border-b border-base-300">
+            <button onclick="scheduleCallAppointment('${recordType}', '${record.id}')" class="btn btn-sm btn-outline btn-primary w-full gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Schedule Appointment
+            </button>
+          </div>
+
           <!-- Notes Section -->
           <div class="py-3 border-b border-base-300">
             <label class="text-xs text-base-content/60 uppercase font-medium block mb-2">Notes</label>
@@ -5303,6 +5313,70 @@
       } catch (error) {
         console.error('Error adding note:', error);
         alert('Failed to add note');
+      }
+    }
+
+    // Schedule appointment from call detail pane (auto-converts contact to lead if needed)
+    async function scheduleCallAppointment(type, recordId) {
+      const item = currentCallListItems.find(i => {
+        const record = i.contact || i.lead;
+        return record?.id === recordId;
+      });
+      if (!item) return;
+
+      const record = item.contact || item.lead;
+
+      if (type === 'lead') {
+        // Already a lead - just open the schedule modal
+        openScheduleModal({
+          id: record.id,
+          firstName: record.firstName,
+          lastName: record.lastName,
+          phone: record.phone,
+          email: record.email,
+          address: record.address
+        });
+      } else {
+        // It's a contact - need to convert to lead first
+        try {
+          const response = await fetch('/.netlify/functions/convert-contact-to-lead', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${authToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              prospectId: recordId,
+              tenant: currentTenant
+            })
+          });
+
+          if (!response.ok) throw new Error('Failed to convert contact');
+          const data = await response.json();
+
+          if (data.success && data.lead) {
+            // Show brief toast
+            showInfoModal('success', 'Converted', 'Contact converted to lead');
+
+            // Open schedule modal with the new lead
+            openScheduleModal({
+              id: data.lead.id,
+              firstName: data.lead.firstName,
+              lastName: data.lead.lastName,
+              phone: data.lead.phone,
+              email: data.lead.email,
+              address: data.lead.address
+            });
+
+            // Refresh the call list to reflect the conversion
+            loadCallList(currentCallListId);
+          } else {
+            throw new Error(data.error || 'Conversion failed');
+          }
+        } catch (error) {
+          console.error('Error converting contact:', error);
+          showInfoModal('error', 'Error', 'Failed to convert contact to lead');
+        }
       }
     }
 
