@@ -4501,8 +4501,6 @@
       const assignedUserIds = Array.from(assigneeCheckboxes).map(cb => cb.value);
       const scriptId = document.getElementById('editCallListScript').value || null;
 
-      console.log('[Edit List] Saving:', { id, name, assignedUserIds, scriptId, tenant: currentTenant });
-
       try {
         const response = await fetch('/.netlify/functions/update-call-list', {
           method: 'POST',
@@ -4521,7 +4519,6 @@
 
         if (response.status === 401) { logout(); return; }
         const data = await response.json();
-        console.log('[Edit List] Response:', data);
 
         if (data.success) {
           closeEditCallListModal();
