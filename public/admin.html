@@ -697,7 +697,7 @@
                         <th class="w-[120px] cursor-pointer hover:bg-base-200" onclick="sortCallList('phone')">Phone</th>
                         <th class="w-[180px] cursor-pointer hover:bg-base-200" onclick="sortCallList('email')">Email</th>
                         <th class="w-[180px] cursor-pointer hover:bg-base-200" onclick="sortCallList('address')">Address</th>
-                        <th class="w-[100px]">Tags</th>
+                        <th class="w-[140px]">Tags</th>
                         <th class="w-[100px] cursor-pointer hover:bg-base-200" onclick="sortCallList('status')">Status</th>
                         <th class="w-[90px] cursor-pointer hover:bg-base-200" onclick="sortCallList('updatedAt')">Updated</th>
                         <th class="w-[150px]">Notes</th>
@@ -4805,7 +4805,7 @@
           <td class="w-[120px] text-sm truncate">${phone}</td>
           <td class="w-[180px] text-sm truncate" title="${email}">${email}</td>
           <td class="w-[180px] text-sm truncate" title="${address}">${address}</td>
-          <td class="w-[100px] text-sm whitespace-nowrap overflow-hidden"><div class="flex gap-1">${tagsHtml !== '-' ? tagsHtml : '-'}</div></td>
+          <td class="w-[140px] text-sm whitespace-nowrap overflow-hidden"><div class="flex gap-1 flex-wrap">${tagsHtml !== '-' ? tagsHtml : '-'}</div></td>
           <td class="w-[100px]">${statusBadge}</td>
           <td class="w-[90px] text-sm text-base-content/60">${updatedAt}</td>
           <td class="w-[150px] text-sm text-base-content/60 truncate" title="${notes.replace(/"/g, '&quot;')}">${notesTruncated || '-'}</td>
@@ -5140,17 +5140,24 @@
           <div class="py-3 border-b border-base-300">
             <label class="text-xs text-base-content/60 uppercase font-medium block mb-2">Call Outcome</label>
             <div class="grid grid-cols-2 gap-2">
-              ${callStatuses.map(s => `
+              ${callStatuses.map(s => {
+                const color = getStatusColor(s.value);
+                const isActive = status === s.value;
+                const btnStyle = isActive
+                  ? `background-color: ${color.bg}; color: ${color.text}; border: none;`
+                  : `border-color: ${color.bg}; color: ${color.bg};`;
+                return `
                 <button
                   onclick="updateCallItemStatus('${recordType}', '${record.id}', '${s.value}')"
-                  class="btn btn-sm ${status === s.value ? (s.success ? 'btn-success' : 'btn-primary') : 'btn-ghost border-base-300'} justify-start gap-2 h-auto py-2"
+                  class="btn btn-sm justify-start gap-2 h-auto py-2 ${isActive ? '' : 'btn-outline'}"
+                  style="${btnStyle}"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${s.icon}" />
                   </svg>
                   <span class="text-xs">${s.label}</span>
                 </button>
-              `).join('')}
+              `}).join('')}
             </div>
           </div>
 
