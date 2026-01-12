@@ -77,7 +77,7 @@ describe('get-tenant-users API', () => {
     it('should return empty array when tenant has no users', async () => {
       mockPrisma.tenant.findUnique.mockResolvedValue({
         ...factories.tenant(),
-        users: []
+        UserTenant: []
       });
 
       const event = createAuthenticatedEvent({
@@ -93,14 +93,14 @@ describe('get-tenant-users API', () => {
     it('should return users with correct fields', async () => {
       mockPrisma.tenant.findUnique.mockResolvedValue({
         ...factories.tenant(),
-        users: [
+        UserTenant: [
           {
             role: 'admin',
-            user: { id: 'user_1', name: 'John Doe', email: 'john@example.com' }
+            BusinessUser: { id: 'user_1', name: 'John Doe', email: 'john@example.com' }
           },
           {
             role: 'member',
-            user: { id: 'user_2', name: 'Jane Smith', email: 'jane@example.com' }
+            BusinessUser: { id: 'user_2', name: 'Jane Smith', email: 'jane@example.com' }
           }
         ]
       });
@@ -130,7 +130,7 @@ describe('get-tenant-users API', () => {
     it('should query tenant by slug', async () => {
       mockPrisma.tenant.findUnique.mockResolvedValue({
         ...factories.tenant(),
-        users: []
+        UserTenant: []
       });
 
       const event = createAuthenticatedEvent({
@@ -141,9 +141,9 @@ describe('get-tenant-users API', () => {
       expect(mockPrisma.tenant.findUnique).toHaveBeenCalledWith({
         where: { slug: 'test-tenant' },
         include: {
-          users: {
+          UserTenant: {
             include: {
-              user: {
+              BusinessUser: {
                 select: {
                   id: true,
                   name: true,

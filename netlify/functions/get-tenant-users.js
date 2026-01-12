@@ -37,9 +37,9 @@ export async function handler(event) {
     const tenantRecord = await prisma.tenant.findUnique({
       where: { slug: tenant },
       include: {
-        users: {
+        UserTenant: {
           include: {
-            user: {
+            BusinessUser: {
               select: {
                 id: true,
                 name: true,
@@ -59,10 +59,10 @@ export async function handler(event) {
       };
     }
 
-    const users = tenantRecord.users.map(ut => ({
-      id: ut.user.id,
-      name: ut.user.name,
-      email: ut.user.email,
+    const users = tenantRecord.UserTenant.map(ut => ({
+      id: ut.BusinessUser.id,
+      name: ut.BusinessUser.name,
+      email: ut.BusinessUser.email,
       role: ut.role
     }));
 
