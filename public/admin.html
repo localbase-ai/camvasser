@@ -4776,7 +4776,7 @@
         ? tags.map(t => {
             const tagName = t.display_value || t.displayValue || t.value || t;
             const tagColor = t.color || '#6b7280';
-            return `<span class="badge badge-xs" style="background-color: ${tagColor}; color: white; border: none;">${tagName}</span>`;
+            return `<span class="badge badge-xs text-center" style="background-color: ${tagColor}; color: white; border: none; min-width: 60px;">${tagName}</span>`;
           }).join(' ')
         : '-';
       const statusBadge = status ? getStatusBadge(status) : '-';
@@ -7545,7 +7545,7 @@
     function getStatusBadge(status) {
       const formatted = formatStatus(status);
       const color = getStatusColor(status.toLowerCase());
-      return `<div class="badge badge-sm whitespace-nowrap" style="background-color: ${color.bg}; color: ${color.text}; border: none;">${formatted}</div>`;
+      return `<div class="badge badge-xs whitespace-nowrap text-center" style="background-color: ${color.bg}; color: ${color.text}; border: none; min-width: 70px;">${formatted}</div>`;
     }
 
     // =====================
