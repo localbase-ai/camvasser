@@ -86,6 +86,7 @@ export async function handler(event) {
       if (toAdd.length > 0) {
         await tx.callListAssignment.createMany({
           data: toAdd.map(userId => ({
+            id: `cla_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 9)}`,
             callListId: id,
             userId
           }))
