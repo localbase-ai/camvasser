@@ -4552,37 +4552,66 @@
     function renderCallListDrawer() {
       const container = document.getElementById('callListDrawerContent');
       const toggleContainer = document.getElementById('callListDrawerToggle');
-      const showAllToggle = document.getElementById('showAllListsToggle');
       const isAdmin = isCurrentUserAdmin();
 
-      // Admins see all by default, non-admins can toggle
-      const showAll = isAdmin || showAllToggle?.checked;
+      // Hide the old toggle - we now show sections
+      toggleContainer.classList.add('hidden');
 
-      // Show toggle only for non-admins
-      toggleContainer.classList.toggle('hidden', isAdmin);
+      // Split lists into "my lists" and "other lists"
+      const myLists = allCallLists.filter(list =>
+        list.assignedUsers?.some(u => u.id === currentUser?.userId)
+      );
+      const otherLists = allCallLists.filter(list =>
+        !list.assignedUsers?.some(u => u.id === currentUser?.userId)
+      );
 
-      // Filter lists
-      let listsToShow = showAll ? allCallLists : allCallLists.filter(list => {
-        const isAssigned = list.assignedUsers?.some(u => u.id === currentUser?.userId);
-        return isAssigned;
-      });
-
-      if (listsToShow.length === 0) {
-        container.innerHTML = '<p class="text-sm text-base-content/60 p-2">No lists available</p>';
-        return;
-      }
-
-      container.innerHTML = listsToShow.map(list => {
+      // Helper to render a single list item
+      const renderListItem = (list) => {
         const count = list._count?.CallListItem || list._count?.items || 0;
         const isActive = currentCallListId === list.id;
-        const assignees = list.assignedUsers?.map(u => u.name).join(', ') || '';
+        const assigneeNames = list.assignedUsers?.map(u => u.name?.split(' ')[0] || 'Unknown') || [];
+
+        // Show assignees as small badges
+        const assigneeBadges = assigneeNames.length > 0
+          ? `<div class="flex flex-wrap gap-1 mt-1">${assigneeNames.map(name =>
+              `<span class="badge badge-xs badge-ghost">${escapeHtml(name)}</span>`
+            ).join('')}</div>`
+          : '';
+
         return `
           <div onclick="loadCallList('${list.id}')" class="cursor-pointer px-3 py-2 hover:bg-base-200 ${isActive ? 'bg-base-200 border-l-2 border-base-content' : ''}">
             <div class="font-medium text-sm truncate">${escapeHtml(list.name)}</div>
-            <div class="text-xs text-base-content/60 truncate">${count} items${assignees ? ' · ' + escapeHtml(assignees) : ''}</div>
+            <div class="text-xs text-base-content/60">${count} items</div>
+            ${assigneeBadges}
           </div>
         `;
-      }).join('');
+      };
+
+      let html = '';
+
+      // My Lists section (always show if user has any)
+      if (myLists.length > 0) {
+        html += `
+          <div class="px-3 py-1 text-xs font-semibold text-base-content/50 uppercase tracking-wide bg-base-200/50">My Lists</div>
+          ${myLists.map(renderListItem).join('')}
+        `;
+      }
+
+      // Other Lists section (for admins, or if user has no lists)
+      if (isAdmin && otherLists.length > 0) {
+        html += `
+          <div class="px-3 py-1 mt-2 text-xs font-semibold text-base-content/50 uppercase tracking-wide bg-base-200/50">Other Lists</div>
+          ${otherLists.map(renderListItem).join('')}
+        `;
+      } else if (!isAdmin && myLists.length === 0) {
+        html = '<p class="text-sm text-base-content/60 p-3">No lists assigned to you</p>';
+      }
+
+      if (html === '') {
+        html = '<p class="text-sm text-base-content/60 p-3">No lists available</p>';
+      }
+
+      container.innerHTML = html;
     }
 
     // Load call lists for the Calls view
