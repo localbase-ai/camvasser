@@ -627,6 +627,11 @@
                 </svg>
               </button>
               <span id="callListCount" class="text-sm text-base-content/60"></span>
+              <button id="editCallListBtn" onclick="openEditCallListModal()" class="btn btn-ghost btn-xs hidden" title="Edit list">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
             </div>
             <div class="flex items-center gap-2">
               <div id="callListFilters" class="hidden flex items-center gap-2">
@@ -4432,6 +4437,88 @@
       }
     }
 
+    // Edit Call List functions
+    window.openEditCallListModal = async function() {
+      if (!currentCallListId) return;
+
+      const list = allCallLists.find(l => l.id === currentCallListId);
+      if (!list) return;
+
+      // Populate form
+      document.getElementById('editCallListId').value = list.id;
+      document.getElementById('editCallListName').value = list.name;
+
+      // Populate assignees checkboxes
+      const assigneesContainer = document.getElementById('editCallListAssignees');
+      const currentAssigneeIds = list.assignedUsers?.map(u => u.id) || [];
+
+      assigneesContainer.innerHTML = tenantUsers.map(user => `
+        <label class="flex items-center gap-2 cursor-pointer bg-base-200 px-2 py-1 rounded">
+          <input type="checkbox" value="${user.id}" class="checkbox checkbox-sm" ${currentAssigneeIds.includes(user.id) ? 'checked' : ''}>
+          <span class="text-sm">${escapeHtml(user.name || user.email)}</span>
+        </label>
+      `).join('');
+
+      // Load and populate scripts dropdown
+      await loadScriptsForDropdown();
+      const scriptSelect = document.getElementById('editCallListScript');
+      const createScriptSelect = document.getElementById('newCallListScript');
+      scriptSelect.innerHTML = createScriptSelect.innerHTML; // Copy from create modal
+      scriptSelect.value = list.scriptId || '';
+
+      document.getElementById('editCallListModal').showModal();
+    }
+
+    window.closeEditCallListModal = function() {
+      document.getElementById('editCallListModal').close();
+    }
+
+    window.saveCallListChanges = async function() {
+      const id = document.getElementById('editCallListId').value;
+      const name = document.getElementById('editCallListName').value.trim();
+
+      if (!name) {
+        alert('Please enter a list name');
+        return;
+      }
+
+      const assigneeCheckboxes = document.querySelectorAll('#editCallListAssignees input[type="checkbox"]:checked');
+      const assignedUserIds = Array.from(assigneeCheckboxes).map(cb => cb.value);
+      const scriptId = document.getElementById('editCallListScript').value || null;
+
+      try {
+        const response = await fetch('/.netlify/functions/update-call-list', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            id,
+            name,
+            assignedUserIds,
+            scriptId,
+            tenant: currentTenant
+          })
+        });
+
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+
+        if (data.success) {
+          closeEditCallListModal();
+          await loadCallLists(); // Refresh the list
+          document.getElementById('currentListName').textContent = name;
+          showInfoModal('success', 'List Updated', `"${name}" has been updated`);
+        } else {
+          showInfoModal('error', 'Error', data.error || 'Failed to update list');
+        }
+      } catch (e) {
+        console.error('Error updating call list:', e);
+        showInfoModal('error', 'Error', 'Failed to update list');
+      }
+    }
+
     // Drawer functions
     window.openCallListDrawer = function() {
       const drawer = document.getElementById('callListDrawer');
@@ -5219,6 +5306,7 @@
         filtersEl?.classList.add('hidden');
         detailPane.classList.add('hidden');
         listNameEl.textContent = 'Select a list';
+        document.getElementById('editCallListBtn')?.classList.add('hidden');
         currentCallListItems = [];
         currentCallListId = null;
         callListState.checkedItems.clear();
@@ -5233,6 +5321,12 @@
       closeCallListDrawer();
       const list = allCallLists.find(l => l.id === listId);
       listNameEl.textContent = list?.name || 'Call List';
+
+      // Show edit button for admins when list is selected
+      const editBtn = document.getElementById('editCallListBtn');
+      if (editBtn) {
+        editBtn.classList.toggle('hidden', !isCurrentUserAdmin());
+      }
 
       // Show filters when list is selected
       filtersEl?.classList.remove('hidden');
@@ -8590,6 +8684,39 @@
     </div>
     <form method="dialog" class="modal-backdrop bg-black/50">
       <button onclick="closeCallListModal()">close</button>
+    </form>
+  </dialog>
+
+  <!-- Edit Call List Modal -->
+  <dialog id="editCallListModal" class="modal">
+    <div class="modal-box bg-base-100 max-w-md">
+      <h3 class="font-bold text-lg mb-4">Edit Call List</h3>
+      <input type="hidden" id="editCallListId">
+      <div class="space-y-4">
+        <div class="form-control">
+          <label class="label py-1"><span class="label-text text-sm">List Name</span></label>
+          <input type="text" id="editCallListName" placeholder="List name..." class="input input-bordered w-full">
+        </div>
+        <div class="form-control">
+          <label class="label py-1"><span class="label-text text-sm">Assign to</span></label>
+          <div id="editCallListAssignees" class="flex flex-wrap gap-2 p-3 border border-base-300 rounded-lg min-h-[50px]">
+            <!-- Populated by JS with checkboxes -->
+          </div>
+        </div>
+        <div class="form-control">
+          <label class="label py-1"><span class="label-text text-sm">Call Script</span></label>
+          <select id="editCallListScript" class="select select-bordered w-full">
+            <option value="">No script</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-action">
+        <button class="btn btn-ghost" onclick="closeEditCallListModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCallListChanges()">Save Changes</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-black/50">
+      <button onclick="closeEditCallListModal()">close</button>
     </form>
   </dialog>
 
