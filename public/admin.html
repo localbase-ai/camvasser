@@ -4444,6 +4444,21 @@
       const list = allCallLists.find(l => l.id === currentCallListId);
       if (!list) return;
 
+      // Fetch tenant users if not already loaded
+      if (tenantUsers.length === 0) {
+        try {
+          const usersRes = await fetch(`/.netlify/functions/get-tenant-users?tenant=${currentTenant}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (usersRes.ok) {
+            const usersData = await usersRes.json();
+            tenantUsers = usersData.users || [];
+          }
+        } catch (e) {
+          console.error('Failed to load tenant users:', e);
+        }
+      }
+
       // Populate form
       document.getElementById('editCallListId').value = list.id;
       document.getElementById('editCallListName').value = list.name;
