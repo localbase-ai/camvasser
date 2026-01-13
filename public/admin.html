@@ -5030,7 +5030,7 @@
 
       // Get common fields
       const name = isContact ? (record.name || 'Unknown') : `${record.firstName || ''} ${record.lastName || ''}`.trim() || 'Unknown';
-      const phone = isContact ? (record.phones?.[0]?.phone_number || '') : (record.phone || '');
+      const phone = record?.phones?.[0]?.phone_number || record?.phone || '';
       const status = record.status || '';
       const recordType = isContact ? 'contact' : 'lead';
 
