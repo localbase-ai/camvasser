@@ -161,6 +161,9 @@ camvasser/
 ├── scripts/                # Admin utilities
 ├── tests/                  # Test files
 ├── docs/                   # Documentation
+│   ├── diagrams/           # Architecture diagrams
+│   ├── flows/              # Lead capture flow specs
+│   └── integrations/       # API documentation
 ├── netlify.toml            # Netlify configuration
 └── package.json
 ```
@@ -180,3 +183,11 @@ camvasser/
 - **Backend:** Netlify Functions (serverless)
 - **Database:** PostgreSQL (Supabase) with Prisma ORM
 - **APIs:** CompanyCam, Whitepages, Mapbox
+
+## Documentation
+
+Detailed documentation is available in the `docs/` folder:
+
+- **`docs/diagrams/overview.txt`** - System architecture diagram (ASCII)
+- **`docs/flows/`** - Lead capture flow specifications and status
+- **`docs/integrations/`** - API documentation for CompanyCam, Whitepages, Google Calendar
