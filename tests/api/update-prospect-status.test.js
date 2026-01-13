@@ -217,7 +217,10 @@ describe('update-prospect-status API', () => {
 
       expect(mockPrisma.prospect.update).toHaveBeenCalledWith({
         where: { id: 'prosp_123' },
-        data: { status: 'appointment_set' }
+        data: {
+          status: 'appointment_set',
+          updatedAt: expect.any(Date)
+        }
       });
     });
 

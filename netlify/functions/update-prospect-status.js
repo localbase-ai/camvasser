@@ -95,7 +95,10 @@ export async function handler(event) {
     // Update the status
     const updated = await prisma.prospect.update({
       where: { id: prospectId },
-      data: { status: status || null }
+      data: {
+        status: status || null,
+        updatedAt: new Date()
+      }
     });
 
     return {

@@ -4780,7 +4780,7 @@
           }).join(' ')
         : '-';
       const statusBadge = status ? getStatusBadge(status) : '-';
-      const notes = record?.notes || '';
+      const notes = record?.latestNote?.content || record?.notes || '';
       const notesTruncated = notes.length > 40 ? notes.substring(0, 40) + '...' : notes;
 
       // Data attributes for fast CSS-based filtering

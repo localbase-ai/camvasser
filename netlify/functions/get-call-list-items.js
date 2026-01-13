@@ -77,10 +77,20 @@ export async function handler(event) {
     }) : [];
     const projectMap = new Map(projects.map(p => [p.id, p]));
 
-    // Attach project tags to contacts
+    // Fetch latest note for each contact
+    const latestNotes = contactIds.length > 0 ? await prisma.$queryRaw`
+      SELECT DISTINCT ON ("entityId") *
+      FROM "Note"
+      WHERE "entityType" = 'prospect' AND "entityId" = ANY(${contactIds})
+      ORDER BY "entityId", "createdAt" DESC
+    ` : [];
+    const noteMap = new Map(latestNotes.map(n => [n.entityId, n]));
+
+    // Attach project tags and latest note to contacts
     const contactsWithTags = contacts.map(c => ({
       ...c,
-      project: c.projectId ? projectMap.get(c.projectId) : null
+      project: c.projectId ? projectMap.get(c.projectId) : null,
+      latestNote: noteMap.get(c.id) || null
     }));
 
     const contactMap = new Map(contactsWithTags.map(c => [c.id, c]));
