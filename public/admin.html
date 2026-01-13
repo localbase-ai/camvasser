@@ -720,8 +720,8 @@
               </div>
             </div>
 
-            <!-- Right: Detail Pane (shown when row is clicked) -->
-            <div id="callDetailPane" class="hidden w-[400px] border-l border-base-300 bg-base-100 overflow-y-auto flex-shrink-0 h-full">
+            <!-- Right: Detail Pane (shown when row is clicked) - Fixed to viewport -->
+            <div id="callDetailPane" class="hidden fixed right-0 top-[88px] bottom-0 w-[400px] border-l border-base-300 bg-base-100 overflow-y-auto z-30 shadow-xl">
               <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center z-10">
                 <h3 class="font-semibold text-sm">Details</h3>
                 <button onclick="closeCallDetailPane()" class="btn btn-ghost btn-xs btn-square">
