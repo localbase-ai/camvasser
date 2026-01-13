@@ -5126,27 +5126,26 @@
 
       content.innerHTML = `
         <div class="flex flex-col h-full">
-          <!-- Header: Name + Phone -->
-          <div class="pb-3 border-b border-base-300">
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <h4 class="text-xl font-semibold">${name}</h4>
+          <!-- Sticky Action Area -->
+          <div class="sticky top-0 bg-base-100 z-10 -mx-4 px-4 -mt-4 pt-4 pb-2 border-b border-base-300">
+            <!-- Header: Name + Phone (compact) -->
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <div class="flex items-center gap-3 min-w-0">
+                <h4 class="text-lg font-semibold truncate">${name}</h4>
                 ${phone ? `
-                  <a href="tel:${phone}" class="text-lg link link-primary font-medium">${phone}</a>
-                ` : '<span class="text-base-content/40 text-sm">No phone</span>'}
+                  <a href="tel:${phone}" class="btn btn-primary btn-sm gap-1 flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    Call
+                  </a>
+                ` : ''}
               </div>
-              <span class="badge badge-sm badge-ghost">${isContact ? 'Contact' : 'Lead'}</span>
+              <span class="badge badge-xs badge-ghost flex-shrink-0">${isContact ? 'Contact' : 'Lead'}</span>
             </div>
-            ${viewDetailsLink}
-          </div>
 
-          <!-- Address Section -->
-          ${addressHtml}
-
-          <!-- Quick Status Buttons -->
-          <div class="py-3 border-b border-base-300">
-            <label class="text-xs text-base-content/60 uppercase font-medium block mb-2">Call Outcome</label>
-            <div class="grid grid-cols-2 gap-2">
+            <!-- Quick Status Buttons (compact 3x2) -->
+            <div class="grid grid-cols-3 gap-1 mb-2">
               ${callStatuses.map(s => {
                 const color = getStatusColor(s.value);
                 const isActive = status === s.value;
@@ -5156,47 +5155,75 @@
                 return `
                 <button
                   onclick="updateCallItemStatus('${recordType}', '${record.id}', '${s.value}')"
-                  class="btn btn-sm justify-start gap-2 h-auto py-2 ${isActive ? '' : 'btn-outline'}"
+                  class="btn btn-xs h-auto py-1.5 ${isActive ? '' : 'btn-outline'}"
                   style="${btnStyle}"
+                  title="${s.label}"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${s.icon}" />
-                  </svg>
-                  <span class="text-xs">${s.label}</span>
+                  <span class="text-[10px] leading-tight">${s.label}</span>
                 </button>
               `}).join('')}
             </div>
+
+            <!-- Notes Input (compact) -->
+            <div class="flex gap-1">
+              <textarea id="callDetailNoteInput" class="textarea textarea-bordered textarea-xs flex-1 leading-tight" placeholder="Add note..." rows="2"></textarea>
+              <button onclick="addCallDetailNote('${recordType}', '${record.id}')" class="btn btn-xs btn-primary self-end">Add</button>
+            </div>
           </div>
 
-          <!-- Schedule Appointment Section -->
-          <div class="py-4 border-b border-base-300">
-            <h5 class="text-xs font-semibold text-base-content/60 uppercase mb-3">Calendar</h5>
-            <button onclick="scheduleCallAppointment('${recordType}', '${record.id}')" class="btn btn-sm btn-outline gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Schedule Appointment
-            </button>
-          </div>
+          <!-- Scrollable Content Below -->
+          <div class="pt-3 space-y-3">
+            <!-- Previous Notes -->
+            <div>
+              <label class="text-xs text-base-content/60 uppercase font-medium block mb-1">Previous Notes</label>
+              <div id="callDetailNotesList" class="space-y-1 max-h-[120px] overflow-y-auto text-sm">
+                <div class="text-base-content/40 italic text-xs">Loading...</div>
+              </div>
+            </div>
 
-          <!-- Notes Section -->
-          <div class="py-3 border-b border-base-300">
-            <label class="text-xs text-base-content/60 uppercase font-medium block mb-2">Notes</label>
-            <div class="flex gap-2">
-              <textarea id="callDetailNoteInput" class="textarea textarea-bordered textarea-sm flex-1" placeholder="Add a note..." rows="4"></textarea>
-              <button onclick="addCallDetailNote('${recordType}', '${record.id}')" class="btn btn-sm btn-primary self-end">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            <!-- Address Section (compact) -->
+            ${address ? `
+            <details class="group" open>
+              <summary class="text-xs text-base-content/60 uppercase font-medium cursor-pointer flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-              </button>
-            </div>
-            <div id="callDetailNotesList" class="space-y-2 mt-2 max-h-[150px] overflow-y-auto">
-              <div class="text-sm text-base-content/40 italic">Loading notes...</div>
-            </div>
-          </div>
+                Address
+              </summary>
+              <div class="mt-1">
+                <div id="callDetailMapContainer" class="mb-1">
+                  ${mapPreviewUrl ? `
+                    <a href="${streetViewUrl}" target="_blank" rel="noopener" id="callDetailMapLink">
+                      <img src="${mapPreviewUrl}" alt="Map" class="w-full h-[80px] object-cover bg-base-200 rounded cursor-pointer hover:opacity-90" loading="lazy">
+                    </a>
+                  ` : `
+                    <div class="w-full h-[60px] bg-base-200 rounded flex items-center justify-center text-base-content/40" id="callDetailMapPlaceholder">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                      </svg>
+                    </div>
+                  `}
+                </div>
+                <p class="text-xs text-base-content/80">${address}</p>
+                <a href="${streetViewUrl || '#'}" target="_blank" rel="noopener" class="link link-primary text-xs" id="callDetailStreetViewLink" ${!streetViewUrl ? 'style="display:none"' : ''}>Street View</a>
+              </div>
+            </details>
+            ` : ''}
 
-          <!-- Script Section (collapsed) -->
-          ${scriptHtml}
+            <!-- Schedule Appointment -->
+            <div class="flex items-center gap-2">
+              <button onclick="scheduleCallAppointment('${recordType}', '${record.id}')" class="btn btn-xs btn-outline gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Schedule Appt
+              </button>
+              ${viewDetailsLink}
+            </div>
+
+            <!-- Script Section (collapsed) -->
+            ${scriptHtml}
+          </div>
         </div>
       `;
 
