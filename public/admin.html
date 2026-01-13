@@ -651,6 +651,10 @@
                   <input type="checkbox" id="filterHasEmail" class="checkbox checkbox-xs" onchange="filterCallListItems()">
                   <span class="label-text text-xs">Has email</span>
                 </label>
+                <label class="label cursor-pointer gap-1">
+                  <input type="checkbox" id="filterHasNotes" class="checkbox checkbox-xs" onchange="filterCallListItems()">
+                  <span class="label-text text-xs">Has notes</span>
+                </label>
               </div>
               <button id="removeSelectedBtn" onclick="removeSelectedFromCallList()" class="btn btn-error btn-sm hidden">
                 Remove Selected
@@ -4662,6 +4666,7 @@
       const filterHasName = document.getElementById('filterHasName')?.checked;
       const filterHasPhone = document.getElementById('filterHasPhone')?.checked;
       const filterHasEmail = document.getElementById('filterHasEmail')?.checked;
+      const filterHasNotes = document.getElementById('filterHasNotes')?.checked;
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const todayTs = todayStart.getTime();
@@ -4679,6 +4684,7 @@
         if (show && filterHasName && row.dataset.hasName === '0') show = false;
         if (show && filterHasPhone && row.dataset.hasPhone === '0') show = false;
         if (show && filterHasEmail && row.dataset.hasEmail === '0') show = false;
+        if (show && filterHasNotes && row.dataset.hasNotes === '0') show = false;
 
         row.style.display = show ? '' : 'none';
         if (show) visibleCount++;
@@ -4787,10 +4793,11 @@
       const hasName = name && name !== 'Unknown' && name !== '---' && name !== '-' ? '1' : '0';
       const hasPhone = phone && phone !== '-' ? '1' : '0';
       const hasEmail = email && email !== '-' ? '1' : '0';
+      const hasNotes = notes ? '1' : '0';
       const updatedAtTs = record?.updatedAt ? new Date(record.updatedAt).getTime() : 0;
 
       return `
-        <tr class="hover:bg-base-200 cursor-pointer ${isSelected ? 'bg-base-200' : ''}" data-has-name="${hasName}" data-has-phone="${hasPhone}" data-has-email="${hasEmail}" data-updated="${updatedAtTs}" data-item-id="${item.id}" tabindex="0" onclick="showCallDetail('${item.id}')">
+        <tr class="hover:bg-base-200 cursor-pointer ${isSelected ? 'bg-base-200' : ''}" data-has-name="${hasName}" data-has-phone="${hasPhone}" data-has-email="${hasEmail}" data-has-notes="${hasNotes}" data-updated="${updatedAtTs}" data-item-id="${item.id}" tabindex="0" onclick="showCallDetail('${item.id}')">
           <td class="w-10" onclick="event.stopPropagation()">
             <input type="checkbox" class="checkbox checkbox-sm call-item-checkbox" data-item-id="${item.id}" ${isChecked ? 'checked' : ''} onchange="handleCallItemCheckbox(this)">
           </td>
