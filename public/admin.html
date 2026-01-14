@@ -55,6 +55,45 @@
     tr:focus {
       outline: none;
     }
+    /* Disable slow animations for snappy feel */
+    .checkbox {
+      transition: none !important;
+      animation: none !important;
+    }
+    /* Instant modal open/close */
+    .modal {
+      transition: none !important;
+    }
+    .modal::backdrop {
+      transition: none !important;
+    }
+    .modal-box {
+      transition: none !important;
+      animation: none !important;
+    }
+    /* Instant drawer transitions */
+    .drawer-side {
+      transition: none !important;
+    }
+    /* Faster general transitions */
+    .btn {
+      transition-duration: 50ms !important;
+    }
+    /* Performance: contain layout for large tables */
+    #callListTableBody tr {
+      contain: layout style;
+      content-visibility: auto;
+      contain-intrinsic-size: auto 40px;
+    }
+    #callListTableBody {
+      contain: layout style;
+      position: relative;
+      display: block;
+    }
+    /* Reduce paint complexity */
+    table {
+      will-change: contents;
+    }
   </style>
 
 </head>
@@ -650,26 +689,22 @@
               </button>
             </div>
             <div class="flex items-center gap-2">
-              <div id="callListFilters" class="hidden flex items-center gap-2">
-                <label class="label cursor-pointer gap-1">
-                  <input type="checkbox" id="filterUntouched" class="checkbox checkbox-xs" onchange="filterCallListItems()">
-                  <span class="label-text text-xs">Untouched</span>
+              <div id="callListFilters" class="hidden flex items-center gap-3">
+                <label class="flex items-center gap-1 cursor-pointer select-none">
+                  <input type="checkbox" id="filterHasName" onclick="scheduleFilter()">
+                  <span class="text-xs">Has name</span>
                 </label>
-                <label class="label cursor-pointer gap-1">
-                  <input type="checkbox" id="filterHasName" class="checkbox checkbox-xs" onchange="filterCallListItems()">
-                  <span class="label-text text-xs">Has name</span>
+                <label class="flex items-center gap-1 cursor-pointer select-none">
+                  <input type="checkbox" id="filterHasPhone" onclick="scheduleFilter()">
+                  <span class="text-xs">Has phone</span>
                 </label>
-                <label class="label cursor-pointer gap-1">
-                  <input type="checkbox" id="filterHasPhone" class="checkbox checkbox-xs" onchange="filterCallListItems()">
-                  <span class="label-text text-xs">Has phone</span>
+                <label class="flex items-center gap-1 cursor-pointer select-none">
+                  <input type="checkbox" id="filterHasEmail" onclick="scheduleFilter()">
+                  <span class="text-xs">Has email</span>
                 </label>
-                <label class="label cursor-pointer gap-1">
-                  <input type="checkbox" id="filterHasEmail" class="checkbox checkbox-xs" onchange="filterCallListItems()">
-                  <span class="label-text text-xs">Has email</span>
-                </label>
-                <label class="label cursor-pointer gap-1">
-                  <input type="checkbox" id="filterHasNotes" class="checkbox checkbox-xs" onchange="filterCallListItems()">
-                  <span class="label-text text-xs">Has notes</span>
+                <label class="flex items-center gap-1 cursor-pointer select-none">
+                  <input type="checkbox" id="filterHasNotes" onclick="scheduleFilter()">
+                  <span class="text-xs">Has notes</span>
                 </label>
               </div>
               <button id="removeSelectedBtn" onclick="removeSelectedFromCallList()" class="btn btn-error btn-sm hidden">
@@ -724,12 +759,14 @@
                   </thead>
                 </table>
               </div>
-              <!-- Table body scroll container -->
-              <div class="flex-1 overflow-auto">
-                <table class="table table-sm table-fixed w-full">
-                  <tbody id="callListTableBody">
-                  </tbody>
-                </table>
+              <!-- Virtual scroll container -->
+              <div id="callListScrollContainer" class="flex-1 overflow-auto" onscroll="onCallListScroll()">
+                <div id="callListVirtualSpacer" style="position: relative;">
+                  <table class="table table-sm table-fixed w-full">
+                    <tbody id="callListTableBody">
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
@@ -1194,6 +1231,11 @@
   </div>
 
   <script>
+    // Register service worker for map caching (only in production/https)
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
     // =====================
     // State
     // =====================
@@ -1207,6 +1249,19 @@
     function isCurrentUserAdmin() {
       const tenant = userTenants.find(t => t.slug === currentTenant);
       return tenant?.role === 'admin' || tenant?.role === 'owner';
+    }
+
+    // Format phone number as 913-424-4242
+    function formatPhone(phone) {
+      if (!phone) return '';
+      const digits = phone.replace(/\D/g, '');
+      if (digits.length === 10) {
+        return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
+      }
+      if (digits.length === 11 && digits[0] === '1') {
+        return `${digits.slice(1,4)}-${digits.slice(4,7)}-${digits.slice(7)}`;
+      }
+      return phone; // Return as-is if not standard format
     }
 
     // Data stores
@@ -1309,6 +1364,81 @@
       allLeads.forEach(lead => {
         buildMapUrl([lead.address, lead.city, lead.state, lead.zip]);
       });
+    }
+
+    // Static map image cache - stores preloaded Image objects for instant display
+    const staticMapImageCache = new Map();
+    const geocodeCache = new Map();
+
+    // Generate consistent cache key for coordinates
+    function getMapCacheKey(lat, lon) {
+      // Round to 5 decimal places for consistent keys (~1m precision)
+      return `${lat.toFixed(5)},${lon.toFixed(5)}`;
+    }
+
+    // Generate static map URL
+    function getStaticMapUrl(lat, lon, apiKey) {
+      return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=17&size=300x120&scale=2&maptype=roadmap&markers=color:red%7C${lat},${lon}&key=${apiKey}`;
+    }
+
+    // Preload and cache a map image
+    function preloadMapImage(lat, lon, apiKey) {
+      const key = getMapCacheKey(lat, lon);
+      if (staticMapImageCache.has(key)) return Promise.resolve(staticMapImageCache.get(key));
+
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          staticMapImageCache.set(key, { img, url: img.src, lat, lon });
+          resolve(staticMapImageCache.get(key));
+        };
+        img.onerror = reject;
+        img.src = getStaticMapUrl(lat, lon, apiKey);
+      });
+    }
+
+    // Get cached image or return null
+    function getCachedMapImage(lat, lon) {
+      const key = getMapCacheKey(lat, lon);
+      return staticMapImageCache.get(key) || null;
+    }
+
+    // Cache geocode results
+    function cacheGeocode(address, lat, lon) {
+      geocodeCache.set(address.toLowerCase().trim(), { lat, lon });
+    }
+
+    function getCachedGeocode(address) {
+      return geocodeCache.get(address.toLowerCase().trim()) || null;
+    }
+
+    // Preload map images for call list items (runs in background)
+    function preloadCallListMaps(items) {
+      const apiKey = 'AIzaSyCZ5lvfGnhxr5d5IYAwMcp9a6Gn1rgUxi8';
+      let index = 0;
+
+      function preloadNext() {
+        if (index >= items.length) return;
+
+        const item = items[index++];
+        const record = item.contact || item.lead;
+        const isContact = !!item.contact;
+        const coords = isContact ? record?.project?.coordinates : (record?.coordinates || null);
+
+        if (coords) {
+          const lon = coords.lon || coords.lng;
+          const lat = coords.lat;
+          if (lat && lon) {
+            preloadMapImage(lat, lon, apiKey).catch(() => {});
+          }
+        }
+
+        // Small delay to not overwhelm the browser
+        setTimeout(preloadNext, 50);
+      }
+
+      // Start preloading after a brief delay to not block initial render
+      setTimeout(preloadNext, 100);
     }
 
     // Leads view mode - restore from localStorage
@@ -1858,14 +1988,15 @@
       const org = allOrganizations.find(o => o.id === orgId);
       if (!org) return;
 
+      // Update row highlight immediately for snappy UI
+      const prevSelected = document.querySelector('#orgTableBody tr.row-selected');
+      if (prevSelected) prevSelected.classList.remove('row-selected');
+      const newSelected = document.querySelector(`#orgTableBody tr[data-id="${orgId}"]`);
+      if (newSelected) newSelected.classList.add('row-selected');
+
       currentOrgId = orgId;
       const pane = document.getElementById('orgDetailPane');
       const content = document.getElementById('orgDetailContent');
-
-      // Highlight selected row
-      document.querySelectorAll('#orgTableBody tr').forEach(tr => {
-        tr.classList.toggle('row-selected', tr.dataset.id === orgId);
-      });
 
       content.innerHTML = `
         <form id="orgEditForm" class="space-y-3">
@@ -2561,14 +2692,15 @@
       const addr = allAddresses.find(a => a.id === addressId);
       if (!addr) return;
 
+      // Update row highlight immediately for snappy UI
+      const prevSelected = document.querySelector('#addressTableBody tr.row-selected');
+      if (prevSelected) prevSelected.classList.remove('row-selected');
+      const newSelected = document.querySelector(`#addressTableBody tr[data-id="${addressId}"]`);
+      if (newSelected) newSelected.classList.add('row-selected');
+
       selectedAddressId = addressId;
       const pane = document.getElementById('addressDetailPane');
       const content = document.getElementById('addressDetailContent');
-
-      // Highlight selected row
-      document.querySelectorAll('#addressTableBody tr').forEach(tr => {
-        tr.classList.toggle('row-selected', tr.dataset.id === addressId);
-      });
 
       // Get images
       const images = addr.featureImage || [];
@@ -2900,14 +3032,15 @@
       const prospect = allProspects.find(p => p.id === prospectId);
       if (!prospect) return;
 
+      // Update row highlight immediately for snappy UI
+      const prevSelected = document.querySelector('#prospectTableBody tr.row-selected');
+      if (prevSelected) prevSelected.classList.remove('row-selected');
+      const newSelected = document.querySelector(`#prospectTableBody tr[data-id="${prospectId}"]`);
+      if (newSelected) newSelected.classList.add('row-selected');
+
       selectedProspectId = prospectId;
       const pane = document.getElementById('prospectDetailPane');
       const content = document.getElementById('prospectDetailContent');
-
-      // Highlight selected row
-      document.querySelectorAll('#prospectTableBody tr').forEach(tr => {
-        tr.classList.toggle('row-selected', tr.dataset.id === prospectId);
-      });
 
       // Get phone numbers
       const phones = prospect.phones?.sort((a, b) => (b.score || 0) - (a.score || 0)) || [];
@@ -3364,14 +3497,15 @@
       const lead = allLeads.find(l => l.id === leadId);
       if (!lead) return;
 
+      // Update row highlight immediately for snappy UI
+      const prevSelected = document.querySelector('#leadTableBody tr.row-selected');
+      if (prevSelected) prevSelected.classList.remove('row-selected');
+      const newSelected = document.querySelector(`#leadTableBody tr[data-id="${leadId}"]`);
+      if (newSelected) newSelected.classList.add('row-selected');
+
       selectedLeadId = leadId;
       const pane = document.getElementById('leadDetailPane');
       const content = document.getElementById('leadDetailContent');
-
-      // Highlight selected row
-      document.querySelectorAll('#leadTableBody tr').forEach(tr => {
-        tr.classList.toggle('row-selected', tr.dataset.id === leadId);
-      });
 
       // Render lead details
       const leadStatuses = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
@@ -4696,50 +4830,132 @@
     }
 
     // Filter call list items - uses data attributes for fast filtering
-    function filterCallListItems() {
-      const filterUntouched = document.getElementById('filterUntouched')?.checked;
+    // =====================
+    // Virtual Scrolling for Call List
+    // =====================
+    const VIRTUAL_ROW_HEIGHT = 41; // Height of each row in pixels
+    const VIRTUAL_BUFFER = 10; // Extra rows to render above/below viewport
+    let virtualScrollState = {
+      filteredItems: [],    // Items after applying filters
+      startIndex: 0,        // First visible row index
+      endIndex: 0,          // Last visible row index
+      lastScrollTop: 0
+    };
+
+    // Schedule filter to run AFTER checkbox renders
+    let filterScheduled = false;
+    function scheduleFilter() {
+      if (filterScheduled) return;
+      filterScheduled = true;
+      setTimeout(() => {
+        filterScheduled = false;
+        applyCallListFilters();
+      }, 0);
+    }
+
+    // Apply filters to sorted items and re-render
+    function applyCallListFilters() {
       const filterHasName = document.getElementById('filterHasName')?.checked;
       const filterHasPhone = document.getElementById('filterHasPhone')?.checked;
       const filterHasEmail = document.getElementById('filterHasEmail')?.checked;
       const filterHasNotes = document.getElementById('filterHasNotes')?.checked;
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const todayTs = todayStart.getTime();
+      const hasFilters = filterHasName || filterHasPhone || filterHasEmail || filterHasNotes;
 
-      let visibleCount = 0;
-      const rows = document.querySelectorAll('#callListTableBody tr');
-      const total = rows.length;
+      const sortedItems = callListState.sortedItems || [];
 
-      // Fast loop using data attributes - no object property access
-      for (let i = 0; i < total; i++) {
-        const row = rows[i];
-        let show = true;
+      if (!hasFilters) {
+        virtualScrollState.filteredItems = sortedItems;
+      } else {
+        virtualScrollState.filteredItems = sortedItems.filter(item => {
+          const record = item.contact || item.lead;
+          const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim() || '';
+          const hasName = name && name !== 'Unknown' && name !== '---' && name !== '-';
+          const phone = record?.phones?.[0]?.phone_number || record?.phone || '';
+          const hasPhone = phone && phone !== '-';
+          const emailObj = record?.emails?.[0];
+          const email = emailObj?.email_address || emailObj?.address || (typeof emailObj === 'string' ? emailObj : null) || record?.email || '';
+          const hasEmail = email && email !== '-';
+          const notes = record?.latestNote?.content || record?.notes || '';
+          const hasNotes = !!notes;
 
-        if (filterUntouched && parseInt(row.dataset.updated) >= todayTs) show = false;
-        if (show && filterHasName && row.dataset.hasName === '0') show = false;
-        if (show && filterHasPhone && row.dataset.hasPhone === '0') show = false;
-        if (show && filterHasEmail && row.dataset.hasEmail === '0') show = false;
-        if (show && filterHasNotes && row.dataset.hasNotes === '0') show = false;
-
-        row.style.display = show ? '' : 'none';
-        if (show) visibleCount++;
+          if (filterHasName && !hasName) return false;
+          if (filterHasPhone && !hasPhone) return false;
+          if (filterHasEmail && !hasEmail) return false;
+          if (filterHasNotes && !hasNotes) return false;
+          return true;
+        });
       }
 
-      // Update count display
+      // Update count
+      const total = sortedItems.length;
+      const visible = virtualScrollState.filteredItems.length;
       const countEl = document.getElementById('callListCount');
-      if (visibleCount !== total) {
-        countEl.textContent = `${visibleCount} of ${total} items (${total - visibleCount} hidden)`;
+      if (visible !== total) {
+        countEl.textContent = `${visible} of ${total} items (${total - visible} hidden)`;
       } else {
         countEl.textContent = `${total} item${total !== 1 ? 's' : ''} in list`;
       }
+
+      // Re-render with new filtered items
+      renderVirtualRows(true);
       updateCallItemSelectionUI();
     }
 
-    // Render the call list table - simple render all rows
+    // Handle scroll events
+    function onCallListScroll() {
+      const container = document.getElementById('callListScrollContainer');
+      if (!container) return;
+
+      // Throttle scroll handling
+      if (Math.abs(container.scrollTop - virtualScrollState.lastScrollTop) < VIRTUAL_ROW_HEIGHT / 2) return;
+      virtualScrollState.lastScrollTop = container.scrollTop;
+
+      renderVirtualRows(false);
+    }
+
+    // Render only visible rows
+    function renderVirtualRows(forceRender = false) {
+      const container = document.getElementById('callListScrollContainer');
+      const spacer = document.getElementById('callListVirtualSpacer');
+      const tbody = document.getElementById('callListTableBody');
+      if (!container || !spacer || !tbody) return;
+
+      const items = virtualScrollState.filteredItems;
+      const totalHeight = items.length * VIRTUAL_ROW_HEIGHT;
+
+      // Set spacer height to create proper scrollbar
+      spacer.style.height = totalHeight + 'px';
+
+      const scrollTop = container.scrollTop;
+      const viewportHeight = container.clientHeight;
+
+      // Calculate visible range
+      const newStartIndex = Math.max(0, Math.floor(scrollTop / VIRTUAL_ROW_HEIGHT) - VIRTUAL_BUFFER);
+      const newEndIndex = Math.min(items.length, Math.ceil((scrollTop + viewportHeight) / VIRTUAL_ROW_HEIGHT) + VIRTUAL_BUFFER);
+
+      // Skip if range hasn't changed significantly
+      if (!forceRender && newStartIndex === virtualScrollState.startIndex && newEndIndex === virtualScrollState.endIndex) {
+        return;
+      }
+
+      virtualScrollState.startIndex = newStartIndex;
+      virtualScrollState.endIndex = newEndIndex;
+
+      // Build HTML for visible rows
+      const visibleItems = items.slice(newStartIndex, newEndIndex);
+      const html = visibleItems.map((item, i) => {
+        const actualIndex = newStartIndex + i;
+        return renderCallListRowHtml(item, actualIndex * VIRTUAL_ROW_HEIGHT);
+      }).join('');
+
+      tbody.innerHTML = html;
+    }
+
+    // Sort and initialize virtual scroll
     function renderCallListTable() {
       if (currentCallListItems.length === 0) return;
 
-      // Sort items first
+      // Sort items
       const sortedItems = [...currentCallListItems].sort((a, b) => {
         const recordA = a.contact || a.lead;
         const recordB = b.contact || b.lead;
@@ -4788,23 +5004,33 @@
       // Reset select all checkbox
       document.getElementById('selectAllCallItems').checked = false;
 
-      // Render all rows
-      const tbody = document.getElementById('callListTableBody');
-      tbody.innerHTML = sortedItems.map(item => renderCallListRowHtml(item)).join('');
+      // Initialize virtual scroll with all items (filters applied separately)
+      virtualScrollState.filteredItems = sortedItems;
+      virtualScrollState.startIndex = 0;
+      virtualScrollState.endIndex = 0;
 
       // Update count
       document.getElementById('callListCount').textContent = `${sortedItems.length} item${sortedItems.length !== 1 ? 's' : ''} in list`;
 
+      // Initial render
+      renderVirtualRows(true);
+
       // Apply any active filters
-      filterCallListItems();
+      applyCallListFilters();
+    }
+
+    // Legacy function name for compatibility
+    function filterCallListItems() {
+      applyCallListFilters();
     }
 
     // Render a single row HTML
-    function renderCallListRowHtml(item) {
+    function renderCallListRowHtml(item, topPosition) {
       const record = item.contact || item.lead;
       const isContact = !!item.contact;
       const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim() || 'Unknown';
-      const phone = record?.phones?.[0]?.phone_number || record?.phone || '-';
+      const phoneRaw = record?.phones?.[0]?.phone_number || record?.phone || '';
+      const phone = phoneRaw ? formatPhone(phoneRaw) : '-';
       const emailObj = record?.emails?.[0];
       const email = emailObj?.email_address || emailObj?.address || (typeof emailObj === 'string' ? emailObj : null) || record?.email || '-';
       const address = record?.lookupAddress || record?.address || '-';
@@ -4831,8 +5057,11 @@
       const hasNotes = notes ? '1' : '0';
       const updatedAtTs = record?.updatedAt ? new Date(record.updatedAt).getTime() : 0;
 
+      // Style for absolute positioning within virtual scroll
+      const positionStyle = topPosition !== undefined ? `position: absolute; top: ${topPosition}px; left: 0; right: 0; height: ${VIRTUAL_ROW_HEIGHT}px; display: table; table-layout: fixed; width: 100%;` : '';
+
       return `
-        <tr class="hover:bg-base-200 cursor-pointer ${isSelected ? 'row-selected' : ''}" data-has-name="${hasName}" data-has-phone="${hasPhone}" data-has-email="${hasEmail}" data-has-notes="${hasNotes}" data-updated="${updatedAtTs}" data-item-id="${item.id}" tabindex="0" onclick="showCallDetail('${item.id}')">
+        <tr class="hover:bg-base-200 cursor-pointer ${isSelected ? 'row-selected' : ''}" data-has-name="${hasName}" data-has-phone="${hasPhone}" data-has-email="${hasEmail}" data-has-notes="${hasNotes}" data-updated="${updatedAtTs}" data-item-id="${item.id}" data-index="${topPosition !== undefined ? Math.round(topPosition / VIRTUAL_ROW_HEIGHT) : ''}" tabindex="0" onclick="showCallDetail('${item.id}')" style="${positionStyle}">
           <td class="w-10" onclick="event.stopPropagation()">
             <input type="checkbox" class="checkbox checkbox-sm call-item-checkbox" data-item-id="${item.id}" ${isChecked ? 'checked' : ''} onchange="handleCallItemCheckbox(this)">
           </td>
@@ -5052,20 +5281,22 @@
       const item = currentCallListItems.find(i => i.id === itemId);
       if (!item) return;
 
+      // Update row highlight immediately for snappy UI
+      const prevSelected = document.querySelector('#callListTableBody tr.row-selected');
+      if (prevSelected) prevSelected.classList.remove('row-selected');
+      const newSelected = document.querySelector(`#callListTableBody tr[data-item-id="${itemId}"]`);
+      if (newSelected) newSelected.classList.add('row-selected');
+
       selectedCallItemId = itemId;
       const record = item.contact || item.lead;
       const isContact = !!item.contact;
       const pane = document.getElementById('callDetailPane');
       const content = document.getElementById('callDetailContent');
 
-      // Highlight selected row
-      document.querySelectorAll('#callListTableBody tr').forEach(tr => {
-        tr.classList.toggle('row-selected', tr.dataset.itemId === itemId);
-      });
-
       // Get common fields
       const name = isContact ? (record.name || 'Unknown') : `${record.firstName || ''} ${record.lastName || ''}`.trim() || 'Unknown';
-      const phone = record?.phones?.[0]?.phone_number || record?.phone || '';
+      const phoneRaw = record?.phones?.[0]?.phone_number || record?.phone || '';
+      const phone = phoneRaw ? formatPhone(phoneRaw) : '';
       const status = record.status || '';
       const recordType = isContact ? 'contact' : 'lead';
 
@@ -5129,25 +5360,29 @@
         ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`
         : null;
 
-      // Address section - always show placeholder initially, load map after pane opens
+      // Address section - placeholder image + street view link (no API calls)
+      const mapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
       const addressHtml = address ? `
         <div class="py-2 border-b border-base-300">
           <label class="text-xs text-base-content/60 uppercase font-medium block mb-1">Address</label>
-          <div id="callDetailMapContainer" class="mb-2 w-full bg-base-200 flex items-center justify-center" style="height: 100px; min-height: 100px;" data-map-url="${mapPreviewUrl || ''}" data-street-view-url="${streetViewUrl || ''}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 animate-pulse text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+          <div class="mb-2 w-full bg-base-200 rounded-lg flex items-center justify-center" style="height: 100px;">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
             </svg>
           </div>
-          <div class="flex items-start gap-2">
+          <div class="flex items-start gap-2 mb-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <div class="flex-1">
-              <span class="text-sm">${address}</span>
-              <a href="${streetViewUrl || '#'}" target="_blank" rel="noopener" class="link link-primary text-xs block mt-1" id="callDetailStreetViewLink" ${!streetViewUrl ? 'style="display:none"' : ''}>View Street View</a>
-            </div>
+            <span class="text-sm flex-1">${address}</span>
           </div>
+          <a href="${streetViewUrl || mapsSearchUrl}" target="_blank" rel="noopener" class="btn btn-xs btn-outline gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            street view >>
+          </a>
         </div>
       ` : '';
 
@@ -5230,32 +5465,48 @@
       // Show pane immediately with placeholder content
       pane.style.transform = 'translateX(0)';
 
-      // Load async content AFTER pane is visible
+      // Load notes async AFTER pane is visible
       setTimeout(() => {
-        // Load notes
         loadCallDetailNotes(recordType, record.id);
-
-        // Load map image (either from coords or geocode)
-        const mapContainer = document.getElementById('callDetailMapContainer');
-        if (mapContainer) {
-          if (mapPreviewUrl) {
-            loadMapImage(mapContainer, mapPreviewUrl, streetViewUrl);
-          } else if (needsGeocode) {
-            geocodeForCallDetail(address, googleMapsKey);
-          }
-        }
       }, 50);
     }
 
-    // Load map image into container
-    function loadMapImage(container, mapUrl, streetViewUrl) {
-      // Keep container styles, just replace content
+    // Load map image into container - uses cache for instant display
+    function loadMapImage(container, mapUrl, streetViewUrl, lat, lon) {
       container.classList.remove('flex', 'items-center', 'justify-center');
-      container.innerHTML = `
-        <a href="${streetViewUrl}" target="_blank" rel="noopener" class="block" style="height: 100px;">
-          <img src="${mapUrl}" alt="Map preview" class="w-full object-cover cursor-pointer hover:opacity-90" style="height: 100px;">
-        </a>
-      `;
+
+      // Check if we have a cached image for these coordinates
+      if (lat && lon) {
+        const cached = getCachedMapImage(lat, lon);
+        if (cached) {
+          // Use cached image - instant display
+          container.innerHTML = `
+            <a href="${streetViewUrl}" target="_blank" rel="noopener" class="block" style="height: 100px;">
+              <img src="${cached.url}" alt="Map preview" class="w-full object-cover cursor-pointer hover:opacity-90" style="height: 100px;">
+            </a>
+          `;
+          return;
+        }
+      }
+
+      // No cache - load and cache for next time
+      const img = new Image();
+      img.onload = () => {
+        // Cache for future use
+        if (lat && lon) {
+          const key = getMapCacheKey(lat, lon);
+          staticMapImageCache.set(key, { img, url: mapUrl, lat, lon });
+        }
+        container.innerHTML = `
+          <a href="${streetViewUrl}" target="_blank" rel="noopener" class="block" style="height: 100px;">
+            <img src="${mapUrl}" alt="Map preview" class="w-full object-cover cursor-pointer hover:opacity-90" style="height: 100px;">
+          </a>
+        `;
+      };
+      img.onerror = () => {
+        container.innerHTML = '<div class="text-xs text-base-content/50 p-2">Map unavailable</div>';
+      };
+      img.src = mapUrl;
     }
 
     // Geocode address and update map preview in call detail pane
@@ -5264,6 +5515,19 @@
       const streetViewLink = document.getElementById('callDetailStreetViewLink');
 
       if (!mapContainer) return;
+
+      // Check geocode cache first
+      const cachedGeo = getCachedGeocode(address);
+      if (cachedGeo) {
+        const { lat, lon } = cachedGeo;
+        const streetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
+        loadMapImage(mapContainer, getStaticMapUrl(lat, lon, apiKey), streetViewUrl, lat, lon);
+        if (streetViewLink) {
+          streetViewLink.href = streetViewUrl;
+          streetViewLink.style.display = '';
+        }
+        return;
+      }
 
       try {
         const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`);
@@ -5274,17 +5538,15 @@
           const lat = location.lat;
           const lon = location.lng;
 
+          // Cache the geocode result
+          cacheGeocode(address, lat, lon);
+
           // Build map URL
-          const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=17&size=300x120&scale=2&maptype=roadmap&markers=color:red%7C${lat},${lon}&key=${apiKey}`;
+          const mapUrl = getStaticMapUrl(lat, lon, apiKey);
           const streetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
 
-          // Replace placeholder with map
-          mapContainer.classList.remove('flex', 'items-center', 'justify-center');
-          mapContainer.innerHTML = `
-            <a href="${streetViewUrl}" target="_blank" rel="noopener" id="callDetailMapLink" class="block" style="height: 100px;">
-              <img src="${mapUrl}" alt="Map preview" class="w-full object-cover cursor-pointer hover:opacity-90" style="height: 100px;">
-            </a>
-          `;
+          // Use loadMapImage which handles caching
+          loadMapImage(mapContainer, mapUrl, streetViewUrl, lat, lon);
 
           // Show street view link
           if (streetViewLink) {
@@ -5545,6 +5807,9 @@
           document.getElementById('callListTable').classList.remove('hidden');
 
           renderCallListTable();
+
+          // Preload map images for first 20 items in background
+          preloadCallListMaps(items.slice(0, 20));
 
           // Re-show detail pane if an item was selected
           if (selectedCallItemId) {
@@ -7672,34 +7937,85 @@
       // Up/Down arrow navigation for list views
       if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.target.matches('input, textarea, select')) {
         const viewConfig = {
-          calls: { tbody: '#callListTableBody', idAttr: 'itemId', selectedId: selectedCallItemId, showFn: showCallDetail },
-          leads: { tbody: '#leadTableBody', idAttr: 'id', selectedId: selectedLeadId, showFn: showLeadDetail },
-          addresses: { tbody: '#addressTableBody', idAttr: 'id', selectedId: selectedAddressId, showFn: showAddressDetail },
-          contacts: { tbody: '#prospectTableBody', idAttr: 'id', selectedId: selectedProspectId, showFn: showProspectDetail },
-          organizations: { tbody: '#orgTableBody', idAttr: 'id', selectedId: currentOrgId, showFn: showOrgDetail }
+          calls: { tbody: 'callListTableBody', idAttr: 'itemId', selectedId: selectedCallItemId, showFn: showCallDetail },
+          leads: { tbody: 'leadTableBody', idAttr: 'id', selectedId: selectedLeadId, showFn: showLeadDetail },
+          addresses: { tbody: 'addressTableBody', idAttr: 'id', selectedId: selectedAddressId, showFn: showAddressDetail },
+          contacts: { tbody: 'prospectTableBody', idAttr: 'id', selectedId: selectedProspectId, showFn: showProspectDetail },
+          organizations: { tbody: 'orgTableBody', idAttr: 'id', selectedId: currentOrgId, showFn: showOrgDetail }
         };
 
         const config = viewConfig[currentView];
         if (config) {
-          const visibleRows = Array.from(document.querySelectorAll(`${config.tbody} tr`)).filter(tr => tr.style.display !== 'none');
-          if (visibleRows.length === 0) return;
-
           e.preventDefault();
-          const currentIndex = visibleRows.findIndex(tr => tr.dataset[config.idAttr] === config.selectedId);
-          let newIndex;
 
-          if (e.key === 'ArrowDown') {
-            newIndex = currentIndex < 0 ? 0 : Math.min(currentIndex + 1, visibleRows.length - 1);
-          } else {
-            newIndex = currentIndex <= 0 ? 0 : currentIndex - 1;
+          // Special handling for virtualized call list
+          if (currentView === 'calls' && virtualScrollState.filteredItems.length > 0) {
+            const items = virtualScrollState.filteredItems;
+
+            // Find current index in filtered items
+            let currentIndex = items.findIndex(item => item.id === selectedCallItemId);
+
+            const newIndex = e.key === 'ArrowDown'
+              ? (currentIndex < 0 ? 0 : Math.min(currentIndex + 1, items.length - 1))
+              : (currentIndex <= 0 ? 0 : currentIndex - 1);
+
+            if (newIndex !== currentIndex && items[newIndex]) {
+              const itemId = items[newIndex].id;
+
+              // Scroll to make the row visible
+              const container = document.getElementById('callListScrollContainer');
+              if (container) {
+                const targetTop = newIndex * VIRTUAL_ROW_HEIGHT;
+                const viewportHeight = container.clientHeight;
+                if (targetTop < container.scrollTop) {
+                  container.scrollTop = targetTop;
+                } else if (targetTop + VIRTUAL_ROW_HEIGHT > container.scrollTop + viewportHeight) {
+                  container.scrollTop = targetTop + VIRTUAL_ROW_HEIGHT - viewportHeight;
+                }
+              }
+
+              showCallDetail(itemId);
+
+              // Focus the new row if it's rendered
+              setTimeout(() => {
+                const newRow = document.querySelector(`#callListTableBody tr[data-item-id="${itemId}"]`);
+                if (newRow) newRow.focus();
+              }, 0);
+            }
+            return;
           }
 
+          const tbody = document.getElementById(config.tbody);
+          if (!tbody) return;
+
+          // Fast visible row collection without Array.from
+          const rows = tbody.children;
+          const visibleRows = [];
+          for (let i = 0; i < rows.length; i++) {
+            if (rows[i].style.display !== 'none') visibleRows.push(rows[i]);
+          }
+          if (visibleRows.length === 0) return;
+
+          // Find current index
+          let currentIndex = -1;
+          for (let i = 0; i < visibleRows.length; i++) {
+            if (visibleRows[i].dataset[config.idAttr] === config.selectedId) {
+              currentIndex = i;
+              break;
+            }
+          }
+
+          const newIndex = e.key === 'ArrowDown'
+            ? (currentIndex < 0 ? 0 : Math.min(currentIndex + 1, visibleRows.length - 1))
+            : (currentIndex <= 0 ? 0 : currentIndex - 1);
+
           const newRow = visibleRows[newIndex];
-          if (newRow) {
+          if (newRow && newRow.dataset[config.idAttr] !== config.selectedId) {
             const itemId = newRow.dataset[config.idAttr];
-            config.showFn(itemId);
+            // Update UI immediately, then load detail
             newRow.focus();
-            newRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            newRow.scrollIntoView({ block: 'nearest' });
+            config.showFn(itemId);
           }
         }
       }
