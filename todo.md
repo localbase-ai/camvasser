@@ -1,18 +1,21 @@
 # Camvasser TODO
 
 ## Launch
+- [✅] appointment setting bug (fixed domain-wide delegation for Google Calendar)
 - [ ] Clean up marketing site and launch
-- [ ] Make the ui snappy as fuck
-- [ ] Pre-compute filter values on data load to fix checkbox lag (currently filters 3600+ items on every click)
+- [✅] Make the ui snappy as fuck
+- [✅] Pre-compute filter values on data load to fix checkbox lag (currently filters 3600+ items on every click)
+- [ ] test white pages enrichment on 66206 list
+- [✅] add search ui to call log view
 
 # Next up
-- [ ] set up a test account with white pages and source data for a test list
 - [ ] test  views for ipad landscape.
 - [ ] Test Twilio integration for outbound calling
 - [ ] Set up virtual canvassing email test
 - [ ] Ring Central
 - [ ] Google Business Listings: figure out mapstacking
 - [ ] set up a test account with white pages and source data for a test list
+- [ ] Auto-advance to next item after call?
 
 ## Show Job Values on 'Lead Object'
 - [✅] show on cards in board view
@@ -73,9 +76,7 @@
 - [✅] Detail pane on call list (450px, same as other views)
 - [✅] Convert contact to lead from call list detail
 - [✅] Notes on call list contact detail
-- [ ] Image upload for scripts (R2/S3) - currently using public folder, won't scale
-- [ ] Click-to-call with Twilio (outbound)
-- [ ] Call logging / outcome tracking
+- [✅]] Call logging / outcome tracking
 - [ ] Auto-advance to next item after call
 
 ## CompanyCam Integration

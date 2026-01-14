@@ -688,8 +688,9 @@
                 </svg>
               </button>
             </div>
-            <div class="flex items-center gap-2">
-              <div id="callListFilters" class="hidden flex items-center gap-3">
+            <div class="flex-1 flex items-center gap-2 mx-4">
+              <div id="callListFilters" class="hidden flex-1 flex items-center gap-3">
+                <input type="text" id="callListSearch" placeholder="Search name, phone, email, address..." class="input input-bordered input-sm flex-1" oninput="scheduleFilter()">
                 <label class="flex items-center gap-1 cursor-pointer select-none">
                   <input type="checkbox" id="filterHasName" onclick="scheduleFilter()">
                   <span class="text-xs">Has name</span>
@@ -4858,12 +4859,13 @@
 
     // Apply filters to sorted items and re-render (uses pre-computed _filter values)
     function applyCallListFilters() {
+      const searchQuery = (document.getElementById('callListSearch')?.value || '').toLowerCase().trim();
       const filterHasName = document.getElementById('filterHasName')?.checked;
       const filterHasPhone = document.getElementById('filterHasPhone')?.checked;
       const filterHasEmail = document.getElementById('filterHasEmail')?.checked;
       const filterHasNotes = document.getElementById('filterHasNotes')?.checked;
       const filterHasTags = document.getElementById('filterHasTags')?.checked;
-      const hasFilters = filterHasName || filterHasPhone || filterHasEmail || filterHasNotes || filterHasTags;
+      const hasFilters = searchQuery || filterHasName || filterHasPhone || filterHasEmail || filterHasNotes || filterHasTags;
 
       const sortedItems = callListState.sortedItems || [];
 
@@ -4874,6 +4876,9 @@
         virtualScrollState.filteredItems = sortedItems.filter(item => {
           const f = item._filter;
           if (!f) return true; // Fallback if no filter data
+          // Text search
+          if (searchQuery && !f.searchText?.includes(searchQuery)) return false;
+          // Checkbox filters
           if (filterHasName && !f.hasName) return false;
           if (filterHasPhone && !f.hasPhone) return false;
           if (filterHasEmail && !f.hasEmail) return false;
@@ -5752,8 +5757,12 @@
 
       currentCallListId = listId;
 
+      // Clear search and filters when switching lists
+      const searchInput = document.getElementById('callListSearch');
+      if (searchInput) searchInput.value = '';
+
       // Close drawer and update header
-      closeCallListDrawer();
+      closeCallListDrawer()
       const list = allCallLists.find(l => l.id === listId);
       listNameEl.textContent = list?.name || 'Call List';
 
@@ -5794,6 +5803,10 @@
           const email = emailObj?.email_address || emailObj?.address || (typeof emailObj === 'string' ? emailObj : null) || record?.email || '';
           const notes = record?.latestNote?.content || record?.notes || '';
           const tags = isContact ? (record?.project?.tags || []) : [];
+          const address = isContact ? (record?.project?.address || record?.lookupAddress || '') : (record?.address || '');
+
+          // Build searchable text (lowercase for fast matching)
+          const searchText = [name, phone, email, address].filter(Boolean).join(' ').toLowerCase();
 
           return {
             ...item,
@@ -5802,7 +5815,8 @@
               hasPhone: !!(phone && phone !== '-'),
               hasEmail: !!(email && email !== '-'),
               hasNotes: !!notes,
-              hasTags: tags.length > 0
+              hasTags: tags.length > 0,
+              searchText
             }
           };
         });
