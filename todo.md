@@ -1,15 +1,17 @@
 # Camvasser TODO
 
 ## Launch
-- [ ] make the scripts ui less crap
-- [ ] test with twilio
 - [ ] Clean up marketing site and launch
+- [ ] Make the ui snappy as fuck
+- [ ] Pre-compute filter values on data load to fix checkbox lag (currently filters 3600+ items on every click)
 
-# Bugs
+# Next up
+- [ ] set up a test account with white pages and source data for a test list
 - [ ] test  views for ipad landscape.
-- [ ] fix has:phone has:name chained search on contacts view
-
-# White Pages Test
+- [ ] Test Twilio integration for outbound calling
+- [ ] Set up virtual canvassing email test
+- [ ] Ring Central
+- [ ] Google Business Listings: figure out mapstacking
 - [ ] set up a test account with white pages and source data for a test list
 
 ## Show Job Values on 'Lead Object'
@@ -18,7 +20,6 @@
 - [✅] show job value on records in lead list view
 - [✅] has:value, no:value, sort:value search syntax
 - [✅] Delete a proposal from a lead object
-- [ ] make a proposal generator? is this worth it?
 
 ## Scorecard / Dashboard Views
 - [ ] make a daily scorecard view
@@ -31,14 +32,10 @@
 - [✅] auto-mark estimates as "won" when invoiced/paid
 - [✅] cleaned up 25 old estimates in QB (marked as Closed)
 
-# Next up Integrations:
-- [ ] Test Twilio integration for outbound calling
-- [ ] Set up virtual canvassing email test
-- [ ] Ring Central
-- [ ] Google Business Listings: figure out mapstacking
+# Smartlead
 - [✅] SmartLead: CSV export for leads and contacts
 
-## Features
+## Features Completed
 - [✅] Add HOA object (link to address/project)
 - [✅] Add Company object (for HOA management companies, etc.)
 - [✅] Organizations tab with full CRUD (HOAs, property mgmt, real estate, churches, apartments)
@@ -82,7 +79,6 @@
 - [ ] Auto-advance to next item after call
 
 ## CompanyCam Integration
-- [ ] Get OAuth write access (fill out form) or find alternative
 - [✅] Clean up tags in CC and resync to local DB
 - [✅] Script to bulk remove/rename tags
 - [✅] Full CC sync script (1253 projects, preserves local tags)
