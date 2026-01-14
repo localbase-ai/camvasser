@@ -39,10 +39,26 @@
       height: 90vh;
       max-height: 90vh;
     }
+    /* Slide-in drawer panel */
+    .slide-panel {
+      transform: translateX(100%);
+      transition: transform 200ms ease-out;
+    }
+    .slide-panel.open {
+      transform: translateX(0);
+    }
+    /* Selected row indicator - distinct from hover */
+    tr.row-selected {
+      background-color: rgba(99, 102, 241, 0.15) !important;
+      box-shadow: inset 3px 0 0 #6366f1;
+    }
+    tr:focus {
+      outline: none;
+    }
   </style>
 
 </head>
-<body class="bg-base-100 min-h-screen">
+<body class="bg-base-100 min-h-screen overflow-x-hidden">
 
   <!-- Main Layout -->
   <div class="flex min-h-screen">
@@ -229,8 +245,8 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="addressDetailPane" class="hidden absolute top-0 right-0 h-full w-[400px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
-            <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
+          <div id="addressDetailPane" class="fixed top-0 right-0 h-screen w-[450px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+            <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Address Details</h3>
               <button onclick="closeAddressDetail()" class="btn btn-ghost btn-xs btn-square">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -238,7 +254,7 @@
                 </svg>
               </button>
             </div>
-            <div id="addressDetailContent" class="p-4">
+            <div id="addressDetailContent" class="p-4 overflow-y-auto flex-1">
               <!-- Address details will be rendered here -->
             </div>
           </div>
@@ -351,8 +367,8 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="prospectDetailPane" class="hidden absolute top-0 right-0 h-full w-[400px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
-            <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
+          <div id="prospectDetailPane" class="fixed top-0 right-0 h-screen w-[450px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+            <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Contact Details</h3>
               <button onclick="closeProspectDetail()" class="btn btn-ghost btn-xs btn-square">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -360,7 +376,7 @@
                 </svg>
               </button>
             </div>
-            <div id="prospectDetailContent" class="p-4">
+            <div id="prospectDetailContent" class="p-4 overflow-y-auto flex-1">
               <!-- Contact details will be rendered here -->
             </div>
           </div>
@@ -472,8 +488,8 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="leadDetailPane" class="hidden absolute top-0 right-0 h-full w-[400px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
-            <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
+          <div id="leadDetailPane" class="fixed top-0 right-0 h-screen w-[450px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+            <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Lead Details</h3>
               <button onclick="closeLeadDetail()" class="btn btn-ghost btn-xs btn-square">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -481,7 +497,7 @@
                 </svg>
               </button>
             </div>
-            <div id="leadDetailContent" class="p-4">
+            <div id="leadDetailContent" class="p-4 overflow-y-auto flex-1">
               <!-- Lead details will be rendered here -->
             </div>
           </div>
@@ -590,11 +606,11 @@
       </div>
 
       <!-- Calls View -->
-      <div id="view-calls" class="view hidden flex flex-col h-full overflow-hidden relative">
-        <!-- Drawer backdrop -->
+      <div id="view-calls" class="view hidden flex flex-col h-full relative overflow-hidden">
+        <!-- Left Drawer backdrop -->
         <div id="callListDrawerBackdrop" class="hidden absolute inset-0 bg-black/20 z-40" onclick="window.closeCallListDrawer()"></div>
 
-        <!-- Drawer panel -->
+        <!-- Left Drawer panel (for selecting call lists) -->
         <div id="callListDrawer" class="absolute left-0 top-0 h-full w-64 bg-base-100 shadow-xl z-50 transition-transform duration-200 flex flex-col" style="transform: translateX(-100%)">
           <div class="p-3 border-b border-base-300 flex items-center justify-between">
             <span class="font-semibold">Call Lists</span>
@@ -667,73 +683,70 @@
             </div>
           </div>
 
-          <!-- Main content area with table and detail pane -->
-          <div class="flex-1 flex min-h-0 relative overflow-hidden">
-            <!-- Left: Table or Empty State -->
-            <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-              <!-- Loading state -->
-              <div id="callListLoading" class="hidden flex-1 flex flex-col items-center justify-center py-12 bg-base-200 rounded-lg">
-                <div class="flex flex-col items-center gap-3">
-                  <div class="w-8 h-8 border-2 border-base-content/20 border-t-primary rounded-full animate-spin"></div>
-                  <span class="text-sm text-base-content/60">Loading call list...</span>
-                </div>
-              </div>
-
-              <!-- Empty state -->
-              <div id="callListEmpty" class="flex-1 flex flex-col items-center justify-center py-12 bg-base-200 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                <h3 class="text-lg font-semibold mb-1">No call lists yet</h3>
-                <p class="text-base-content/60 text-sm text-center">Select contacts or leads and click<br>"Add to Call List" to create one</p>
-              </div>
-
-              <!-- Call list table with virtual scrolling (hidden by default) -->
-              <div id="callListTable" class="hidden flex-1 flex flex-col min-h-0">
-                <!-- Fixed header -->
-                <div class="bg-base-100 border-b border-base-300 flex-shrink-0">
-                  <table class="table table-sm table-fixed w-full">
-                    <thead style="background: transparent !important;">
-                      <tr style="background: transparent !important;">
-                        <th class="w-10"><input type="checkbox" id="selectAllCallItems" class="checkbox checkbox-sm" onchange="toggleAllCallItems(this.checked)"></th>
-                        <th class="w-10"></th>
-                        <th class="w-[140px] cursor-pointer hover:bg-base-200" onclick="sortCallList('name')">Name</th>
-                        <th class="w-[120px] cursor-pointer hover:bg-base-200" onclick="sortCallList('phone')">Phone</th>
-                        <th class="w-[180px] cursor-pointer hover:bg-base-200" onclick="sortCallList('email')">Email</th>
-                        <th class="w-[180px] cursor-pointer hover:bg-base-200" onclick="sortCallList('address')">Address</th>
-                        <th class="w-[140px]">Tags</th>
-                        <th class="w-[100px] cursor-pointer hover:bg-base-200" onclick="sortCallList('status')">Status</th>
-                        <th class="w-[90px] cursor-pointer hover:bg-base-200" onclick="sortCallList('updatedAt')">Updated</th>
-                        <th class="w-[150px]">Notes</th>
-                        <th class="w-10"></th>
-                      </tr>
-                    </thead>
-                  </table>
-                </div>
-                <!-- Table body scroll container -->
-                <div class="flex-1 overflow-auto">
-                  <table class="table table-sm table-fixed w-full">
-                    <tbody id="callListTableBody">
-                    </tbody>
-                  </table>
-                </div>
+          <!-- Table area -->
+          <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <!-- Loading state -->
+            <div id="callListLoading" class="hidden flex-1 flex flex-col items-center justify-center py-12 bg-base-200 rounded-lg">
+              <div class="flex flex-col items-center gap-3">
+                <div class="w-8 h-8 border-2 border-base-content/20 border-t-primary rounded-full animate-spin"></div>
+                <span class="text-sm text-base-content/60">Loading call list...</span>
               </div>
             </div>
 
-            <!-- Right: Detail Pane (shown when row is clicked) - Fixed to viewport -->
-            <div id="callDetailPane" class="hidden fixed right-0 top-[88px] bottom-0 w-[400px] border-l border-base-300 bg-base-100 overflow-y-auto z-30 shadow-xl">
-              <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center z-10">
-                <h3 class="font-semibold text-sm">Details</h3>
-                <button onclick="closeCallDetailPane()" class="btn btn-ghost btn-xs btn-square">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+            <!-- Empty state -->
+            <div id="callListEmpty" class="flex-1 flex flex-col items-center justify-center py-12 bg-base-200 rounded-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+              <h3 class="text-lg font-semibold mb-1">No call lists yet</h3>
+              <p class="text-base-content/60 text-sm text-center">Select contacts or leads and click<br>"Add to Call List" to create one</p>
+            </div>
+
+            <!-- Call list table with virtual scrolling (hidden by default) -->
+            <div id="callListTable" class="hidden flex-1 flex flex-col min-h-0">
+              <!-- Fixed header -->
+              <div class="bg-base-100 border-b border-base-300 flex-shrink-0">
+                <table class="table table-sm table-fixed w-full">
+                  <thead style="background: transparent !important;">
+                    <tr style="background: transparent !important;">
+                      <th class="w-10"><input type="checkbox" id="selectAllCallItems" class="checkbox checkbox-sm" onchange="toggleAllCallItems(this.checked)"></th>
+                      <th class="w-10"></th>
+                      <th class="w-[140px] cursor-pointer hover:bg-base-200" onclick="sortCallList('name')">Name</th>
+                      <th class="w-[120px] cursor-pointer hover:bg-base-200" onclick="sortCallList('phone')">Phone</th>
+                      <th class="w-[180px] cursor-pointer hover:bg-base-200" onclick="sortCallList('email')">Email</th>
+                      <th class="w-[180px] cursor-pointer hover:bg-base-200" onclick="sortCallList('address')">Address</th>
+                      <th class="w-[140px]">Tags</th>
+                      <th class="w-[100px] cursor-pointer hover:bg-base-200" onclick="sortCallList('status')">Status</th>
+                      <th class="w-[90px] cursor-pointer hover:bg-base-200" onclick="sortCallList('updatedAt')">Updated</th>
+                      <th class="w-[150px]">Notes</th>
+                      <th class="w-10"></th>
+                    </tr>
+                  </thead>
+                </table>
               </div>
-              <div id="callDetailContent" class="p-4">
-                <!-- Detail content will be rendered here -->
+              <!-- Table body scroll container -->
+              <div class="flex-1 overflow-auto">
+                <table class="table table-sm table-fixed w-full">
+                  <tbody id="callListTableBody">
+                  </tbody>
+                </table>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Right Detail Pane - Fixed position to avoid container issues -->
+        <div id="callDetailPane" class="fixed top-0 right-0 h-screen w-[450px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+          <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
+            <h3 class="font-semibold text-sm">Details</h3>
+            <button onclick="closeCallDetailPane()" class="btn btn-ghost btn-xs btn-square">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div id="callDetailContent" class="p-4 overflow-y-auto flex-1">
+            <!-- Detail content will be rendered here -->
           </div>
         </div>
       </div>
@@ -1160,8 +1173,8 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="orgDetailPane" class="hidden absolute top-0 right-0 h-full w-[400px] bg-base-100 border-l border-base-300 overflow-y-auto shadow-xl z-20">
-            <div class="sticky top-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
+          <div id="orgDetailPane" class="fixed top-0 right-0 h-screen w-[450px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+            <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Organization Details</h3>
               <button onclick="closeOrgDetail()" class="btn btn-ghost btn-xs btn-square">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1169,7 +1182,7 @@
                 </svg>
               </button>
             </div>
-            <div id="orgDetailContent" class="p-4">
+            <div id="orgDetailContent" class="p-4 overflow-y-auto flex-1">
               <!-- Organization details will be rendered here -->
             </div>
           </div>
@@ -1772,8 +1785,9 @@
         const websiteLink = org.website
           ? `<a href="${org.website}" target="_blank" class="link link-primary text-xs" onclick="event.stopPropagation()">${new URL(org.website).hostname.replace('www.', '')}</a>`
           : '-';
+        const isSelected = currentOrgId === org.id;
         return `
-          <tr class="hover cursor-pointer" onclick="showOrgDetail('${org.id}')">
+          <tr class="hover cursor-pointer hover:bg-base-200 ${isSelected ? 'row-selected' : ''}" data-id="${org.id}" tabindex="0" onclick="showOrgDetail('${org.id}')">
             <td class="font-medium">${org.name}</td>
             <td><span class="badge badge-sm badge-ghost">${typeLabel}</span></td>
             <td class="text-sm text-base-content/70">${org.city || '-'}</td>
@@ -1847,6 +1861,11 @@
       currentOrgId = orgId;
       const pane = document.getElementById('orgDetailPane');
       const content = document.getElementById('orgDetailContent');
+
+      // Highlight selected row
+      document.querySelectorAll('#orgTableBody tr').forEach(tr => {
+        tr.classList.toggle('row-selected', tr.dataset.id === orgId);
+      });
 
       content.innerHTML = `
         <form id="orgEditForm" class="space-y-3">
@@ -1933,7 +1952,8 @@
       // Add form submit handler
       document.getElementById('orgEditForm').addEventListener('submit', handleOrgFormSubmit);
 
-      pane.classList.remove('hidden');
+      // Show pane (slide in from right)
+      pane.style.transform = 'translateX(0)';
 
       // Load contacts and properties
       loadOrgContacts(orgId);
@@ -2088,7 +2108,7 @@
     }
 
     function closeOrgDetail() {
-      document.getElementById('orgDetailPane').classList.add('hidden');
+      document.getElementById('orgDetailPane').style.transform = 'translateX(100%)';
     }
 
     function navigateToOrg(orgId) {
@@ -2501,7 +2521,7 @@
           const isSelected = selectedAddressId === addr.id;
 
           return `
-            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''}" data-id="${addr.id}" tabindex="0" onclick="showAddressDetail('${addr.id}')">
+            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'row-selected' : ''}" data-id="${addr.id}" tabindex="0" onclick="showAddressDetail('${addr.id}')">
               <td onclick="event.stopPropagation()">
                 <input type="checkbox" class="checkbox checkbox-sm address-checkbox" data-id="${addr.id}" data-contacts="${addr.prospectCount || 0}" onchange="updateAddressSelectionUI()">
               </td>
@@ -2544,6 +2564,11 @@
       selectedAddressId = addressId;
       const pane = document.getElementById('addressDetailPane');
       const content = document.getElementById('addressDetailContent');
+
+      // Highlight selected row
+      document.querySelectorAll('#addressTableBody tr').forEach(tr => {
+        tr.classList.toggle('row-selected', tr.dataset.id === addressId);
+      });
 
       // Get images
       const images = addr.featureImage || [];
@@ -2673,8 +2698,8 @@
         </div>
       `;
 
-      // Show pane
-      pane.classList.remove('hidden');
+      // Show pane (slide in from right)
+      pane.style.transform = 'translateX(0)';
 
       // Load notes for this project
       loadProjectNotes(addressId);
@@ -2768,7 +2793,7 @@
 
     function closeAddressDetail() {
       selectedAddressId = null;
-      document.getElementById('addressDetailPane').classList.add('hidden');
+      document.getElementById('addressDetailPane').style.transform = 'translateX(100%)';
       renderAddressResults(allAddresses, addressTotal, addressTotalPages);
     }
 
@@ -2841,7 +2866,7 @@
           const isEnriched = !!prospect.enrichedAt;
 
           return `
-            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''} ${isEnriched ? 'border-l-4 border-l-warning' : ''}" data-id="${prospect.id}" tabindex="0" onclick="showProspectDetail('${prospect.id}')">
+            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'row-selected' : ''} ${isEnriched ? 'border-l-4 border-l-warning' : ''}" data-id="${prospect.id}" tabindex="0" onclick="showProspectDetail('${prospect.id}')">
               <td class="w-8" onclick="event.stopPropagation()">
                 <input type="checkbox" class="checkbox checkbox-sm prospect-checkbox" data-id="${prospect.id}" onchange="updateProspectSelectionUI()">
               </td>
@@ -2878,6 +2903,11 @@
       selectedProspectId = prospectId;
       const pane = document.getElementById('prospectDetailPane');
       const content = document.getElementById('prospectDetailContent');
+
+      // Highlight selected row
+      document.querySelectorAll('#prospectTableBody tr').forEach(tr => {
+        tr.classList.toggle('row-selected', tr.dataset.id === prospectId);
+      });
 
       // Get phone numbers
       const phones = prospect.phones?.sort((a, b) => (b.score || 0) - (a.score || 0)) || [];
@@ -3041,8 +3071,8 @@
         </div>
       `;
 
-      // Show pane
-      pane.classList.remove('hidden');
+      // Show pane (slide in from right)
+      pane.style.transform = 'translateX(0)';
 
       // Load map for the address
       if (prospect.project) {
@@ -3237,7 +3267,7 @@
 
     function closeProspectDetail() {
       selectedProspectId = null;
-      document.getElementById('prospectDetailPane').classList.add('hidden');
+      document.getElementById('prospectDetailPane').style.transform = 'translateX(100%)';
       renderProspects();
     }
 
@@ -3305,7 +3335,7 @@
           const jobValueDisplay = jobValue ? `$${jobValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '-';
 
           return `
-            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'bg-base-200' : ''}" data-id="${lead.id}" tabindex="0" onclick="showLeadDetail('${lead.id}')">
+            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'row-selected' : ''}" data-id="${lead.id}" tabindex="0" onclick="showLeadDetail('${lead.id}')">
               <td class="w-8" onclick="event.stopPropagation()">
                 <input type="checkbox" class="checkbox checkbox-sm lead-checkbox" data-id="${lead.id}" onchange="updateLeadSelectionUI()">
               </td>
@@ -3337,6 +3367,11 @@
       selectedLeadId = leadId;
       const pane = document.getElementById('leadDetailPane');
       const content = document.getElementById('leadDetailContent');
+
+      // Highlight selected row
+      document.querySelectorAll('#leadTableBody tr').forEach(tr => {
+        tr.classList.toggle('row-selected', tr.dataset.id === leadId);
+      });
 
       // Render lead details
       const leadStatuses = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
@@ -3553,8 +3588,8 @@
         </div>
       `;
 
-      // Show pane
-      pane.classList.remove('hidden');
+      // Show pane (slide in from right)
+      pane.style.transform = 'translateX(0)';
 
       // Load map for the address
       if (lead.address) {
@@ -4797,7 +4832,7 @@
       const updatedAtTs = record?.updatedAt ? new Date(record.updatedAt).getTime() : 0;
 
       return `
-        <tr class="hover:bg-base-200 cursor-pointer ${isSelected ? 'bg-base-200' : ''}" data-has-name="${hasName}" data-has-phone="${hasPhone}" data-has-email="${hasEmail}" data-has-notes="${hasNotes}" data-updated="${updatedAtTs}" data-item-id="${item.id}" tabindex="0" onclick="showCallDetail('${item.id}')">
+        <tr class="hover:bg-base-200 cursor-pointer ${isSelected ? 'row-selected' : ''}" data-has-name="${hasName}" data-has-phone="${hasPhone}" data-has-email="${hasEmail}" data-has-notes="${hasNotes}" data-updated="${updatedAtTs}" data-item-id="${item.id}" tabindex="0" onclick="showCallDetail('${item.id}')">
           <td class="w-10" onclick="event.stopPropagation()">
             <input type="checkbox" class="checkbox checkbox-sm call-item-checkbox" data-item-id="${item.id}" ${isChecked ? 'checked' : ''} onchange="handleCallItemCheckbox(this)">
           </td>
@@ -4943,10 +4978,10 @@
 
     // Close the call detail pane
     function closeCallDetailPane() {
-      document.getElementById('callDetailPane').classList.add('hidden');
+      document.getElementById('callDetailPane').style.transform = 'translateX(100%)';
       selectedCallItemId = null;
       // Remove highlight from all rows
-      document.querySelectorAll('#callListTableBody tr').forEach(tr => tr.classList.remove('bg-base-200'));
+      document.querySelectorAll('#callListTableBody tr').forEach(tr => tr.classList.remove('row-selected'));
     }
 
     // Generic keyboard navigation for table views
@@ -5025,7 +5060,7 @@
 
       // Highlight selected row
       document.querySelectorAll('#callListTableBody tr').forEach(tr => {
-        tr.classList.toggle('bg-base-200', tr.dataset.itemId === itemId);
+        tr.classList.toggle('row-selected', tr.dataset.itemId === itemId);
       });
 
       // Get common fields
@@ -5094,22 +5129,14 @@
         ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`
         : null;
 
-      // Address section with map preview placeholder (will be filled by geocoding if needed)
+      // Address section - always show placeholder initially, load map after pane opens
       const addressHtml = address ? `
         <div class="py-2 border-b border-base-300">
           <label class="text-xs text-base-content/60 uppercase font-medium block mb-1">Address</label>
-          <div id="callDetailMapContainer" class="mb-2">
-            ${mapPreviewUrl ? `
-              <a href="${streetViewUrl}" target="_blank" rel="noopener" id="callDetailMapLink">
-                <img src="${mapPreviewUrl}" alt="Map preview" class="w-full h-[100px] object-cover bg-base-200 cursor-pointer hover:opacity-90" loading="lazy">
-              </a>
-            ` : `
-              <div class="w-full h-[100px] bg-base-200 flex items-center justify-center text-base-content/40" id="callDetailMapPlaceholder">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-              </div>
-            `}
+          <div id="callDetailMapContainer" class="mb-2 w-full bg-base-200 flex items-center justify-center" style="height: 100px; min-height: 100px;" data-map-url="${mapPreviewUrl || ''}" data-street-view-url="${streetViewUrl || ''}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 animate-pulse text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
           </div>
           <div class="flex items-start gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -5200,24 +5227,43 @@
         </div>
       `;
 
-      // Load notes
-      loadCallDetailNotes(recordType, record.id);
+      // Show pane immediately with placeholder content
+      pane.style.transform = 'translateX(0)';
 
-      // Geocode address if we don't have coordinates
-      if (needsGeocode) {
-        geocodeForCallDetail(address, googleMapsKey);
-      }
+      // Load async content AFTER pane is visible
+      setTimeout(() => {
+        // Load notes
+        loadCallDetailNotes(recordType, record.id);
 
-      pane.classList.remove('hidden');
+        // Load map image (either from coords or geocode)
+        const mapContainer = document.getElementById('callDetailMapContainer');
+        if (mapContainer) {
+          if (mapPreviewUrl) {
+            loadMapImage(mapContainer, mapPreviewUrl, streetViewUrl);
+          } else if (needsGeocode) {
+            geocodeForCallDetail(address, googleMapsKey);
+          }
+        }
+      }, 50);
+    }
+
+    // Load map image into container
+    function loadMapImage(container, mapUrl, streetViewUrl) {
+      // Keep container styles, just replace content
+      container.classList.remove('flex', 'items-center', 'justify-center');
+      container.innerHTML = `
+        <a href="${streetViewUrl}" target="_blank" rel="noopener" class="block" style="height: 100px;">
+          <img src="${mapUrl}" alt="Map preview" class="w-full object-cover cursor-pointer hover:opacity-90" style="height: 100px;">
+        </a>
+      `;
     }
 
     // Geocode address and update map preview in call detail pane
     async function geocodeForCallDetail(address, apiKey) {
       const mapContainer = document.getElementById('callDetailMapContainer');
-      const placeholder = document.getElementById('callDetailMapPlaceholder');
       const streetViewLink = document.getElementById('callDetailStreetViewLink');
 
-      if (!mapContainer || !placeholder) return;
+      if (!mapContainer) return;
 
       try {
         const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`);
@@ -5233,9 +5279,10 @@
           const streetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
 
           // Replace placeholder with map
+          mapContainer.classList.remove('flex', 'items-center', 'justify-center');
           mapContainer.innerHTML = `
-            <a href="${streetViewUrl}" target="_blank" rel="noopener" id="callDetailMapLink">
-              <img src="${mapUrl}" alt="Map preview" class="w-full h-[100px] object-cover bg-base-200 cursor-pointer hover:opacity-90" loading="lazy">
+            <a href="${streetViewUrl}" target="_blank" rel="noopener" id="callDetailMapLink" class="block" style="height: 100px;">
+              <img src="${mapUrl}" alt="Map preview" class="w-full object-cover cursor-pointer hover:opacity-90" style="height: 100px;">
             </a>
           `;
 
@@ -5245,19 +5292,15 @@
             streetViewLink.style.display = '';
           }
         } else {
-          // Geocoding failed - show static placeholder
-          placeholder.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-          `;
+          // Geocoding failed - stop the pulse animation
+          const svg = mapContainer.querySelector('svg');
+          if (svg) svg.classList.remove('animate-pulse');
         }
       } catch (error) {
         console.error('Geocoding error:', error);
-        // Keep placeholder on error
-        if (placeholder) {
-          placeholder.classList.remove('animate-pulse');
-        }
+        // Stop pulse animation on error
+        const svg = mapContainer.querySelector('svg');
+        if (svg) svg.classList.remove('animate-pulse');
       }
     }
 
@@ -6464,7 +6507,7 @@
 
     function closeLeadDetail() {
       selectedLeadId = null;
-      document.getElementById('leadDetailPane').classList.add('hidden');
+      document.getElementById('leadDetailPane').style.transform = 'translateX(100%)';
       // Only re-render list view, not kanban
       if (leadsViewMode !== 'kanban') {
         renderLeadResults(allLeads, leadTotal, leadTotalPages);
@@ -7566,9 +7609,8 @@
     // Set up drawer close button (after DOM ready)
     const closeBtn = document.getElementById('closeDrawerBtn');
     const backdrop = document.getElementById('callListDrawerBackdrop');
-    console.log('Setting up drawer listeners:', { closeBtn, backdrop });
-    if (closeBtn) closeBtn.addEventListener('click', (e) => { console.log('Close btn clicked'); closeCallListDrawer(); });
-    if (backdrop) backdrop.addEventListener('click', (e) => { console.log('Backdrop clicked'); closeCallListDrawer(); });
+    if (closeBtn) closeBtn.addEventListener('click', () => closeCallListDrawer());
+    if (backdrop) backdrop.addEventListener('click', () => closeCallListDrawer());
 
     // Keyboard Shortcuts
     // =====================
@@ -7599,16 +7641,86 @@
 
       // Escape to close detail panes
       if (e.key === 'Escape') {
-        const leadPane = document.getElementById('leadDetailPane');
-        const addressPane = document.getElementById('addressDetailPane');
-        const contactPane = document.getElementById('prospectDetailPane');
+        if (currentView === 'calls') {
+          const callPane = document.getElementById('callDetailPane');
+          if (callPane && !callPane.style.transform.includes('100%')) {
+            closeCallDetailPane();
+          }
+        } else if (currentView === 'leads') {
+          const leadPane = document.getElementById('leadDetailPane');
+          if (leadPane && !leadPane.style.transform.includes('100%')) {
+            closeLeadDetail();
+          }
+        } else if (currentView === 'addresses') {
+          const addressPane = document.getElementById('addressDetailPane');
+          if (addressPane && !addressPane.style.transform.includes('100%')) {
+            closeAddressDetail();
+          }
+        } else if (currentView === 'contacts') {
+          const contactPane = document.getElementById('prospectDetailPane');
+          if (contactPane && !contactPane.style.transform.includes('100%')) {
+            closeProspectDetail();
+          }
+        } else if (currentView === 'organizations') {
+          const orgPane = document.getElementById('orgDetailPane');
+          if (orgPane && !orgPane.style.transform.includes('100%')) {
+            closeOrgDetail();
+          }
+        }
+      }
 
-        if (leadPane && !leadPane.classList.contains('hidden')) {
-          closeLeadDetail();
-        } else if (addressPane && !addressPane.classList.contains('hidden')) {
-          closeAddressDetail();
-        } else if (contactPane && !contactPane.classList.contains('hidden')) {
-          closeProspectDetail();
+      // Up/Down arrow navigation for list views
+      if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.target.matches('input, textarea, select')) {
+        const viewConfig = {
+          calls: { tbody: '#callListTableBody', idAttr: 'itemId', selectedId: selectedCallItemId, showFn: showCallDetail },
+          leads: { tbody: '#leadTableBody', idAttr: 'id', selectedId: selectedLeadId, showFn: showLeadDetail },
+          addresses: { tbody: '#addressTableBody', idAttr: 'id', selectedId: selectedAddressId, showFn: showAddressDetail },
+          contacts: { tbody: '#prospectTableBody', idAttr: 'id', selectedId: selectedProspectId, showFn: showProspectDetail },
+          organizations: { tbody: '#orgTableBody', idAttr: 'id', selectedId: currentOrgId, showFn: showOrgDetail }
+        };
+
+        const config = viewConfig[currentView];
+        if (config) {
+          const visibleRows = Array.from(document.querySelectorAll(`${config.tbody} tr`)).filter(tr => tr.style.display !== 'none');
+          if (visibleRows.length === 0) return;
+
+          e.preventDefault();
+          const currentIndex = visibleRows.findIndex(tr => tr.dataset[config.idAttr] === config.selectedId);
+          let newIndex;
+
+          if (e.key === 'ArrowDown') {
+            newIndex = currentIndex < 0 ? 0 : Math.min(currentIndex + 1, visibleRows.length - 1);
+          } else {
+            newIndex = currentIndex <= 0 ? 0 : currentIndex - 1;
+          }
+
+          const newRow = visibleRows[newIndex];
+          if (newRow) {
+            const itemId = newRow.dataset[config.idAttr];
+            config.showFn(itemId);
+            newRow.focus();
+            newRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }
+        }
+      }
+
+      // Enter to open detail pane
+      if (e.key === 'Enter' && !e.target.matches('input, textarea, select, button')) {
+        const enterConfig = {
+          calls: { paneId: 'callDetailPane', selectedId: selectedCallItemId, showFn: showCallDetail },
+          leads: { paneId: 'leadDetailPane', selectedId: selectedLeadId, showFn: showLeadDetail },
+          addresses: { paneId: 'addressDetailPane', selectedId: selectedAddressId, showFn: showAddressDetail },
+          contacts: { paneId: 'prospectDetailPane', selectedId: selectedProspectId, showFn: showProspectDetail },
+          organizations: { paneId: 'orgDetailPane', selectedId: currentOrgId, showFn: showOrgDetail }
+        };
+
+        const config = enterConfig[currentView];
+        if (config && config.selectedId) {
+          e.preventDefault();
+          const pane = document.getElementById(config.paneId);
+          if (pane && pane.style.transform.includes('100%')) {
+            config.showFn(config.selectedId);
+          }
         }
       }
 
