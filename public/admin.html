@@ -706,6 +706,10 @@
                   <input type="checkbox" id="filterHasNotes" onclick="scheduleFilter()">
                   <span class="text-xs">Has notes</span>
                 </label>
+                <label class="flex items-center gap-1 cursor-pointer select-none">
+                  <input type="checkbox" id="filterHasTags" onclick="scheduleFilter()">
+                  <span class="text-xs">Has tags</span>
+                </label>
               </div>
               <button id="removeSelectedBtn" onclick="removeSelectedFromCallList()" class="btn btn-error btn-sm hidden">
                 Remove Selected
@@ -4859,7 +4863,8 @@
       const filterHasPhone = document.getElementById('filterHasPhone')?.checked;
       const filterHasEmail = document.getElementById('filterHasEmail')?.checked;
       const filterHasNotes = document.getElementById('filterHasNotes')?.checked;
-      const hasFilters = filterHasName || filterHasPhone || filterHasEmail || filterHasNotes;
+      const filterHasTags = document.getElementById('filterHasTags')?.checked;
+      const hasFilters = filterHasName || filterHasPhone || filterHasEmail || filterHasNotes || filterHasTags;
 
       const sortedItems = callListState.sortedItems || [];
 
@@ -4868,6 +4873,7 @@
       } else {
         virtualScrollState.filteredItems = sortedItems.filter(item => {
           const record = item.contact || item.lead;
+          const isContact = !!item.contact;
           const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim() || '';
           const hasName = name && name !== 'Unknown' && name !== '---' && name !== '-';
           const phone = record?.phones?.[0]?.phone_number || record?.phone || '';
@@ -4877,11 +4883,14 @@
           const hasEmail = email && email !== '-';
           const notes = record?.latestNote?.content || record?.notes || '';
           const hasNotes = !!notes;
+          const tags = isContact ? (record?.project?.tags || []) : [];
+          const hasTags = tags.length > 0;
 
           if (filterHasName && !hasName) return false;
           if (filterHasPhone && !hasPhone) return false;
           if (filterHasEmail && !hasEmail) return false;
           if (filterHasNotes && !hasNotes) return false;
+          if (filterHasTags && !hasTags) return false;
           return true;
         });
       }
@@ -5039,12 +5048,15 @@
       const isChecked = callListState.checkedItems.has(item.id);
       const updatedAt = record?.updatedAt ? new Date(record.updatedAt).toLocaleDateString() : '-';
       const tags = isContact ? (record?.project?.tags || []) : [];
+      const maxVisibleTags = 2;
+      const visibleTags = tags.slice(0, maxVisibleTags);
+      const extraCount = tags.length - maxVisibleTags;
       const tagsHtml = tags.length > 0
-        ? tags.map(t => {
+        ? visibleTags.map(t => {
             const tagName = t.display_value || t.displayValue || t.value || t;
             const tagColor = t.color || '#6b7280';
             return `<span class="badge badge-xs text-center" style="background-color: ${tagColor}; color: white; border: none; min-width: 60px;">${tagName}</span>`;
-          }).join(' ')
+          }).join(' ') + (extraCount > 0 ? ` <span class="badge badge-xs badge-ghost">+${extraCount}</span>` : '')
         : '-';
       const statusBadge = status ? getStatusBadge(status) : '-';
       const notes = record?.latestNote?.content || record?.notes || '';
