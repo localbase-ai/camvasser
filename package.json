@@ -4,7 +4,7 @@
   "description": "Turn your CompanyCam projects into lead generation machines",
   "type": "module",
   "scripts": {
-    "dev": "netlify dev",
+    "dev": "lsof -ti:8888 -ti:3999 | xargs kill -9 2>/dev/null; netlify dev",
     "build": "npx prisma generate && npm run build:css",
     "build:css": "npx @tailwindcss/cli -i public/styles/input.css -o public/styles/output.css --minify",
     "watch:css": "npx @tailwindcss/cli -i public/styles/input.css -o public/styles/output.css --watch",

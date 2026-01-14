@@ -63,12 +63,16 @@ export async function handler(event) {
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
 
-    // Get primary phone and email
+    // Get primary phone and email (filter out "-" placeholder values)
     const phones = prospect.phones || [];
-    const primaryPhone = phones[0]?.number || phones[0] || null;
+    const firstPhone = phones[0];
+    let primaryPhone = firstPhone?.phone_number || firstPhone?.number || (typeof firstPhone === 'string' ? firstPhone : null);
+    if (primaryPhone === '-' || primaryPhone === '---') primaryPhone = null;
 
     const emails = prospect.emails || [];
-    const primaryEmail = emails[0]?.address || emails[0] || null;
+    const firstEmail = emails[0];
+    let primaryEmail = firstEmail?.email_address || firstEmail?.address || (typeof firstEmail === 'string' ? firstEmail : null);
+    if (primaryEmail === '-' || primaryEmail === '---') primaryEmail = null;
 
     // Build address string
     const addressParts = [];
@@ -86,7 +90,7 @@ export async function handler(event) {
         email: primaryEmail,
         phone: primaryPhone,
         address: fullAddress,
-        projectId: prospect.ProjectId,
+        projectId: prospect.projectId,
         tenant: prospect.tenant || user.slug,
         status: 'new',
         source: 'converted_from_contact',

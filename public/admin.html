@@ -754,10 +754,10 @@
                       <th class="w-[120px] cursor-pointer hover:bg-base-200" onclick="sortCallList('phone')">Phone</th>
                       <th class="w-[180px] cursor-pointer hover:bg-base-200" onclick="sortCallList('email')">Email</th>
                       <th class="w-[180px] cursor-pointer hover:bg-base-200" onclick="sortCallList('address')">Address</th>
-                      <th class="w-[140px]">Tags</th>
                       <th class="w-[100px] cursor-pointer hover:bg-base-200" onclick="sortCallList('status')">Status</th>
                       <th class="w-[90px] cursor-pointer hover:bg-base-200" onclick="sortCallList('updatedAt')">Updated</th>
                       <th class="w-[150px]">Notes</th>
+                      <th class="w-10"></th>
                       <th class="w-10"></th>
                     </tr>
                   </thead>
@@ -4846,18 +4846,17 @@
       lastScrollTop: 0
     };
 
-    // Schedule filter to run AFTER checkbox renders
-    let filterScheduled = false;
+    // Schedule filter with delay so checkbox updates instantly (purely visual first)
+    let filterTimeout = null;
     function scheduleFilter() {
-      if (filterScheduled) return;
-      filterScheduled = true;
-      setTimeout(() => {
-        filterScheduled = false;
+      if (filterTimeout) clearTimeout(filterTimeout);
+      filterTimeout = setTimeout(() => {
+        filterTimeout = null;
         applyCallListFilters();
-      }, 0);
+      }, 100); // Small delay lets checkbox paint first
     }
 
-    // Apply filters to sorted items and re-render
+    // Apply filters to sorted items and re-render (uses pre-computed _filter values)
     function applyCallListFilters() {
       const filterHasName = document.getElementById('filterHasName')?.checked;
       const filterHasPhone = document.getElementById('filterHasPhone')?.checked;
@@ -4871,26 +4870,15 @@
       if (!hasFilters) {
         virtualScrollState.filteredItems = sortedItems;
       } else {
+        // Fast filtering using pre-computed _filter values
         virtualScrollState.filteredItems = sortedItems.filter(item => {
-          const record = item.contact || item.lead;
-          const isContact = !!item.contact;
-          const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim() || '';
-          const hasName = name && name !== 'Unknown' && name !== '---' && name !== '-';
-          const phone = record?.phones?.[0]?.phone_number || record?.phone || '';
-          const hasPhone = phone && phone !== '-';
-          const emailObj = record?.emails?.[0];
-          const email = emailObj?.email_address || emailObj?.address || (typeof emailObj === 'string' ? emailObj : null) || record?.email || '';
-          const hasEmail = email && email !== '-';
-          const notes = record?.latestNote?.content || record?.notes || '';
-          const hasNotes = !!notes;
-          const tags = isContact ? (record?.project?.tags || []) : [];
-          const hasTags = tags.length > 0;
-
-          if (filterHasName && !hasName) return false;
-          if (filterHasPhone && !hasPhone) return false;
-          if (filterHasEmail && !hasEmail) return false;
-          if (filterHasNotes && !hasNotes) return false;
-          if (filterHasTags && !hasTags) return false;
+          const f = item._filter;
+          if (!f) return true; // Fallback if no filter data
+          if (filterHasName && !f.hasName) return false;
+          if (filterHasPhone && !f.hasPhone) return false;
+          if (filterHasEmail && !f.hasEmail) return false;
+          if (filterHasNotes && !f.hasNotes) return false;
+          if (filterHasTags && !f.hasTags) return false;
           return true;
         });
       }
@@ -5048,16 +5036,13 @@
       const isChecked = callListState.checkedItems.has(item.id);
       const updatedAt = record?.updatedAt ? new Date(record.updatedAt).toLocaleDateString() : '-';
       const tags = isContact ? (record?.project?.tags || []) : [];
-      const maxVisibleTags = 2;
-      const visibleTags = tags.slice(0, maxVisibleTags);
-      const extraCount = tags.length - maxVisibleTags;
       const tagsHtml = tags.length > 0
-        ? visibleTags.map(t => {
-            const tagName = t.display_value || t.displayValue || t.value || t;
-            const tagColor = t.color || '#6b7280';
-            return `<span class="badge badge-xs text-center" style="background-color: ${tagColor}; color: white; border: none; min-width: 60px;">${tagName}</span>`;
-          }).join(' ') + (extraCount > 0 ? ` <span class="badge badge-xs badge-ghost">+${extraCount}</span>` : '')
-        : '-';
+        ? `<span class="text-base-content/60 cursor-pointer hover:text-primary" title="${tags.length} tag${tags.length > 1 ? 's' : ''} - click to view">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+          </span>`
+        : '';
       const statusBadge = status ? getStatusBadge(status) : '-';
       const notes = record?.latestNote?.content || record?.notes || '';
       const notesTruncated = notes.length > 40 ? notes.substring(0, 40) + '...' : notes;
@@ -5088,10 +5073,10 @@
           <td class="w-[120px] text-sm truncate">${phone}</td>
           <td class="w-[180px] text-sm truncate" title="${email}">${email}</td>
           <td class="w-[180px] text-sm truncate" title="${address}">${address}</td>
-          <td class="w-[140px] text-sm whitespace-nowrap overflow-hidden"><div class="flex gap-1 flex-wrap">${tagsHtml !== '-' ? tagsHtml : '-'}</div></td>
           <td class="w-[100px]">${statusBadge}</td>
           <td class="w-[90px] text-sm text-base-content/60">${updatedAt}</td>
           <td class="w-[150px] text-sm text-base-content/60 truncate" title="${notes.replace(/"/g, '&quot;')}">${notesTruncated || '-'}</td>
+          <td class="w-10 text-center">${tagsHtml}</td>
           <td class="w-10" onclick="event.stopPropagation()">
             <button onclick="removeCallListItem('${item.id}')" class="btn btn-ghost btn-xs btn-square text-error hover:bg-error hover:text-white" title="Remove from list">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -5799,7 +5784,28 @@
         const items = data.items || [];
         const script = data.script;
 
-        currentCallListItems = items;
+        // Pre-compute filter values for instant filtering
+        currentCallListItems = items.map(item => {
+          const record = item.contact || item.lead;
+          const isContact = !!item.contact;
+          const name = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim() || '';
+          const phone = record?.phones?.[0]?.phone_number || record?.phone || '';
+          const emailObj = record?.emails?.[0];
+          const email = emailObj?.email_address || emailObj?.address || (typeof emailObj === 'string' ? emailObj : null) || record?.email || '';
+          const notes = record?.latestNote?.content || record?.notes || '';
+          const tags = isContact ? (record?.project?.tags || []) : [];
+
+          return {
+            ...item,
+            _filter: {
+              hasName: !!(name && name !== 'Unknown' && name !== '---' && name !== '-'),
+              hasPhone: !!(phone && phone !== '-'),
+              hasEmail: !!(email && email !== '-'),
+              hasNotes: !!notes,
+              hasTags: tags.length > 0
+            }
+          };
+        });
         callListState.checkedItems.clear();
 
         // Hide loading state
