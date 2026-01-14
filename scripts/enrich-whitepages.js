@@ -7,6 +7,8 @@ const BASE_URL = 'https://api.whitepages.com';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const VERBOSE = process.argv.includes('--verbose');
+const CAMPAIGN = process.argv.find(a => a.startsWith('--campaign='))?.split('=')[1];
+const LIMIT = parseInt(process.argv.find(a => a.startsWith('--limit='))?.split('=')[1] || '0', 10);
 
 // Statuses that trigger REPLACE (old data was bad)
 const REPLACE_STATUSES = ['wrong_number'];
@@ -82,33 +84,50 @@ async function main() {
   console.log('Whitepages Enrichment Script');
   console.log('='.repeat(70));
   console.log(`Mode: ${DRY_RUN ? 'DRY RUN (no changes)' : 'LIVE'}`);
+  if (CAMPAIGN) console.log(`Campaign: ${CAMPAIGN}`);
+  if (LIMIT) console.log(`Limit: ${LIMIT} addresses`);
   console.log('');
 
-  // Get prospects with Door Hanger tag via project.tags JSON field
-  // Skip already enriched records, only eligible statuses
-  const prospects = await prisma.$queryRaw`
-    SELECT
-      p.id, p.name, p.status, p.phones, p.emails, p."projectId",
-      proj.address, proj.city, proj.state, proj.tags
-    FROM "Prospect" p
-    JOIN "Project" proj ON p."projectId" = proj.id
-    WHERE proj.tags::text ILIKE '%Door Hanger%'
-      AND p."enrichedAt" IS NULL
-      AND (p.status IS NULL OR p.status IN ('no_answer', 'wrong_number'))
-  `;
+  // Get prospects - either by campaign or by Door Hanger tag
+  let prospects;
+  if (CAMPAIGN) {
+    // Filter by campaign
+    prospects = await prisma.$queryRaw`
+      SELECT
+        p.id, p.name, p.status, p.phones, p.emails, p."projectId", p."lookupAddress",
+        proj.address, proj.city, proj.state, proj.tags
+      FROM "Prospect" p
+      LEFT JOIN "Project" proj ON p."projectId" = proj.id
+      WHERE p.campaign = ${CAMPAIGN}
+        AND p."enrichedAt" IS NULL
+        AND (p.status IS NULL OR p.status IN ('no_answer', 'wrong_number'))
+    `;
+  } else {
+    // Default: Get prospects with Door Hanger tag via project.tags JSON field
+    prospects = await prisma.$queryRaw`
+      SELECT
+        p.id, p.name, p.status, p.phones, p.emails, p."projectId",
+        proj.address, proj.city, proj.state, proj.tags
+      FROM "Prospect" p
+      JOIN "Project" proj ON p."projectId" = proj.id
+      WHERE proj.tags::text ILIKE '%Door Hanger%'
+        AND p."enrichedAt" IS NULL
+        AND (p.status IS NULL OR p.status IN ('no_answer', 'wrong_number'))
+    `;
+  }
 
   // Convert to expected format
   const filtered = prospects.map(p => ({
     ...p,
     project: {
-      address: p.address,
-      city: p.city,
-      state: p.state,
+      address: p.address || p.lookupAddress?.split(',')[0],
+      city: p.city || p.lookupAddress?.split(',')[1]?.trim(),
+      state: p.state || p.lookupAddress?.split(',')[2]?.trim()?.split(' ')[0],
       tags: p.tags
     }
   }));
 
-  console.log(`Found ${filtered.length} prospects with door-hanger/melt-pattern tags`);
+  console.log(`Found ${filtered.length} prospects${CAMPAIGN ? ` in campaign "${CAMPAIGN}"` : ' with door-hanger tags'}`);
 
   // Group by address
   const byAddress = new Map();
@@ -129,6 +148,12 @@ async function main() {
   let apiCalls = 0;
 
   for (const [key, { address, prospects }] of byAddress) {
+    // Stop if we've hit the limit
+    if (LIMIT && apiCalls >= LIMIT) {
+      console.log(`\n⚠ Reached limit of ${LIMIT} API calls, stopping.`);
+      break;
+    }
+
     console.log(`\n${'─'.repeat(70)}`);
     console.log(`📍 ${address.address}, ${address.city}, ${address.state}`);
     console.log(`   ${prospects.length} prospect(s) at this address`);
@@ -138,8 +163,9 @@ async function main() {
     try {
       wpData = await lookupProperty(address.address, address.city, address.state);
       apiCalls++;
-      console.log(`   ✓ Whitepages lookup successful`);
+      console.log(`   ✓ Whitepages lookup successful (${apiCalls}${LIMIT ? '/' + LIMIT : ''})`);
     } catch (err) {
+      apiCalls++; // Count failed attempts too
       console.log(`   ✗ Whitepages error: ${err.message}`);
       continue;
     }

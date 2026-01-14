@@ -174,7 +174,8 @@ export async function handler(event) {
       phone: 'phones',
       phones: 'phones',
       name: 'name',
-      address: 'project.address'
+      address: 'project.address',
+      wp: 'enrichedAt'
     };
 
     // Apply field filters to where clause
@@ -230,6 +231,14 @@ export async function handler(event) {
               ]
             }
           });
+        }
+      } else if (dbField === 'enrichedAt') {
+        // enrichedAt is a timestamp - null means not enriched
+        where.AND = where.AND || [];
+        if (filter.isEmpty) {
+          where.AND.push({ enrichedAt: null });
+        } else {
+          where.AND.push({ enrichedAt: { not: null } });
         }
       }
     }

@@ -314,17 +314,15 @@
                 <button onclick="clearProspectAddressFilter()" class="btn btn-xs btn-ghost text-primary">Clear</button>
               </div>
             </div>
-            <div class="flex flex-wrap gap-2 items-center flex-1 overflow-visible">
-              <input type="text" id="prospectSearch" placeholder="Search contacts..." class="input input-bordered input-sm flex-1 min-w-[200px]">
-              <select id="contactTypeFilter" class="select select-bordered select-sm">
-                <option value="">Prospects</option>
-                <option value="org">Org Contacts</option>
-                <option value="all">All Contacts</option>
+            <div class="flex gap-2 items-center flex-1 overflow-visible">
+              <input type="text" id="prospectSearch" placeholder="Search..." class="input input-bordered input-sm flex-1 min-w-[150px]">
+              <select id="prospectCampaignFilter" class="select select-bordered select-sm select-xs">
+                <option value="">All Campaigns</option>
               </select>
-              <select id="prospectTagFilter" class="select select-bordered select-sm" onchange="updateProspectTagFilter()">
+              <select id="prospectTagFilter" class="select select-bordered select-sm select-xs" onchange="updateProspectTagFilter()">
                 <option value="">All Tags</option>
               </select>
-              <select id="prospectStatusFilter" class="select select-bordered select-sm">
+              <select id="prospectStatusFilter" class="select select-bordered select-sm select-xs">
                 <option value="">All Statuses</option>
                 <option value="no_status">No Status</option>
                 <optgroup label="Calling">
@@ -344,12 +342,8 @@
                   <option value="bounced">Bounced</option>
                 </optgroup>
               </select>
-              <select id="prospectCampaignFilter" class="select select-bordered select-sm">
-                <option value="">All Campaigns</option>
-              </select>
-              <button onclick="showSmartLeadModal()" class="btn btn-sm btn-ghost gap-1">
+              <button onclick="showSmartLeadModal()" class="btn btn-sm btn-ghost btn-xs gap-1" title="SmartLead Export">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /></svg>
-                SmartLead
               </button>
             </div>
           </div>
@@ -1191,13 +1185,13 @@
               <table class="table w-full">
                 <thead class="sticky top-0 bg-base-100 z-10">
                   <tr>
-                    <th class="cursor-pointer hover:bg-base-200" onclick="sortOrganizations('name')">Name</th>
-                    <th class="cursor-pointer hover:bg-base-200" onclick="sortOrganizations('type')">Type</th>
-                    <th>City</th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortOrganizations('name')">Name <span id="orgSortName" class="text-xs opacity-50"></span></th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortOrganizations('type')">Type <span id="orgSortType" class="text-xs opacity-50"></span></th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortOrganizations('city')">City <span id="orgSortCity" class="text-xs opacity-50"></span></th>
                     <th>Phone</th>
                     <th>Website</th>
-                    <th>Contacts</th>
-                    <th>Properties</th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortOrganizations('_count.contacts')">Contacts <span id="orgSort_count.contacts" class="text-xs opacity-50"></span></th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortOrganizations('_count.properties')">Properties <span id="orgSort_count.properties" class="text-xs opacity-50"></span></th>
                   </tr>
                 </thead>
                 <tbody id="orgTableBody">
@@ -1978,8 +1972,19 @@
         orgSort.column = column;
         orgSort.direction = 'asc';
       }
+      updateOrgSortIndicators();
       orgPage = 1;
       loadOrganizations();
+    }
+
+    function updateOrgSortIndicators() {
+      ['name', 'type', 'city', '_count.contacts', '_count.properties'].forEach(col => {
+        const el = document.getElementById('orgSort' + col.charAt(0).toUpperCase() + col.slice(1)) ||
+                   document.getElementById('orgSort' + col);
+        if (el) {
+          el.textContent = orgSort.column === col ? (orgSort.direction === 'asc' ? '↑' : '↓') : '';
+        }
+      });
     }
 
     function searchOrganizations() {
@@ -2415,7 +2420,6 @@
       // Tag filter is handled by updateProspectTagFilter() via checkbox onchange
       document.getElementById('prospectStatusFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
       document.getElementById('prospectCampaignFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
-      document.getElementById('contactTypeFilter').addEventListener('change', () => { prospectPage = 1; searchProspects(); });
 
       // Lead search - use server-side search
       let leadSearchTimeout;
@@ -2488,7 +2492,6 @@
       const searchQuery = document.getElementById('prospectSearch').value.trim();
       const statusFilter = document.getElementById('prospectStatusFilter').value;
       const campaignFilter = document.getElementById('prospectCampaignFilter').value;
-      const contactType = document.getElementById('contactTypeFilter').value;
 
       const params = new URLSearchParams({
         limit: PAGE_SIZE.toString(),
@@ -2502,7 +2505,6 @@
       if (selectedProspectTags.length > 0) params.set('tags', selectedProspectTags.join(','));
       if (statusFilter) params.set('statusFilter', statusFilter);
       if (campaignFilter) params.set('campaign', campaignFilter);
-      if (contactType) params.set('contactType', contactType);
       if (currentAddressFilter) params.set('projectId', currentAddressFilter.id);
 
       try {
@@ -3001,6 +3003,9 @@
             .join(' ');
 
           const isEnriched = !!prospect.enrichedAt;
+          // Organization can come from OrganizationContact array (regular prospects) or organization field (org contacts)
+          const org = prospect.organization || prospect.OrganizationContact?.[0]?.Organization;
+          const hasOrg = !!org;
 
           return `
             <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'row-selected' : ''} ${isEnriched ? 'border-l-4 border-l-warning' : ''}" data-id="${prospect.id}" tabindex="0" onclick="showProspectDetail('${prospect.id}')">
@@ -3010,6 +3015,7 @@
               <td class="font-medium" onclick="showProspectDetail('${prospect.id}')">
                 ${prospect.name || '-'}
                 ${isEnriched ? '<span class="badge badge-warning badge-xs ml-1" title="Whitepages enriched">WP</span>' : ''}
+                ${hasOrg ? '<span class="badge badge-info badge-xs ml-1" title="Has organization: ' + escapeHtml(org.name || '') + '">ORG</span>' : ''}
               </td>
               <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${prospect.project ? [prospect.project.address, prospect.project.city, prospect.project.state].filter(Boolean).join(', ') : '-'}</td>
               <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${phoneDisplay}</td>
@@ -4859,13 +4865,29 @@
 
     // Apply filters to sorted items and re-render (uses pre-computed _filter values)
     function applyCallListFilters() {
-      const searchQuery = (document.getElementById('callListSearch')?.value || '').toLowerCase().trim();
+      let searchQuery = (document.getElementById('callListSearch')?.value || '').toLowerCase().trim();
       const filterHasName = document.getElementById('filterHasName')?.checked;
       const filterHasPhone = document.getElementById('filterHasPhone')?.checked;
       const filterHasEmail = document.getElementById('filterHasEmail')?.checked;
       const filterHasNotes = document.getElementById('filterHasNotes')?.checked;
       const filterHasTags = document.getElementById('filterHasTags')?.checked;
-      const hasFilters = searchQuery || filterHasName || filterHasPhone || filterHasEmail || filterHasNotes || filterHasTags;
+
+      // Parse inline filters from search query (has:wp, no:wp, has:org, no:org, or just wp/org)
+      const inlineFilters = {};
+      searchQuery = searchQuery.replace(/\b(has|no):(wp|org)\b/gi, (match, prefix, field) => {
+        inlineFilters[field.toLowerCase()] = prefix.toLowerCase() === 'has';
+        return '';
+      }).replace(/\b(wp|org)\b/gi, (match) => {
+        inlineFilters[match.toLowerCase()] = true;
+        return '';
+      }).trim();
+
+      const filterHasWP = inlineFilters.wp === true;
+      const filterNoWP = inlineFilters.wp === false;
+      const filterHasOrg = inlineFilters.org === true;
+      const filterNoOrg = inlineFilters.org === false;
+
+      const hasFilters = searchQuery || filterHasName || filterHasPhone || filterHasEmail || filterHasNotes || filterHasTags || filterHasWP || filterNoWP || filterHasOrg || filterNoOrg;
 
       const sortedItems = callListState.sortedItems || [];
 
@@ -4884,6 +4906,11 @@
           if (filterHasEmail && !f.hasEmail) return false;
           if (filterHasNotes && !f.hasNotes) return false;
           if (filterHasTags && !f.hasTags) return false;
+          // Inline search filters
+          if (filterHasWP && !f.hasWP) return false;
+          if (filterNoWP && f.hasWP) return false;
+          if (filterHasOrg && !f.hasOrg) return false;
+          if (filterNoOrg && f.hasOrg) return false;
           return true;
         });
       }
@@ -5041,6 +5068,8 @@
       const isChecked = callListState.checkedItems.has(item.id);
       const updatedAt = record?.updatedAt ? new Date(record.updatedAt).toLocaleDateString() : '-';
       const tags = isContact ? (record?.project?.tags || []) : [];
+      const isEnriched = !!record?.enrichedAt;
+      const hasOrg = !!record?.organization;
       const tagsHtml = tags.length > 0
         ? `<span class="text-base-content/60 cursor-pointer hover:text-primary" title="${tags.length} tag${tags.length > 1 ? 's' : ''} - click to view">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -5074,7 +5103,7 @@
               </svg>
             </a>
           </td>
-          <td class="w-[140px] font-medium truncate" title="${escapeHtml(name)}">${escapeHtml(name)}</td>
+          <td class="w-[140px] font-medium truncate" title="${escapeHtml(name)}">${escapeHtml(name)}${isEnriched ? '<span class="badge badge-warning badge-xs ml-1" title="Whitepages enriched">WP</span>' : ''}${hasOrg ? '<span class="badge badge-info badge-xs ml-1" title="Has organization">ORG</span>' : ''}</td>
           <td class="w-[120px] text-sm truncate">${phone}</td>
           <td class="w-[180px] text-sm truncate" title="${email}">${email}</td>
           <td class="w-[180px] text-sm truncate" title="${address}">${address}</td>
@@ -5362,6 +5391,23 @@
         ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`
         : null;
 
+      // Organization section
+      const org = isContact ? record.organization : null;
+      const orgHtml = org ? `
+        <div class="py-2 border-b border-base-300">
+          <label class="text-xs text-base-content/60 uppercase font-medium block mb-1">Organization</label>
+          <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <div>
+              <a href="#organizations" onclick="showOrganizationDetail('${org.id}')" class="font-medium link link-hover">${escapeHtml(org.name)}</a>
+              ${org.type ? `<span class="badge badge-xs badge-ghost ml-2">${org.type}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      ` : '';
+
       // Address section - placeholder image + street view link (no API calls)
       const mapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
       const addressHtml = address ? `
@@ -5403,6 +5449,9 @@
             </div>
             ${viewDetailsLink}
           </div>
+
+          <!-- Organization Section -->
+          ${orgHtml}
 
           <!-- Address Section -->
           ${addressHtml}
@@ -5816,6 +5865,8 @@
               hasEmail: !!(email && email !== '-'),
               hasNotes: !!notes,
               hasTags: tags.length > 0,
+              hasWP: !!record?.enrichedAt,
+              hasOrg: !!record?.organization,
               searchText
             }
           };
@@ -6674,7 +6725,6 @@
         statusFilter: document.getElementById('prospectStatusFilter')?.value || undefined,
         campaign: document.getElementById('prospectCampaignFilter')?.value || undefined,
         tags: selectedProspectTags.length > 0 ? selectedProspectTags.join(',') : undefined,
-        contactType: document.getElementById('contactTypeFilter')?.value || undefined,
         projectId: currentAddressFilter?.id || undefined
       };
       prospectSelectAllMatching = true;

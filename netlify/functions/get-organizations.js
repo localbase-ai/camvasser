@@ -34,9 +34,18 @@ export async function handler(event) {
 
     // Build sort order - default to name asc
     const validSortFields = ['name', 'type', 'city', 'createdAt'];
-    const sortField = validSortFields.includes(sortBy) ? sortBy : 'name';
     const sortDirection = sortDir === 'desc' ? 'desc' : 'asc';
-    const orderBy = { [sortField]: sortDirection };
+
+    // Handle _count sorting (contacts, properties)
+    let orderBy;
+    if (sortBy === '_count.contacts') {
+      orderBy = { OrganizationContact: { _count: sortDirection } };
+    } else if (sortBy === '_count.properties') {
+      orderBy = { OrganizationProperty: { _count: sortDirection } };
+    } else {
+      const sortField = validSortFields.includes(sortBy) ? sortBy : 'name';
+      orderBy = { [sortField]: sortDirection };
+    }
 
     // Build where clause
     const where = { tenant };

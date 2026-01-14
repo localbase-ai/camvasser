@@ -5,10 +5,11 @@
 - [ ] Clean up marketing site and launch
 - [✅] Make the ui snappy as fuck
 - [✅] Pre-compute filter values on data load to fix checkbox lag (currently filters 3600+ items on every click)
-- [ ] test white pages enrichment on 66206 list
+- [🎯] test white pages enrichment on 66206 list
 - [✅] add search ui to call log view
 
 # Next up
+- [ ] add instant estimator as a plugin?
 - [ ] test  views for ipad landscape.
 - [ ] Test Twilio integration for outbound calling
 - [ ] Set up virtual canvassing email test

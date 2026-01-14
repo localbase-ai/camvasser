@@ -96,6 +96,13 @@ export function createMockPrisma() {
       delete: vi.fn(),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 })
     },
+    organizationContact: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn()
+    },
     $transaction: vi.fn().mockImplementation(async (fn) => fn(this)),
     $queryRaw: vi.fn().mockResolvedValue([]),
     $queryRawUnsafe: vi.fn().mockResolvedValue([]),

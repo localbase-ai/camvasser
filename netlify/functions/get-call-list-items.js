@@ -86,11 +86,19 @@ export async function handler(event) {
     ` : [];
     const noteMap = new Map(latestNotes.map(n => [n.entityId, n]));
 
-    // Attach project tags and latest note to contacts
+    // Fetch organization associations for contacts
+    const orgContacts = contactIds.length > 0 ? await prisma.organizationContact.findMany({
+      where: { prospectId: { in: contactIds } },
+      include: { Organization: { select: { id: true, name: true, type: true } } }
+    }) : [];
+    const orgMap = new Map(orgContacts.map(oc => [oc.prospectId, oc.Organization]));
+
+    // Attach project tags, latest note, and organization to contacts
     const contactsWithTags = contacts.map(c => ({
       ...c,
       project: c.projectId ? projectMap.get(c.projectId) : null,
-      latestNote: noteMap.get(c.id) || null
+      latestNote: noteMap.get(c.id) || null,
+      organization: orgMap.get(c.id) || null
     }));
 
     const contactMap = new Map(contactsWithTags.map(c => [c.id, c]));
