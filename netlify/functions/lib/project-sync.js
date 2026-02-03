@@ -83,7 +83,8 @@ export async function syncProject(projectData, tenant, apiToken) {
         coordinates,
         ccCreatedAt,
         ccUpdatedAt,
-        lastSyncedAt: new Date()
+        lastSyncedAt: new Date(),
+        updatedAt: new Date()
       },
       create: {
         id: projectData.id,
@@ -100,7 +101,8 @@ export async function syncProject(projectData, tenant, apiToken) {
         ccCreatedAt,
         ccUpdatedAt,
         lastSyncedAt: new Date(),
-        createdAt: new Date()
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     });
 

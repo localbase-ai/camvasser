@@ -53,9 +53,10 @@ async function fetchAllProjects(sinceDate = null) {
       if (pageProjects.length === 0) break;
 
       // If filtering by date, stop when we hit older projects
+      // Note: CompanyCam API returns Unix timestamps (seconds), not milliseconds
       if (sinceDate) {
         const filteredProjects = pageProjects.filter(p =>
-          new Date(p.updated_at) >= sinceDate
+          new Date(p.updated_at * 1000) >= sinceDate
         );
         projects.push(...filteredProjects);
 
@@ -157,6 +158,7 @@ async function syncProject(projectData, dryRun = false) {
   }
 
   // Don't overwrite local tags - we manage those separately
+  // Note: CompanyCam API returns Unix timestamps (seconds), not milliseconds
   const projectRecord = {
     tenant: TENANT,
     address: projectData.address?.street_address_1 || null,
@@ -168,9 +170,10 @@ async function syncProject(projectData, dryRun = false) {
     photoCount: projectData.photo_count || 0,
     publicUrl: projectData.public_url || null,
     coordinates,
-    ccCreatedAt: projectData.created_at ? new Date(projectData.created_at) : null,
-    ccUpdatedAt: projectData.updated_at ? new Date(projectData.updated_at) : null,
-    lastSyncedAt: new Date()
+    ccCreatedAt: projectData.created_at ? new Date(projectData.created_at * 1000) : null,
+    ccUpdatedAt: projectData.updated_at ? new Date(projectData.updated_at * 1000) : null,
+    lastSyncedAt: new Date(),
+    updatedAt: new Date()
     // NOTE: tags are managed locally, not synced from CompanyCam
   };
 
