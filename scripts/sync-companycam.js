@@ -157,8 +157,15 @@ async function syncProject(projectData, dryRun = false) {
     coordinates = await geocodeAddress(projectData.address);
   }
 
-  // Don't overwrite local tags - we manage those separately
   // Note: CompanyCam API returns Unix timestamps (seconds), not milliseconds
+  // Format labels for the tags JSON field (UI reads from here)
+  const tagsJson = labels.map(label => ({
+    id: label.id,
+    value: label.value,
+    display_value: label.display_value || label.value,
+    tagType: 'companycam'
+  }));
+
   const projectRecord = {
     tenant: TENANT,
     address: projectData.address?.street_address_1 || null,
@@ -169,12 +176,13 @@ async function syncProject(projectData, dryRun = false) {
     status: projectData.status || null,
     photoCount: projectData.photo_count || 0,
     publicUrl: projectData.public_url || null,
+    featureImage: projectData.feature_image || null,
+    tags: tagsJson.length > 0 ? tagsJson : null,
     coordinates,
     ccCreatedAt: projectData.created_at ? new Date(projectData.created_at * 1000) : null,
     ccUpdatedAt: projectData.updated_at ? new Date(projectData.updated_at * 1000) : null,
     lastSyncedAt: new Date(),
     updatedAt: new Date()
-    // NOTE: tags are managed locally, not synced from CompanyCam
   };
 
   if (!dryRun) {
@@ -187,6 +195,29 @@ async function syncProject(projectData, dryRun = false) {
         createdAt: new Date()
       }
     });
+
+    // Sync labels from CompanyCam to ProjectLabel table
+    if (labels.length > 0) {
+      // Delete existing CompanyCam labels (tagType = 'companycam') for this project
+      await prisma.projectLabel.deleteMany({
+        where: {
+          projectId: projectData.id,
+          tagType: 'companycam'
+        }
+      });
+
+      // Insert new labels
+      await prisma.projectLabel.createMany({
+        data: labels.map(label => ({
+          id: `${projectData.id}-${label.id}`,
+          projectId: projectData.id,
+          labelId: label.id,
+          displayValue: label.display_value || label.value,
+          value: label.value,
+          tagType: 'companycam'
+        }))
+      });
+    }
   }
 
   return { labels: labels.length, geocoded: !!coordinates };
