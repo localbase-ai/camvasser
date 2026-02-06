@@ -3032,8 +3032,8 @@
               <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${prospect.project ? [prospect.project.address, prospect.project.city, prospect.project.state].filter(Boolean).join(', ') : '-'}</td>
               <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${phoneDisplay}</td>
               <td class="text-sm max-w-[200px] truncate" onclick="showProspectDetail('${prospect.id}')">${email}</td>
-              <td onclick="showProspectDetail('${prospect.id}')">${typeBadges || '-'}</td>
-              <td class="max-w-[150px]" onclick="showProspectDetail('${prospect.id}')">${tags || '-'}</td>
+              <td class="max-w-[100px] overflow-hidden" onclick="showProspectDetail('${prospect.id}')">${typeBadges || '-'}</td>
+              <td class="max-w-[150px] overflow-hidden truncate" onclick="showProspectDetail('${prospect.id}')">${tags || '-'}</td>
               <td class="text-sm" onclick="showProspectDetail('${prospect.id}')">${prospect.campaign || '-'}</td>
               <td onclick="showProspectDetail('${prospect.id}')">${status}</td>
               <td class="text-sm text-base-content/60" onclick="showProspectDetail('${prospect.id}')">${created}</td>
