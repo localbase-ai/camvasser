@@ -267,6 +267,20 @@ export async function handler(event) {
           where.isHomeowner = ['yes', 'true', '1'].includes(valueLower);
         } else if (fieldLower === 'resident') {
           where.isCurrentResident = ['yes', 'true', '1'].includes(valueLower);
+        } else if (fieldLower === 'tag' || fieldLower === 'tags') {
+          // Search for contacts by project tag value
+          const tagPattern = `%"value": "${value.trim().replace(/"/g, '')}"%`;
+          const projectsWithTag = await prisma.$queryRaw`
+            SELECT id FROM "Project"
+            WHERE tags::text ILIKE ${tagPattern}
+          `;
+          const tagProjectIds = projectsWithTag.map(p => p.id);
+          if (tagProjectIds.length === 0) {
+            // No matching projects, return empty
+            where.id = { in: [] };
+          } else {
+            where.projectId = { in: tagProjectIds };
+          }
         } else {
           // Simple ILIKE search for other field queries
           where.OR = [
@@ -377,17 +391,24 @@ export async function handler(event) {
         .sort((a, b) => b.count - a.count);
     }
 
+    // Normalize field names for frontend (Project -> project)
+    const normalizedProspects = prospects.map(p => ({
+      ...p,
+      project: p.Project,
+      Project: undefined
+    }));
+
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        count: prospects.length,
+        count: normalizedProspects.length,
         total: totalCount,
         page: pageNum,
         totalPages: Math.ceil(totalCount / limitNum),
         homeowners: homeownerCount,
         campaigns,
-        prospects
+        prospects: normalizedProspects
       })
     };
 
