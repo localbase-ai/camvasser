@@ -268,8 +268,8 @@ export async function handler(event) {
         } else if (fieldLower === 'resident') {
           where.isCurrentResident = ['yes', 'true', '1'].includes(valueLower);
         } else if (fieldLower === 'tag' || fieldLower === 'tags') {
-          // Search for contacts by project tag value
-          const tagPattern = `%"value": "${value.trim().replace(/"/g, '')}"%`;
+          // Search for contacts by project tag value (partial match)
+          const tagPattern = `%${value.trim().replace(/"/g, '')}%`;
           const projectsWithTag = await prisma.$queryRaw`
             SELECT id FROM "Project"
             WHERE tags::text ILIKE ${tagPattern}
