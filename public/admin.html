@@ -2997,22 +2997,22 @@
           const emailObj = prospect.emails?.[0];
           const email = emailObj?.email_address || emailObj?.address || emailObj || '-';
 
-          // Type - comma separated text
-          const types = [];
-          if (prospect.isHomeowner) types.push('Owner');
-          if (prospect.isCurrentResident) types.push('Resident');
-          if (prospect.isDead) types.push('Deceased');
-          const typeBadges = types.join(', ');
+          // Type badges - inline with nowrap
+          const typeArr = [];
+          if (prospect.isHomeowner) typeArr.push('<span class="badge badge-neutral badge-xs">Owner</span>');
+          if (prospect.isCurrentResident) typeArr.push('<span class="badge badge-ghost badge-xs">Resident</span>');
+          if (prospect.isDead) typeArr.push('<span class="badge badge-outline badge-xs">Deceased</span>');
+          const typeBadges = `<span class="whitespace-nowrap">${typeArr.join(' ')}</span>`;
 
           const status = prospect.status ? getStatusBadge(prospect.status) : '-';
           const created = prospect.createdAt ? formatDate(prospect.createdAt) : '-';
           const updated = prospect.updatedAt ? formatDate(prospect.updatedAt) : '-';
           const isSelected = selectedProspectId === prospect.id;
 
-          // Tags from project - comma separated, no badges
-          const tags = (prospect.project?.tags || [])
-            .map(t => t.displayValue || t.display_value || t.value)
-            .join(', ');
+          // Tags from project - badges inline with nowrap
+          const tagArr = (prospect.project?.tags || [])
+            .map(t => `<span class="badge badge-outline badge-xs">${t.displayValue || t.display_value || t.value}</span>`);
+          const tags = `<span class="whitespace-nowrap">${tagArr.join(' ')}</span>`;
 
           const isEnriched = !!prospect.enrichedAt;
           // Organization can come from OrganizationContact array (regular prospects) or organization field (org contacts)
