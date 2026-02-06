@@ -287,12 +287,28 @@ export async function handler(event) {
         const ids = projectIds.map(p => p.id);
         where.projectId = ids.length > 0 ? { in: ids } : { in: [] };
       } else {
-        // Simple ILIKE search for general queries
-        where.OR = [
+        // Search name, company, job title, and project tags
+        // First find projects with matching tags
+        const tagPattern = `%${searchText}%`;
+        const projectsWithTag = await prisma.$queryRaw`
+          SELECT id FROM "Project"
+          WHERE tags::text ILIKE ${tagPattern}
+        `;
+        const tagProjectIds = projectsWithTag.map(p => p.id);
+
+        // Build OR conditions including tag matches
+        const orConditions = [
           { name: { contains: searchText, mode: 'insensitive' } },
           { companyName: { contains: searchText, mode: 'insensitive' } },
           { jobTitle: { contains: searchText, mode: 'insensitive' } }
         ];
+
+        // Add project tag match if any found
+        if (tagProjectIds.length > 0) {
+          orConditions.push({ projectId: { in: tagProjectIds } });
+        }
+
+        where.OR = orConditions;
       }
     }
 
@@ -464,11 +480,25 @@ async function handleOrgContacts(event, user, contactType) {
   // contactType === 'all' - merge both
   const prospectWhere = { tenant: tenantSlug };
   if (search) {
-    prospectWhere.OR = [
+    // Find projects with matching tags
+    const tagPattern = `%${search}%`;
+    const projectsWithTag = await prisma.$queryRaw`
+      SELECT id FROM "Project"
+      WHERE tags::text ILIKE ${tagPattern}
+    `;
+    const tagProjectIds = projectsWithTag.map(p => p.id);
+
+    const orConditions = [
       { name: { contains: search, mode: 'insensitive' } },
       { companyName: { contains: search, mode: 'insensitive' } },
       { jobTitle: { contains: search, mode: 'insensitive' } }
     ];
+
+    if (tagProjectIds.length > 0) {
+      orConditions.push({ projectId: { in: tagProjectIds } });
+    }
+
+    prospectWhere.OR = orConditions;
   }
 
   const [prospects, prospectCount, orgContacts, orgCount] = await Promise.all([
