@@ -116,10 +116,21 @@ export async function handler(event) {
       where.campaign = campaign;
     }
 
-    // Filter by hasEmail
+    // Filter by hasEmail - must have non-empty emails array
     if (hasEmail === 'true') {
-      where.AND = where.AND || [];
-      where.AND.push({ emails: { not: null } });
+      // Find prospects with at least one email using raw SQL
+      const prospectsWithEmail = await prisma.$queryRaw`
+        SELECT id FROM "Prospect"
+        WHERE emails IS NOT NULL
+          AND jsonb_array_length(emails) > 0
+      `;
+      const emailIds = prospectsWithEmail.map(p => p.id);
+      if (emailIds.length === 0) {
+        where.id = { in: [] };
+      } else {
+        where.AND = where.AND || [];
+        where.AND.push({ id: { in: emailIds } });
+      }
     }
 
     // Filter by project tag(s) (prospects whose project has these tags)
