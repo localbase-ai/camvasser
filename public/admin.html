@@ -251,7 +251,13 @@
           <div id="addressListPane" class="h-full flex flex-col">
             <!-- Bulk Actions Bar -->
             <div id="addressBulkActions" class="hidden bg-warning/10 rounded-lg px-3 py-2 my-2 flex items-center justify-between">
-              <span class="text-sm"><strong id="addressSelectedCount">0</strong> address(es) selected</span>
+              <span class="text-sm">
+                <strong id="addressSelectedCount">0</strong> address(es) selected
+                <span id="selectAllMatchingAddresses" class="hidden">
+                  · <a href="#" onclick="selectAllMatchingAddresses(); return false;" class="link link-primary">Select all <strong id="addressMatchingCount">0</strong> matching</a>
+                </span>
+                <span id="allMatchingSelectedAddresses" class="hidden text-success font-medium">· All matching selected</span>
+              </span>
               <button onclick="deleteSelectedAddresses()" class="btn btn-error btn-sm">Delete Selected</button>
             </div>
             <div class="overflow-auto flex-1">
@@ -1337,6 +1343,10 @@
     // Filters
     let currentAddressFilter = null; // For filtering prospects by address
 
+    // Select all matching state for addresses
+    let addressSelectAllMatching = false;
+    let addressCurrentFilters = {};
+
     // Map URL cache - pre-built on data load for instant display
     const mapUrlCache = new Map();
 
@@ -2307,6 +2317,7 @@
       const value = select.value;
       selectedAddressTags = value ? [value] : [];
       addressPage = 1;
+      clearAddressSelectionState();
       searchAddresses();
     }
 
@@ -2405,11 +2416,11 @@
       let addressSearchTimeout;
       document.getElementById('addressSearch').addEventListener('input', () => {
         clearTimeout(addressSearchTimeout);
-        addressSearchTimeout = setTimeout(() => { addressPage = 1; searchAddresses(); }, 300);
+        addressSearchTimeout = setTimeout(() => { addressPage = 1; clearAddressSelectionState(); searchAddresses(); }, 300);
       });
       // Tag filter is handled by updateAddressTagFilter() via checkbox onchange
-      document.getElementById('hasTagsFilter').addEventListener('change', () => { addressPage = 1; searchAddresses(); });
-      document.getElementById('hasProspectsFilter').addEventListener('change', () => { addressPage = 1; searchAddresses(); });
+      document.getElementById('hasTagsFilter').addEventListener('change', () => { addressPage = 1; clearAddressSelectionState(); searchAddresses(); });
+      document.getElementById('hasProspectsFilter').addEventListener('change', () => { addressPage = 1; clearAddressSelectionState(); searchAddresses(); });
 
       // Prospect search - use server-side search
       let prospectSearchTimeout;
@@ -6771,20 +6782,44 @@
     }
 
     async function deleteSelectedAddresses() {
-      const selectedCheckboxes = Array.from(document.querySelectorAll('.address-checkbox:checked'));
-      const selectedIds = selectedCheckboxes.map(cb => cb.dataset.id);
-      const totalContacts = selectedCheckboxes.reduce((sum, cb) => sum + parseInt(cb.dataset.contacts || 0), 0);
+      let selectedIds;
+      let count;
+
+      if (addressSelectAllMatching) {
+        // Delete all matching - need to fetch IDs from server
+        count = addressTotal;
+        const params = new URLSearchParams();
+        if (addressCurrentFilters.tenant) params.append('tenant', addressCurrentFilters.tenant);
+        if (addressCurrentFilters.search) params.append('search', addressCurrentFilters.search);
+        if (addressCurrentFilters.tags) params.append('tags', addressCurrentFilters.tags);
+        if (addressCurrentFilters.hasTags) params.append('hasTags', 'true');
+        if (addressCurrentFilters.hasProspects) params.append('hasProspects', 'true');
+        params.append('idsOnly', 'true');
+
+        try {
+          const resp = await fetch(`/.netlify/functions/get-projects?${params}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (resp.status === 401) { logout(); return; }
+          const data = await resp.json();
+          selectedIds = data.ids || [];
+        } catch (error) {
+          console.error('Error fetching matching IDs:', error);
+          alert('Failed to fetch matching addresses');
+          return;
+        }
+      } else {
+        const selectedCheckboxes = Array.from(document.querySelectorAll('.address-checkbox:checked'));
+        selectedIds = selectedCheckboxes.map(cb => cb.dataset.id);
+        count = selectedIds.length;
+      }
 
       if (selectedIds.length === 0) {
         alert('No addresses selected');
         return;
       }
 
-      let message = `Are you sure you want to delete ${selectedIds.length} address(es)? This cannot be undone.`;
-      if (totalContacts > 0) {
-        message = `Are you sure you want to delete ${selectedIds.length} address(es)? This will unlink ${totalContacts} contact(s).`;
-      }
-
+      const message = `Are you sure you want to delete ${count} address(es)? This cannot be undone.`;
       const confirmed = await showConfirmModal('Delete Addresses', message);
       if (!confirmed) return;
 
@@ -6802,8 +6837,7 @@
 
         const data = await response.json();
         if (data.success) {
-          document.getElementById('selectAllAddresses').checked = false;
-          updateAddressSelectionUI();
+          clearAddressSelectionState();
           searchAddresses();
         } else {
           alert('Failed to delete addresses: ' + (data.error || 'Unknown error'));
@@ -6823,13 +6857,57 @@
       const selectedCount = document.querySelectorAll('.address-checkbox:checked').length;
       const bulkActions = document.getElementById('addressBulkActions');
       const selectedCountEl = document.getElementById('addressSelectedCount');
+      const selectAllMatchingEl = document.getElementById('selectAllMatchingAddresses');
+      const allMatchingSelectedEl = document.getElementById('allMatchingSelectedAddresses');
+      const matchingCountEl = document.getElementById('addressMatchingCount');
 
-      if (selectedCount > 0) {
+      if (selectedCount > 0 || addressSelectAllMatching) {
         bulkActions?.classList.remove('hidden');
-        if (selectedCountEl) selectedCountEl.textContent = selectedCount;
+
+        if (addressSelectAllMatching) {
+          // All matching mode
+          selectAllMatchingEl?.classList.add('hidden');
+          allMatchingSelectedEl?.classList.remove('hidden');
+          if (selectedCountEl) selectedCountEl.textContent = addressTotal;
+        } else {
+          // Normal selection mode
+          allMatchingSelectedEl?.classList.add('hidden');
+          if (selectedCountEl) selectedCountEl.textContent = selectedCount;
+
+          // Show "select all matching" if there are more results than selected
+          if (addressTotal > selectedCount && selectedCount > 0) {
+            selectAllMatchingEl?.classList.remove('hidden');
+            if (matchingCountEl) matchingCountEl.textContent = addressTotal;
+          } else {
+            selectAllMatchingEl?.classList.add('hidden');
+          }
+        }
       } else {
         bulkActions?.classList.add('hidden');
+        selectAllMatchingEl?.classList.add('hidden');
+        allMatchingSelectedEl?.classList.add('hidden');
       }
+    }
+
+    function selectAllMatchingAddresses() {
+      // Store current search filters for use in bulk operations
+      addressCurrentFilters = {
+        tenant: currentTenant,
+        search: document.getElementById('addressSearch')?.value.trim() || undefined,
+        tags: selectedAddressTags.length > 0 ? selectedAddressTags.join(',') : undefined,
+        hasTags: document.getElementById('hasTagsFilter')?.checked || undefined,
+        hasProspects: document.getElementById('hasProspectsFilter')?.checked || undefined
+      };
+      addressSelectAllMatching = true;
+      updateAddressSelectionUI();
+    }
+
+    function clearAddressSelectionState() {
+      addressSelectAllMatching = false;
+      addressCurrentFilters = {};
+      document.getElementById('selectAllAddresses').checked = false;
+      document.querySelectorAll('.address-checkbox').forEach(cb => cb.checked = false);
+      updateAddressSelectionUI();
     }
 
     function loadLeadMap(lead) {

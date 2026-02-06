@@ -25,7 +25,7 @@ export async function handler(event) {
   }
 
   try {
-    const { id, limit, page, search, status, sortBy, sortDir, tag, tags, hasTags, hasProspects, tenant } = event.queryStringParameters || {};
+    const { id, limit, page, search, status, sortBy, sortDir, tag, tags, hasTags, hasProspects, tenant, idsOnly } = event.queryStringParameters || {};
 
     // If fetching by ID, return single project
     if (id) {
@@ -532,6 +532,41 @@ export async function handler(event) {
 
         totalCount = await prisma.project.count({ where });
       }
+    }
+
+    // If idsOnly, fetch all matching IDs without pagination
+    if (idsOnly === 'true') {
+      const { conditions, params } = buildWhereConditions(where, searchText, hasTags);
+
+      let hasProspectsJoin = '';
+      let hasProspectsCondition = '';
+      if (hasProspects === 'true') {
+        hasProspectsJoin = 'INNER JOIN "Prospect" pr ON pr."projectId" = p.id';
+        hasProspectsCondition = 'GROUP BY p.id HAVING COUNT(pr.id) > 0';
+      } else if (hasProspects === 'false') {
+        hasProspectsJoin = 'LEFT JOIN "Prospect" pr ON pr."projectId" = p.id';
+        hasProspectsCondition = 'GROUP BY p.id HAVING COUNT(pr.id) = 0';
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+      const idsQuery = hasProspects ? `
+        SELECT DISTINCT p.id FROM "Project" p
+        ${hasProspectsJoin}
+        ${whereClause}
+        ${hasProspectsCondition}
+      ` : `SELECT p.id FROM "Project" p ${whereClause}`;
+
+      const allIds = await prisma.$queryRawUnsafe(idsQuery, ...params);
+
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: allIds.map(p => p.id),
+          total: allIds.length
+        })
+      };
     }
 
     return {
