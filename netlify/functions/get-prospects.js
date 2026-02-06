@@ -23,7 +23,7 @@ export async function handler(event) {
   }
 
   try {
-    const { limit, page, projectId, sortBy, sortDir, search, tag, tags, statusFilter, campaign, tenant, contactType, id, idsOnly } = event.queryStringParameters || {};
+    const { limit, page, projectId, sortBy, sortDir, search, tag, tags, statusFilter, campaign, tenant, contactType, id, idsOnly, hasEmail } = event.queryStringParameters || {};
     const limitNum = limit ? parseInt(limit) : 25;
     const pageNum = page ? parseInt(page) : 1;
     const skip = (pageNum - 1) * limitNum;
@@ -114,6 +114,12 @@ export async function handler(event) {
     // Filter by campaign
     if (campaign) {
       where.campaign = campaign;
+    }
+
+    // Filter by hasEmail
+    if (hasEmail === 'true') {
+      where.AND = where.AND || [];
+      where.AND.push({ emails: { not: null } });
     }
 
     // Filter by project tag(s) (prospects whose project has these tags)
