@@ -1282,6 +1282,8 @@
 
     // Proposals lookup map (keyed by email and name)
     let proposalsLookup = { byEmail: {}, byName: {} };
+    // Count of leads per customer (by email/name) for deduplicating proposal values
+    let leadCountByCustomer = {};
 
     // Get proposals for a lead from the lookup
     function getLeadProposals(lead) {
@@ -1309,7 +1311,24 @@
       const proposals = getLeadProposals(lead);
       if (proposals.length === 0) return null;
       // Sum all proposal amounts
-      return proposals.reduce((sum, p) => sum + (p.proposal_amount || 0), 0);
+      const total = proposals.reduce((sum, p) => sum + (p.proposal_amount || 0), 0);
+      // Distribute evenly across sibling leads (same customer) to avoid double-counting
+      const email = (lead.email || '').toLowerCase();
+      const name = `${lead.firstName || ''} ${lead.lastName || ''}`.trim().toLowerCase();
+      const customerKey = email || name;
+      const siblingCount = leadCountByCustomer[customerKey] || 1;
+      return total / siblingCount;
+    }
+
+    // Rebuild lead sibling counts from current allLeads
+    function buildLeadCountByCustomer() {
+      leadCountByCustomer = {};
+      for (const lead of allLeads) {
+        const email = (lead.email || '').toLowerCase();
+        const name = `${lead.firstName || ''} ${lead.lastName || ''}`.trim().toLowerCase();
+        const key = email || name;
+        if (key) leadCountByCustomer[key] = (leadCountByCustomer[key] || 0) + 1;
+      }
     }
 
     // Get owner initials (e.g., "Ryan Riggin" -> "RR")
@@ -2621,6 +2640,7 @@
             }
           }
         }
+        buildLeadCountByCustomer();
 
         // Apply "Has Value" filter client-side (after proposals are loaded)
         const hasValueFilter = document.getElementById('leadHasValueFilter').checked;
@@ -6984,10 +7004,22 @@
         const isCollapsed = collapsedColumns.includes(status);
         const count = grouped[status].length;
 
-        // Calculate total job value for this column
+        // Calculate total job value for this column (dedup proposals across sibling leads)
+        const seenProposalIds = new Set();
         const columnTotal = grouped[status].reduce((sum, lead) => {
-          const jobValue = getLeadJobValue(lead);
-          return sum + (jobValue || 0);
+          if (lead.flowData && (lead.flowData.job_value || lead.flowData.job_value === 0)) {
+            return sum + lead.flowData.job_value;
+          }
+          const proposals = getLeadProposals(lead);
+          let leadTotal = 0;
+          for (const p of proposals) {
+            const pid = p.proposal_id || p.id;
+            if (!seenProposalIds.has(pid)) {
+              seenProposalIds.add(pid);
+              leadTotal += p.proposal_amount || 0;
+            }
+          }
+          return sum + leadTotal;
         }, 0);
         const columnTotalDisplay = columnTotal > 0 ? `$${columnTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
 
@@ -7282,6 +7314,7 @@
             }
           }
         }
+        buildLeadCountByCustomer();
 
         renderLeadsKanban(allLeads);
       } catch (error) {
