@@ -7004,22 +7004,10 @@
         const isCollapsed = collapsedColumns.includes(status);
         const count = grouped[status].length;
 
-        // Calculate total job value for this column (dedup proposals across sibling leads)
-        const seenProposalIds = new Set();
+        // Calculate total job value for this column using same per-lead logic as cards
         const columnTotal = grouped[status].reduce((sum, lead) => {
-          if (lead.flowData && (lead.flowData.job_value || lead.flowData.job_value === 0)) {
-            return sum + lead.flowData.job_value;
-          }
-          const proposals = getLeadProposals(lead);
-          let leadTotal = 0;
-          for (const p of proposals) {
-            const pid = p.proposal_id || p.id;
-            if (!seenProposalIds.has(pid)) {
-              seenProposalIds.add(pid);
-              leadTotal += p.proposal_amount || 0;
-            }
-          }
-          return sum + leadTotal;
+          const val = getLeadJobValue(lead);
+          return sum + (val || 0);
         }, 0);
         const columnTotalDisplay = columnTotal > 0 ? `$${columnTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
 
