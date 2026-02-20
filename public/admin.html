@@ -4163,6 +4163,7 @@
       document.getElementById('smartleadSubmitBtn').disabled = false;
       document.getElementById('smartleadBtnText').textContent = 'Create Campaign';
       document.getElementById('smartleadSpinner').classList.add('hidden');
+      document.getElementById('smartleadSubmitBtn').onclick = pushToSmartLead;
 
       // Set contact count
       document.getElementById('smartleadContactCount').textContent = prospectTotal.toLocaleString();
@@ -4415,6 +4416,7 @@
       document.getElementById('smartleadBtnText').textContent = 'Done!';
       document.getElementById('smartleadSpinner').classList.add('hidden');
       document.getElementById('smartleadSubmitBtn').disabled = false;
+      document.getElementById('smartleadSubmitBtn').onclick = closeSmartLeadModal;
     }
 
     // Show info/success modal
