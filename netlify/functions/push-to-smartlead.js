@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { createId } from '@paralleldrive/cuid2';
 
 const prisma = new PrismaClient();
 const SMARTLEAD_API_KEY = process.env.SMARTLEAD_API_KEY || 'd5660b37-5572-4f17-b72d-18ccd7a01bf6_d867d1e';
@@ -193,11 +194,13 @@ async function startJob({ campaignName, filters }) {
   // Create job record with leads stored for batch processing
   const job = await prisma.backgroundJob.create({
     data: {
+      id: createId(),
       type: 'push-to-smartlead',
       status: 'running',
       tenant,
       total: leadsToUpload.length,
       progress: 0,
+      updatedAt: new Date(),
       input: {
         campaignName,
         campaignId: createData.id,
