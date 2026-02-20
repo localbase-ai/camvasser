@@ -2,10 +2,12 @@
 
 ## Launch
 - [✅] appointment setting bug (fixed domain-wide delegation for Google Calendar)
+- [✅] Fix demo site logo finder bug (smart fallback system)
+- [ ] Redesign marketing homepage (use v0 for design)
 - [ ] Clean up marketing site and launch
 - [✅] Make the ui snappy as fuck
 - [✅] Pre-compute filter values on data load to fix checkbox lag (currently filters 3600+ items on every click)
-- [🎯] test white pages enrichment on 66206 list
+- [✅] test white pages enrichment on 66206 list
 - [✅] add search ui to call log view
 
 # Next up
