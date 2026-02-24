@@ -1,129 +1,112 @@
 # Camvasser TODO
 
-## Launch
-- [✅] appointment setting bug (fixed domain-wide delegation for Google Calendar)
-- [✅] Fix demo site logo finder bug (smart fallback system)
-- [ ] Redesign marketing homepage (use v0 for design)
-- [ ] Clean up marketing site and launch
-- [✅] Make the ui snappy as fuck
-- [✅] Pre-compute filter values on data load to fix checkbox lag (currently filters 3600+ items on every click)
-- [✅] test white pages enrichment on 66206 list
-- [✅] add search ui to call log view
+## 🔥 DAILY NON-NEGOTIABLE: SEND EMAIL
+**If we're not sending 1,000 emails a day per rep, we shouldn't be doing anything else.**
 
-# Next up
-- [ ] add instant estimator as a plugin?
-- [ ] test  views for ipad landscape.
-- [ ] Test Twilio integration for outbound calling
+- [ ] Send 100+ targeted emails today (EVERY DAY)
+- [ ] Set up flows and start running ads
+- [ ] Make a daily scorecard view
+---
+
+## Sales & Lead Gen (the only thing that matters right now)
 - [ ] Set up virtual canvassing email test
+- [ ] Test Twilio integration for outbound calling
 - [ ] Ring Central
 - [ ] Google Business Listings: figure out mapstacking
-- [ ] set up a test account with white pages and source data for a test list
-- [ ] Auto-advance to next item after call?
+- [ ] Set up a test account with white pages and source data for a test list
+- [ ] Redesign marketing homepage (use v0 for design)
+- [ ] Clean up marketing site and launch
 
-## Show Job Values on 'Lead Object'
-- [✅] show on cards in board view
-- [✅] show totals in column headers in board view
-- [✅] show job value on records in lead list view
-- [✅] has:value, no:value, sort:value search syntax
-- [✅] Delete a proposal from a lead object
+## Product (only after daily email is sent)
+- [ ] Test views for iPad landscape
+- [ ] Add instant estimator as a plugin?
+- [ ] Auto-advance to next item after call
 
-## Scorecard / Dashboard Views
-- [ ] make a daily scorecard view
-- [ ] make a dashboard with key stats `or leave this to localbase?`
+## Calendar
+- [ ] As tenant admin set up my gcal from UI (later)
+- [ ] Change appointment status
 
-## Quickbooks Integration
-- [✅] create customer record from lead detail view in camvasser
-- [✅] sync QB estimates to proposals (shows job values on deal cards)
-- [✅] admin UI button to sync estimates
-- [✅] auto-mark estimates as "won" when invoiced/paid
-- [✅] cleaned up 25 old estimates in QB (marked as Closed)
-
-# Smartlead
-- [✅] SmartLead: CSV export for leads and contacts
-
-## Features Completed
-- [✅] Add HOA object (link to address/project)
-- [✅] Add Company object (for HOA management companies, etc.)
-- [✅] Organizations tab with full CRUD (HOAs, property mgmt, real estate, churches, apartments)
-- [✅] Organization contacts (separate from residential prospects)
-- [✅] Contact type filter in Contacts view (Prospects / Org Contacts / All)
-- [✅] Import Leawood HOA data (96 HOAs, 9 mgmt companies, 72 contacts)
-- [✅] show totals on list views for leads, contacts, addresses
-
-## Mobile App
+## Mobile App (later)
 - [ ] Set up Capacitor for iOS app
 - [ ] Native camera access for photo capture
 - [ ] Photo upload to S3/R2
 - [ ] Replace CompanyCam with built-in photo management
 - [ ] TestFlight distribution for crews
 
-## Admin Features - Calendar
-- [✅] Create appointment on Google Calendar (Edge Functions)
-- [✅] Read-only calendar list view in Camvasser
-- [✅] Store appointments in database (Appointment model)
-- [✅] Show appointments in lead detail view
-- [✅] add event type
-- [ ] as tenant admin set up my gcal from ui (later)
-- [ ] change appointment status 
+## Instant Estimator (later)
+- [ ] Instant Estimator
 
-## Admin Features - Instant Estimator
-- [ ] Instant Estimator 
+---
 
-# Map Features
-- [✅] filter leads by 'lead-status'
+## Done
+<details>
+<summary>Completed items (click to expand)</summary>
 
-# Lead Management / Call Flow Features
-- [✅] Update status on lead (dropdown in detail view)
-- [✅] Call scripts - create, edit, assign to call lists
-- [✅] Show call script in call list UI (collapsible panel)
-- [✅] Detail pane on call list (450px, same as other views)
-- [✅] Convert contact to lead from call list detail
-- [✅] Notes on call list contact detail
-- [✅]] Call logging / outcome tracking
-- [ ] Auto-advance to next item after call
+- [x] Appointment setting bug (fixed domain-wide delegation for Google Calendar)
+- [x] Fix demo site logo finder bug (smart fallback system)
+- [x] Make the UI snappy as fuck
+- [x] Pre-compute filter values on data load to fix checkbox lag
+- [x] Test white pages enrichment on 66206 list
+- [x] Add search UI to call log view
+- [x] Show on cards in board view
+- [x] Show totals in column headers in board view
+- [x] Show job value on records in lead list view
+- [x] has:value, no:value, sort:value search syntax
+- [x] Delete a proposal from a lead object
+- [x] Create customer record from lead detail view in camvasser
+- [x] Sync QB estimates to proposals
+- [x] Admin UI button to sync estimates
+- [x] Auto-mark estimates as "won" when invoiced/paid
+- [x] Cleaned up 25 old estimates in QB
+- [x] SmartLead: CSV export for leads and contacts
+- [x] Add HOA object
+- [x] Add Company object
+- [x] Organizations tab with full CRUD
+- [x] Organization contacts
+- [x] Contact type filter in Contacts view
+- [x] Import Leawood HOA data
+- [x] Show totals on list views
+- [x] Create appointment on Google Calendar
+- [x] Read-only calendar list view
+- [x] Store appointments in database
+- [x] Show appointments in lead detail view
+- [x] Add event type
+- [x] Filter leads by lead-status
+- [x] Update status on lead
+- [x] Call scripts - create, edit, assign to call lists
+- [x] Show call script in call list UI
+- [x] Detail pane on call list
+- [x] Convert contact to lead from call list detail
+- [x] Notes on call list contact detail
+- [x] Call logging / outcome tracking
+- [x] Clean up tags in CC and resync to local DB
+- [x] Script to bulk remove/rename tags
+- [x] Full CC sync script
+- [x] Tag normalization
+- [x] Fixed per_page=100 bug
+- [x] Delete 71 junk leads
+- [x] Review and clean up 244 orphaned leads
+- [x] Create projects for orphaned leads
+- [x] Lead owner field added
+- [x] Import 86 sold jobs with owner assignments
+- [x] Connect RoofMaxx API
+- [x] Connect Bud Roofing website forms
+- [x] Add notes to lead/contact/address
+- [x] Convert contact to lead
+- [x] Revert lead to project/address
+- [x] Convert lead to organization
+- [x] Kanban drag-and-drop
+- [x] Lead owner assignment and filter
+- [x] Board view as default
+- [x] Share URL feature for leads
+- [x] Empty field search syntax
+- [x] Checkbox selection on list views
+- [x] Select all matching
+- [x] Bulk delete with confirmation modal
+- [x] Bulk delete API endpoints
+- [x] Delete contact (single + bulk)
+- [x] Delete address/project (single + bulk)
+- [x] Get pins from Cade's door hanging into the data
+- [x] Go through all leads in system and make sure right status
 
-## CompanyCam Integration
-- [✅] Clean up tags in CC and resync to local DB
-- [✅] Script to bulk remove/rename tags
-- [✅] Full CC sync script (1253 projects, preserves local tags)
-- [✅] Tag normalization (case cleanup: door hanger → Door Hanger)
-- [✅] Fixed per_page=100 bug (CC caps at 50)
-
-## Data Cleanup
-- [✅] Delete 71 junk leads (address-only records with no contact info)
-- [✅] Review and clean up 244 orphaned leads (merge duplicates, fix typos, delete junk)
-- [✅] Create projects for orphaned leads
-- [✅] Lead owner field added (ownerName)
-- [✅] Import 86 sold jobs with owner assignments
-- [ ] get pins from Cade's door hanging into the data somehow
-- [ ] go through all leads in system and make sure right status
-
-## Connect Data Sources
-- [✅] Connect RoofMaxx API, sync new leads to Camvasser (via LocalBase integration)
-- [✅] Connect Bud Roofing website forms, push new submissions into Camvasser
-
-## Admin Features - Notes
-- [✅] Add notes to lead
-- [✅] Add notes to contact
-- [✅] Add notes to address
-
-## Admin Features - Conversions
-- [✅] Convert contact to lead
-- [✅] Revert lead to project/address
-- [✅] Convert lead to organization (for HOAs, property mgmt companies found in leads)
-
-## Admin Features - Leads Board
-- [✅] Kanban drag-and-drop for lead status
-- [✅] Lead owner assignment and filter
-- [✅] Board view as default
-- [✅] Share URL feature for leads
-
-## Admin Features - Search & Bulk Actions
-- [✅] Empty field search syntax (e.g., `email:empty`, `no:phone`, `has:name`)
-- [✅] Checkbox selection on list views (leads)
-- [✅] "Select all matching" (all records matching current search, not just visible)
-- [✅] Bulk delete with confirmation modal
-- [✅] Bulk delete API endpoints (leads)
-- [✅] Delete contact (single + bulk)
-- [✅] Delete address/project (single + bulk)
-
+</details>
