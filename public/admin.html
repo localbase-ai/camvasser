@@ -3543,8 +3543,10 @@
       renderPagination('lead', leadPage, totalPages, total, (p) => { leadPage = p; searchLeads(); });
     }
 
-    function showLeadDetail(leadId) {
-      const lead = allLeads.find(l => l.id === leadId);
+    let _leadDetailRequestId = 0;
+
+    async function showLeadDetail(leadId) {
+      let lead = allLeads.find(l => l.id === leadId);
       if (!lead) return;
 
       // Update row highlight immediately for snappy UI
@@ -3554,6 +3556,29 @@
       if (newSelected) newSelected.classList.add('row-selected');
 
       selectedLeadId = leadId;
+
+      // Fresh fetch from server to get latest data
+      const requestId = ++_leadDetailRequestId;
+      try {
+        const params = new URLSearchParams({ id: leadId, tenant: currentTenant });
+        const resp = await fetch(`/.netlify/functions/get-lead?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.lead) {
+            lead = data.lead;
+            // Update in-memory cache so list stays in sync
+            const idx = allLeads.findIndex(l => l.id === leadId);
+            if (idx !== -1) allLeads[idx] = lead;
+          }
+        }
+      } catch (e) {
+        console.warn('Fresh lead fetch failed, using cached data:', e);
+      }
+
+      // Race condition guard: if user clicked a different lead while fetching, bail
+      if (_leadDetailRequestId !== requestId) return;
       const pane = document.getElementById('leadDetailPane');
       const content = document.getElementById('leadDetailContent');
 
@@ -3613,6 +3638,16 @@
               </button>
             `}
           </div>
+
+          <!-- QB Jobs & Payments -->
+          ${lead.flowData?.quickbooks_customer_id ? `
+            <div class="space-y-2">
+              <h5 class="text-xs font-semibold text-base-content/60 uppercase">Jobs & Payments</h5>
+              <div id="qbActivityList">
+                <div class="text-sm text-base-content/40 italic">Loading activity...</div>
+              </div>
+            </div>
+          ` : ''}
 
           <!-- Schedule Appointment -->
           <div class="space-y-2">
@@ -3690,6 +3725,8 @@
             <div class="grid grid-cols-2 gap-2 text-sm">
               <div class="text-base-content/60">Created</div>
               <div>${lead.createdAt ? formatDate(lead.createdAt) : '-'}</div>
+              <div class="text-base-content/60">Updated</div>
+              <div>${lead.updatedAt ? formatDate(lead.updatedAt) : '-'}</div>
               ${lead.source ? `
                 <div class="text-base-content/60">Source</div>
                 <div>${lead.source}</div>
@@ -3788,6 +3825,11 @@
 
       // Load proposals for this lead (by email or name)
       loadLeadProposals(lead);
+
+      // Load QB activity if customer is linked
+      if (lead.flowData?.quickbooks_customer_id) {
+        loadQBCustomerActivity(lead);
+      }
 
       // Re-render to update selected state - respect current view mode
       if (leadsViewMode === 'kanban') {
@@ -3891,6 +3933,59 @@
       } catch (error) {
         console.error('Error loading appointments:', error);
         container.innerHTML = '<div class="text-sm text-error">Failed to load appointments</div>';
+      }
+    }
+
+    // Load QB customer activity (estimates, invoices, payments)
+    async function loadQBCustomerActivity(lead) {
+      const container = document.getElementById('qbActivityList');
+      if (!container) return;
+
+      const customerId = lead.flowData?.quickbooks_customer_id;
+      if (!customerId) return;
+
+      try {
+        const params = new URLSearchParams({ customerId });
+        const response = await fetch(`/.netlify/functions/get-qb-customer-activity?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to load QB activity');
+
+        const data = await response.json();
+
+        if (!data.activity || data.activity.length === 0) {
+          container.innerHTML = '<div class="text-sm text-base-content/40 italic">No activity found</div>';
+          return;
+        }
+
+        container.innerHTML = data.activity.map(item => {
+          const badgeClass = item.type === 'estimate' ? 'badge-outline'
+            : item.type === 'invoice' ? 'badge-info'
+            : 'badge-success';
+          const typeLabel = item.type.charAt(0).toUpperCase() + item.type.slice(1);
+          const dateStr = item.date ? new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+          const amount = item.amount != null ? '$' + Number(item.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+
+          return `
+            <div class="bg-base-200 p-2 rounded text-sm">
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="badge ${badgeClass} badge-xs">${typeLabel}</span>
+                  ${item.docNumber ? `<span class="text-base-content/60 ml-1">#${item.docNumber}</span>` : ''}
+                  ${item.status ? `<span class="badge badge-ghost badge-xs ml-1">${item.status}</span>` : ''}
+                </div>
+                <div class="font-medium">${amount}</div>
+              </div>
+              ${dateStr ? `<div class="text-xs text-base-content/60 mt-1">${dateStr}</div>` : ''}
+              ${item.description ? `<div class="text-xs text-base-content/50 mt-1 truncate">${escapeHtml(item.description)}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+
+      } catch (error) {
+        console.error('Error loading QB activity:', error);
+        container.innerHTML = '<div class="text-sm text-error">Failed to load QB activity</div>';
       }
     }
 
