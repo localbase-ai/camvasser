@@ -17,6 +17,9 @@
 - [ ] Redesign marketing homepage (use v0 for design)
 - [ ] Clean up marketing site and launch
 
+## QuickBooks
+- [ ] Consolidate QB OAuth token management — renu and camvasser both refresh tokens independently, which rotates the refresh token and breaks the other app. Need a single source of truth (shared DB row or one app owns the refresh).
+
 ## Product (only after daily email is sent)
 - [ ] Test views for iPad landscape
 - [ ] Add instant estimator as a plugin?
