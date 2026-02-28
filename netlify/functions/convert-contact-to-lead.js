@@ -63,6 +63,14 @@ export async function handler(event) {
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
 
+    if (!firstName || firstName === '---' || firstName === '-') {
+      return {
+        statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Cannot convert a contact with no name' })
+      };
+    }
+
     // Get primary phone and email (filter out "-" placeholder values)
     const phones = prospect.phones || [];
     const firstPhone = phones[0];
