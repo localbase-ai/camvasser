@@ -3549,6 +3549,19 @@
       let lead = allLeads.find(l => l.id === leadId);
       if (!lead) return;
 
+      // Ensure tenant users are loaded for owner dropdown
+      if (tenantUsers.length === 0) {
+        try {
+          const usersRes = await fetch(`/.netlify/functions/get-tenant-users?tenant=${currentTenant}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          const usersData = await usersRes.json();
+          tenantUsers = usersData.users || [];
+        } catch (e) {
+          console.error('Failed to load tenant users:', e);
+        }
+      }
+
       // Update row highlight immediately for snappy UI
       const prevSelected = document.querySelector('#leadTableBody tr.row-selected');
       if (prevSelected) prevSelected.classList.remove('row-selected');
@@ -3607,10 +3620,11 @@
             </div>
             <div class="mt-2">
               <label class="text-xs font-semibold text-base-content/60 uppercase block mb-1">Owner</label>
-              <input type="text" id="leadOwnerInput" class="input input-bordered input-sm w-full max-w-xs"
-                     value="${lead.ownerName || ''}"
-                     placeholder="Assign owner..."
-                     onchange="updateLeadOwner('${lead.id}', this.value)">
+              <select id="leadOwnerInput" class="select select-bordered select-sm w-full max-w-xs" onchange="updateLeadOwner('${lead.id}', this.value)">
+                <option value="">Unassigned</option>
+                ${lead.ownerName && !tenantUsers.some(u => u.name === lead.ownerName) ? `<option value="${lead.ownerName}" selected>${lead.ownerName}</option>` : ''}
+                ${tenantUsers.map(u => `<option value="${u.name}" ${lead.ownerName === u.name ? 'selected' : ''}>${u.name}</option>`).join('')}
+              </select>
             </div>
           </div>
 
