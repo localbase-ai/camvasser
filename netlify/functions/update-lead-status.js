@@ -41,7 +41,7 @@ export async function handler(event) {
   }
 
   try {
-    const { leadId, status, ownerName } = JSON.parse(event.body);
+    const { leadId, status, ownerName, firstName, lastName } = JSON.parse(event.body);
 
     if (!leadId) {
       return {
@@ -100,6 +100,12 @@ export async function handler(event) {
     }
     if (ownerName !== undefined) {
       updateData.ownerName = ownerName || null;
+    }
+    if (firstName !== undefined) {
+      updateData.firstName = firstName;
+    }
+    if (lastName !== undefined) {
+      updateData.lastName = lastName;
     }
 
     // Update the lead

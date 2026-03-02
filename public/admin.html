@@ -456,10 +456,6 @@
                 <input type="checkbox" id="leadHasValueFilter" class="checkbox checkbox-sm checkbox-success">
                 <span class="label-text text-sm">Has Value</span>
               </label>
-              <label class="label cursor-pointer gap-2">
-                <input type="checkbox" id="leadHasOwnerFilter" class="checkbox checkbox-sm checkbox-info">
-                <span class="label-text text-sm">Has Owner</span>
-              </label>
             </div>
             <button class="btn btn-sm btn-primary gap-1" onclick="openNewLeadModal()">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2428,7 +2424,7 @@
       // Use distinctOwners from API if provided, otherwise fall back to allLeads
       const owners = distinctOwners || [...new Set(allLeads.map(l => l.ownerName).filter(Boolean))].sort();
       const options = owners.map(o => `<option value="${o}">${o}</option>`).join('');
-      document.getElementById('leadOwnerFilter').innerHTML = '<option value="">All Owners</option>' + options;
+      document.getElementById('leadOwnerFilter').innerHTML = '<option value="">All Owners</option><option value="__has">Has Owner</option><option value="__no">No Owner</option>' + options;
     }
 
     // =====================
@@ -2465,14 +2461,6 @@
       // Status filter events are handled in populateLeadStatusFilter
       document.getElementById('leadOwnerFilter').addEventListener('change', () => { leadPage = 1; searchLeads(); });
       document.getElementById('leadHasValueFilter').addEventListener('change', () => { leadPage = 1; searchLeads(); });
-      document.getElementById('leadHasOwnerFilter').addEventListener('change', () => {
-        leadPage = 1;
-        if (leadsViewMode === 'kanban') {
-          searchLeadsForKanban();
-        } else {
-          searchLeads();
-        }
-      });
 
       // Organization search
       let orgSearchTimeout;
@@ -2587,11 +2575,11 @@
       // Remove has:value/no:value/sort:value from query before sending to server
       searchQuery = searchQuery.replace(/\b(has|no):value\b/gi, '').replace(/\bsort:value(?::(asc|desc))?\b/gi, '').trim();
 
-      // Check for has:owner filter
-      const hasOwnerFilter = document.getElementById('leadHasOwnerFilter').checked;
+      // Check for owner status filter (special __has/__no values)
+      const ownerFilterIsStatus = ownerFilter === '__has' || ownerFilter === '__no';
 
       // If filtering or sorting by value/owner, we need all leads to process client-side
-      const needsClientFilter = hasValueInSearch || noValueInSearch || sortByValue || document.getElementById('leadHasValueFilter').checked || hasOwnerFilter;
+      const needsClientFilter = hasValueInSearch || noValueInSearch || sortByValue || document.getElementById('leadHasValueFilter').checked || ownerFilterIsStatus;
 
       const params = new URLSearchParams({
         limit: needsClientFilter ? '10000' : PAGE_SIZE.toString(),
@@ -2603,7 +2591,7 @@
       if (currentTenant) params.set('tenant', currentTenant);
       if (searchQuery) params.set('search', searchQuery);
       if (statusFilter) params.set('status', statusFilter);
-      if (ownerFilter) params.set('owner', ownerFilter);
+      if (ownerFilter && !ownerFilterIsStatus) params.set('owner', ownerFilter);
 
       try {
         // Fetch leads and proposals in parallel
@@ -2661,9 +2649,12 @@
           });
         }
 
-        // Apply "Has Owner" filter client-side
-        if (hasOwnerFilter) {
+        // Apply owner status filter client-side
+        if (ownerFilter === '__has') {
           allLeads = allLeads.filter(lead => lead.ownerName);
+          leadTotal = allLeads.length;
+        } else if (ownerFilter === '__no') {
+          allLeads = allLeads.filter(lead => !lead.ownerName);
           leadTotal = allLeads.length;
         }
 
@@ -3603,7 +3594,7 @@
           <!-- Name & Status -->
           <div>
             <div class="flex items-center justify-between gap-2">
-              <h4 class="text-lg font-semibold">${lead.firstName || ''} ${lead.lastName || ''}</h4>
+              <h4 class="text-lg font-semibold cursor-pointer hover:text-primary" onclick="editLeadName('${lead.id}', this)" title="Click to edit name">${lead.firstName || ''} ${lead.lastName || ''}</h4>
               <button id="copyLinkBtn" onclick="copyLeadShareLink('${lead.id}')" class="btn btn-xs btn-ghost gap-1" title="Copy shareable link">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -6348,6 +6339,53 @@
       }
     }
 
+    function editLeadName(leadId, el) {
+      const lead = allLeads.find(l => l.id === leadId);
+      if (!lead) return;
+      const container = el.parentElement;
+      el.style.display = 'none';
+      const form = document.createElement('form');
+      form.className = 'flex gap-1 items-center';
+      form.innerHTML = `
+        <input type="text" class="input input-bordered input-sm w-28" value="${lead.firstName || ''}" placeholder="First" id="editFirstName">
+        <input type="text" class="input input-bordered input-sm w-28" value="${lead.lastName || ''}" placeholder="Last" id="editLastName">
+        <button type="submit" class="btn btn-xs btn-primary">Save</button>
+        <button type="button" class="btn btn-xs btn-ghost" onclick="this.closest('form').remove(); this.closest('form')?.previousElementSibling?.style.removeProperty('display')">Cancel</button>
+      `;
+      // Fix cancel to find the h4 correctly
+      const cancelBtn = form.querySelector('button[type="button"]');
+      cancelBtn.onclick = () => { form.remove(); el.style.display = ''; };
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        const firstName = document.getElementById('editFirstName').value.trim();
+        const lastName = document.getElementById('editLastName').value.trim();
+        try {
+          const response = await fetch('/.netlify/functions/update-lead-status', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ leadId, firstName, lastName })
+          });
+          if (response.status === 401) { logout(); return; }
+          const data = await response.json();
+          if (data.success) {
+            lead.firstName = firstName;
+            lead.lastName = lastName;
+            el.textContent = `${firstName} ${lastName}`.trim();
+            form.remove();
+            el.style.display = '';
+            renderLeads();
+          } else {
+            alert('Failed to update name: ' + (data.error || 'Unknown error'));
+          }
+        } catch (err) {
+          console.error('Error updating lead name:', err);
+          alert('Failed to update name');
+        }
+      };
+      container.insertBefore(form, el.nextSibling);
+      document.getElementById('editFirstName').focus();
+    }
+
     // Create QuickBooks customer from lead
     async function createQuickBooksCustomer(leadId) {
       const btn = document.getElementById('createQBCustomerBtn');
@@ -7386,10 +7424,12 @@
         const leadsData = await leadsResponse.json();
         allLeads = leadsData.leads || [];
 
-        // Apply client-side "Has Owner" filter
-        const hasOwnerFilter = document.getElementById('leadHasOwnerFilter').checked;
-        if (hasOwnerFilter) {
+        // Apply owner status filter client-side
+        const ownerFilter = document.getElementById('leadOwnerFilter').value;
+        if (ownerFilter === '__has') {
           allLeads = allLeads.filter(lead => lead.ownerName);
+        } else if (ownerFilter === '__no') {
+          allLeads = allLeads.filter(lead => !lead.ownerName);
         }
 
         // Build proposals lookup maps

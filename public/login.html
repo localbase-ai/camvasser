@@ -1,181 +1,71 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Camvasser</title>
+  <title>Camvasser - Sign In</title>
   <link rel="icon" type="image/png" href="/favicon.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+  <link href="/styles/output.css" rel="stylesheet" type="text/css" />
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
     body {
-      font-family: 'Outfit', -apple-system, system-ui, sans-serif;
-      background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
-      color: #ffffff;
-      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
-    }
-
-    .login-container {
-      background: #FFFFFF;
-      max-width: 450px;
-      width: 100%;
-      padding: 50px 40px;
-      text-align: center;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-      border-radius: 8px;
-    }
-
-    .logo {
-      font-size: 36px;
-      font-weight: 800;
-      letter-spacing: -1px;
-      background: linear-gradient(135deg, #FFC107 0%, #FFD54F 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 40px;
-    }
-
-    h1 {
-      font-size: 28px;
-      font-weight: 700;
-      color: #212529;
-      margin-bottom: 12px;
-    }
-
-    .subtitle {
-      color: #6C757D;
-      font-size: 16px;
-      margin-bottom: 30px;
-    }
-
-    .input-group {
-      margin-bottom: 20px;
-      text-align: left;
-    }
-
-    label {
-      display: block;
-      color: #212529;
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    input[type="email"],
-    input[type="password"] {
-      width: 100%;
-      padding: 16px;
-      background: #FFFFFF;
-      border: 2px solid #E5E5E5;
-      border-radius: 4px;
-      color: #212529;
-      font-size: 16px;
-      font-family: 'Outfit', sans-serif;
-      transition: all 0.2s;
-    }
-
-    input:focus {
-      outline: none;
-      border-color: #FFC107;
-      box-shadow: 0 0 0 4px rgba(255, 193, 7, 0.1);
-    }
-
-    .btn {
-      width: 100%;
-      padding: 18px;
-      border: none;
-      border-radius: 4px;
-      font-size: 18px;
-      font-weight: 600;
-      font-family: 'Outfit', sans-serif;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-top: 10px;
-      background: linear-gradient(135deg, #FFC107 0%, #FFB300 100%);
-      color: #1a1a1a;
-    }
-
-    .btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
-    }
-
-    .btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .error {
-      background: #FFE5E8;
-      border: 2px solid #DC3545;
-      color: #DC3545;
-      padding: 15px;
-      border-radius: 4px;
-      margin-bottom: 20px;
-      display: none;
-      font-size: 15px;
-    }
-
-    .error.show {
-      display: block;
+      min-height: 100vh;
+      background: oklch(var(--b2));
+      margin: 0;
     }
   </style>
 </head>
 <body>
-  <div class="login-container">
-    <div class="logo">Camvasser</div>
 
-    <h1>Contractor Login</h1>
-    <p class="subtitle">Access your leads dashboard</p>
+  <div style="width: 100%; max-width: 360px; padding: 0 16px;">
+    <div class="text-center mb-6">
+      <img src="/favicon.png" alt="Camvasser" style="width: 48px; height: 48px; margin: 0 auto 12px;">
+      <h1 class="text-2xl font-bold text-base-content">Camvasser</h1>
+    </div>
 
-    <div id="error" class="error"></div>
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="text-lg font-semibold text-base-content mb-1">Sign in</h2>
+        <p class="text-sm text-base-content/60 mb-4">Enter your credentials to continue</p>
 
-    <form id="loginForm">
-      <div class="input-group">
-        <label for="email">Email</label>
-        <input
-          type="email"
-          id="email"
-          required
-          autofocus
-          placeholder="your@email.com"
-        >
+        <div id="error" class="alert alert-error text-sm hidden mb-4">
+          <span id="errorText"></span>
+        </div>
+
+        <form id="loginForm">
+          <div class="form-control mb-3">
+            <label class="label"><span class="label-text text-sm font-medium">Email</span></label>
+            <input type="email" id="email" class="input input-bordered input-sm w-full" placeholder="you@company.com" required autofocus>
+          </div>
+
+          <div class="form-control mb-4">
+            <label class="label"><span class="label-text text-sm font-medium">Password</span></label>
+            <input type="password" id="password" class="input input-bordered input-sm w-full" placeholder="Enter your password" required>
+          </div>
+
+          <button type="submit" id="loginBtn" class="btn btn-primary btn-sm w-full">Sign In</button>
+        </form>
       </div>
-
-      <div class="input-group">
-        <label for="password">Password</label>
-        <input
-          type="password"
-          id="password"
-          required
-          placeholder="Enter your password"
-        >
-      </div>
-
-      <button type="submit" class="btn" id="loginBtn">
-        Sign In
-      </button>
-    </form>
+    </div>
   </div>
 
   <script>
+    // If already authenticated, redirect to admin
+    if (localStorage.getItem('authToken')) {
+      window.location.replace('/admin.html');
+    }
+
     const form = document.getElementById('loginForm');
     const loginBtn = document.getElementById('loginBtn');
     const errorDiv = document.getElementById('error');
+    const errorText = document.getElementById('errorText');
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -183,11 +73,8 @@
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
-      // Clear previous errors
-      errorDiv.classList.remove('show');
-      errorDiv.textContent = '';
+      errorDiv.classList.add('hidden');
 
-      // Disable button
       loginBtn.disabled = true;
       loginBtn.textContent = 'Signing in...';
 
@@ -204,17 +91,13 @@
           throw new Error(data.error || 'Login failed');
         }
 
-        // Store token
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-
-        // Redirect to admin
         window.location.href = '/admin.html';
 
       } catch (error) {
-        console.error('Login error:', error);
-        errorDiv.textContent = error.message;
-        errorDiv.classList.add('show');
+        errorText.textContent = error.message;
+        errorDiv.classList.remove('hidden');
         loginBtn.disabled = false;
         loginBtn.textContent = 'Sign In';
       }
