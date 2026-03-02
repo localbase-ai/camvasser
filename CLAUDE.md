@@ -57,7 +57,7 @@ Camvasser is a multi-tenant lead generation platform built on Netlify serverless
 ### Integrations
 - **CompanyCam:** Project/photo sync. Token per tenant in env vars.
 - **QuickBooks:** OAuth with auto-refresh stored in `OAuthToken` table. Creates customers, syncs estimates/invoices. Shares OAuth app with `~/Work/renu` — token rotation breaks the other app (known issue).
-- **Smartlead:** Email campaigns. Push leads to campaigns, pull engagement stats (opens/clicks/replies via CSV export endpoint).
+- **Smartlead:** Email automation layer. **"Camvasser Master" (id: 2987823)** holds ALL leads with `camvasser_status` custom field — never activate. **"Welcome" (id: 2987833)** is the new lead onboarding sequence. Use `onNewLead()` from `lib/smartlead.js` to push to both on lead creation. See `docs/integrations/smartlead.md` for full details.
 - **Google Calendar:** Edge functions create/list/delete events. Service account with domain-wide delegation.
 - **Whitepages:** Person/address enrichment for prospects.
 

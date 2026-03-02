@@ -104,3 +104,36 @@ export async function getEmailAccounts() {
 export async function getClientInfo() {
   return apiRequest('/client');
 }
+
+// Well-known campaign IDs — never activate Camvasser Master
+export const CAMPAIGNS = {
+  MASTER: 2987823,   // "Camvasser Master" — tagged lead pool, no sequences
+  WELCOME: 2987833   // "Welcome" — new lead onboarding sequence
+};
+
+/**
+ * Push a new lead to Camvasser Master + Welcome campaigns.
+ * Call this after creating a lead in Camvasser.
+ * Silently fails — email delivery shouldn't block lead creation.
+ */
+export async function onNewLead({ email, firstName, lastName, phone, location, status }) {
+  if (!email) return;
+
+  const lead = {
+    email: email.toLowerCase(),
+    first_name: firstName || '',
+    last_name: lastName || '',
+    phone_number: phone || '',
+    location: location || '',
+    custom_fields: { camvasser_status: status || 'new' }
+  };
+
+  try {
+    await Promise.all([
+      addLeadToCampaign(CAMPAIGNS.MASTER, lead),
+      addLeadToCampaign(CAMPAIGNS.WELCOME, lead)
+    ]);
+  } catch (err) {
+    console.error('Smartlead onNewLead failed:', err.message);
+  }
+}

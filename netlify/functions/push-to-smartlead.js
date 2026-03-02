@@ -165,6 +165,23 @@ async function startJob({ campaignName, filters }) {
 
   console.log('Prospects with valid emails:', leadsToUpload.length);
 
+  // Look up Camvasser lead statuses by email to attach as custom field
+  const camvasserLeads = await prisma.lead.findMany({
+    where: { tenant: tenant || undefined, email: { not: null } },
+    select: { email: true, status: true }
+  });
+  const statusByEmail = new Map();
+  for (const cl of camvasserLeads) {
+    for (const e of cl.email.split('/').map(x => x.toLowerCase().trim()).filter(Boolean)) {
+      statusByEmail.set(e, cl.status || 'new');
+    }
+  }
+
+  for (const lead of leadsToUpload) {
+    const status = statusByEmail.get(lead.email) || 'prospect';
+    lead.custom_fields = { camvasser_status: status };
+  }
+
   if (leadsToUpload.length === 0) {
     return {
       statusCode: 400,
