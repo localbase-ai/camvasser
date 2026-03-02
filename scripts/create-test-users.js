@@ -4,7 +4,8 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const password = '***REMOVED***';
+  const password = process.env.DEFAULT_USER_PASSWORD || process.argv[2];
+  if (!password) { console.error('Usage: node create-test-users.js <password> or set DEFAULT_USER_PASSWORD'); process.exit(1); }
   const passwordHash = await bcrypt.hash(password, 10);
 
   // Create Jake Riggin

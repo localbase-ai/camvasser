@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
  */
 async function validateAndGeocode(address, city, state, postalCode) {
   // Use the address validation key - this one has Address Validation API enabled
-  const apiKey = process.env.GOOGLE_ADDRESS_VALIDATION_KEY || 'AIzaSyCZ5lvfGnhxr5d5IYAwMcp9a6Gn1rgUxi8';
+  const apiKey = process.env.GOOGLE_ADDRESS_VALIDATION_KEY || process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     console.warn('No Google API key configured for address validation');
     return null;

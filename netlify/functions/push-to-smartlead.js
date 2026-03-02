@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { createId } from '@paralleldrive/cuid2';
 
 const prisma = new PrismaClient();
-const SMARTLEAD_API_KEY = process.env.SMARTLEAD_API_KEY || 'd5660b37-5572-4f17-b72d-18ccd7a01bf6_d867d1e';
+const SMARTLEAD_API_KEY = process.env.SMARTLEAD_API_KEY;
 const SMARTLEAD_BASE_URL = 'https://server.smartlead.ai/api/v1';
 
 // Chunked processing - each invocation handles one batch

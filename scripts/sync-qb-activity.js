@@ -21,7 +21,12 @@ const useProd = process.argv.includes('--prod');
 
 // If --prod, use the production DATABASE_URL
 if (useProd) {
-  process.env.DATABASE_URL = 'postgresql://postgres.yrntqcdcmpogpfvqabwp:***REMOVED***@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true';
+  // Load production DATABASE_URL from .env.production
+  const { readFileSync } = await import('fs');
+  const envProd = readFileSync('.env.production', 'utf8');
+  const match = envProd.match(/^DATABASE_URL="?([^"\n]+)"?/m);
+  if (!match) { console.error('No DATABASE_URL found in .env.production'); process.exit(1); }
+  process.env.DATABASE_URL = match[1];
 }
 
 const prisma = new PrismaClient();

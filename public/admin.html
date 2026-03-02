@@ -1442,7 +1442,7 @@
 
     // Preload map images for call list items (runs in background)
     function preloadCallListMaps(items) {
-      const apiKey = 'AIzaSyCZ5lvfGnhxr5d5IYAwMcp9a6Gn1rgUxi8';
+      const apiKey = window.__GOOGLE_MAPS_KEY;
       let index = 0;
 
       function preloadNext() {
@@ -1718,9 +1718,23 @@
     // =====================
     // Data Loading
     // =====================
+    async function loadMapboxToken() {
+      try {
+        const res = await fetch('/.netlify/functions/get-settings', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          window.__MAPBOX_TOKEN = data.mapboxToken || '';
+          window.__GOOGLE_MAPS_KEY = data.googleMapsKey || '';
+        }
+      } catch (e) { console.error('Failed to load settings:', e); }
+    }
+
     async function loadAllData() {
-      // Load all data in parallel
+      // Load mapbox token and all data in parallel
       await Promise.all([
+        loadMapboxToken(),
         loadAddresses(),
         loadProspects(),
         loadLeads(),
@@ -5492,7 +5506,7 @@
       const coords = isContact ? record.project?.coordinates : (record.coordinates || null);
 
       // Google Maps key for static maps and geocoding
-      const googleMapsKey = 'AIzaSyCZ5lvfGnhxr5d5IYAwMcp9a6Gn1rgUxi8';
+      const googleMapsKey = window.__GOOGLE_MAPS_KEY;
 
       // Build Google Static Maps URL if we have coordinates
       let lon = coords?.lon || coords?.lng;
@@ -7830,7 +7844,7 @@
     async function reverseGeocodeAndShowModal(lat, lon) {
       // Reverse geocode to get address
       try {
-        const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=AIzaSyCZ5lvfGnhxr5d5IYAwMcp9a6Gn1rgUxi8`);
+        const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${window.__GOOGLE_MAPS_KEY}`);
         const data = await response.json();
 
         if (data.status === 'OK' && data.results[0]) {
@@ -8150,7 +8164,7 @@
     // =====================
     function getMapboxToken() {
       // Public token for static map images
-      return '***REMOVED***';
+      return window.__MAPBOX_TOKEN || '';
     }
 
     function formatDate(dateString) {

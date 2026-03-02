@@ -46,7 +46,9 @@ export async function handler(event) {
         domain: tenantConfig.domain,
         logo: tenantConfig.logo,
         apiKey: apiKey ? `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}` : 'Not set',
-        slug: user.slug
+        slug: user.slug,
+        mapboxToken: process.env.MAPBOX_TOKEN || '',
+        googleMapsKey: process.env.GOOGLE_MAPS_API_KEY || ''
       })
     };
 

@@ -1,0 +1,41 @@
+# Gitleaks configuration for Camvasser
+# https://github.com/gitleaks/gitleaks
+
+title = "Camvasser gitleaks config"
+
+# Keep all 100+ built-in rules AND add custom ones below
+[extend]
+useDefault = true
+
+# Project-specific rules (built-in gcp-api-key already covers Google API keys)
+
+[[rules]]
+id = "mapbox-token"
+description = "Mapbox Public Token"
+regex = '''pk\.eyJ[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+'''
+keywords = ["pk.eyJ"]
+
+[[rules]]
+id = "smartlead-api-key"
+description = "Smartlead API Key"
+regex = '''(?i)['\"]([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}[a-zA-Z0-9_\-]*)['\"]'''
+keywords = ["smartlead", "api_key", "campaign"]
+secretGroup = 1
+
+[[rules]]
+id = "quickbooks-token"
+description = "QuickBooks OAuth Token"
+regex = '''(?i)quickbooks[_\-]?(access|refresh)[_\-]?token\s*[=:]\s*['"]([a-zA-Z0-9\-_.]{20,})['"]'''
+keywords = ["quickbooks"]
+secretGroup = 2
+
+[allowlist]
+paths = [
+  '''\.gitleaks\.toml$''',
+  '''\.gitleaksignore$''',
+  '''node_modules/''',
+  '''package-lock\.json$''',
+  '''\.env\.example$''',
+  '''tests/''',
+  '''prisma/camvasser_local\.db$''',
+]

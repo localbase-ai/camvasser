@@ -4,7 +4,7 @@
   "description": "Turn your CompanyCam projects into lead generation machines",
   "type": "module",
   "scripts": {
-    "dev": "lsof -ti:8888 -ti:3999 | xargs kill -9 2>/dev/null; netlify dev",
+    "dev": "lsof -ti:8888 -ti:3999 | xargs kill -9 2>/dev/null; node scripts/sync-local-db.js && netlify dev",
     "build": "npx prisma generate && npm run build:css",
     "build:css": "npx @tailwindcss/cli -i public/styles/input.css -o public/styles/output.css --minify",
     "watch:css": "npx @tailwindcss/cli -i public/styles/input.css -o public/styles/output.css --watch",
@@ -19,7 +19,8 @@
     "db:migrate": "./scripts/prisma-safe.sh migrate dev",
     "db:reset": "./scripts/prisma-safe.sh migrate reset",
     "db:push": "./scripts/prisma-safe.sh db push",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "check-secrets": "gitleaks detect --source . --verbose"
   },
   "keywords": [
     "companycam",

@@ -10,7 +10,8 @@ if [ -z "$STAGED_FILES" ]; then
   exit 0
 fi
 
-# Check for .env files being committed
+# Belt-and-suspenders: block .env files by filename (gitleaks catches secrets,
+# but this catches the case where someone stages an .env with only non-secret content)
 ENV_FILES=$(echo "$STAGED_FILES" | grep -E '\.env$|\.env\.local$|\.env\.production$|\.env\.development$' || true)
 if [ -n "$ENV_FILES" ]; then
   echo ""
@@ -22,103 +23,22 @@ if [ -n "$ENV_FILES" ]; then
   exit 1
 fi
 
-# Patterns to detect secrets (check staged content only)
-SECRETS_FOUND=0
-
-for FILE in $STAGED_FILES; do
-  # Skip binary files and certain extensions
-  if echo "$FILE" | grep -qE '\.(png|jpg|jpeg|gif|ico|woff|woff2|ttf|eot|pdf)$'; then
-    continue
+# Run gitleaks on staged changes
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --verbose --redact
+  GITLEAKS_EXIT=$?
+  if [ $GITLEAKS_EXIT -ne 0 ]; then
+    echo ""
+    echo "🚨 gitleaks detected secrets in staged changes!"
+    echo "Remove secrets from the files above before committing."
+    echo ""
+    echo "If these are false positives, add the fingerprint to .gitleaksignore"
+    echo "or bypass with: git commit --no-verify"
+    exit 1
   fi
-
-  # Skip if file doesn't exist (deleted)
-  if [ ! -f "$FILE" ]; then
-    continue
-  fi
-
-  # Get staged content of the file
-  CONTENT=$(git show ":$FILE" 2>/dev/null || true)
-
-  if [ -z "$CONTENT" ]; then
-    continue
-  fi
-
-  # AWS Access Key ID (20 char alphanumeric starting with AKIA)
-  if echo "$CONTENT" | grep -qE 'AKIA[0-9A-Z]{16}'; then
-    echo "❌ Potential AWS Access Key found in: $FILE"
-    SECRETS_FOUND=1
-  fi
-
-  # AWS Secret Key (40 char base64)
-  if echo "$CONTENT" | grep -qE '[^a-zA-Z0-9/+=][a-zA-Z0-9/+=]{40}[^a-zA-Z0-9/+=]'; then
-    # Check context for AWS-related variable names
-    if echo "$CONTENT" | grep -qiE '(aws_secret|secret_access_key|secretaccesskey).*=.*[a-zA-Z0-9/+=]{40}'; then
-      echo "❌ Potential AWS Secret Key found in: $FILE"
-      SECRETS_FOUND=1
-    fi
-  fi
-
-  # Generic API keys (common patterns)
-  if echo "$CONTENT" | grep -qE "(api[_-]?key|apikey|api[_-]?secret)['\"]?\s*[=:]\s*['\"][a-zA-Z0-9_\-]{20,}['\"]" ; then
-    echo "⚠️  Potential API key assignment found in: $FILE"
-    SECRETS_FOUND=1
-  fi
-
-  # Private keys (skip the hook file itself)
-  if [ "$FILE" != ".githooks/pre-commit" ]; then
-    if echo "$CONTENT" | grep -q "BEGIN.*PRIVATE KEY"; then
-      echo "❌ Private key found in: $FILE"
-      SECRETS_FOUND=1
-    fi
-  fi
-
-  # JWT tokens (3 base64 segments separated by dots)
-  if echo "$CONTENT" | grep -qE 'eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*'; then
-    # Skip test files - they often have mock JWTs
-    if ! echo "$FILE" | grep -qE '(test|spec|mock)'; then
-      echo "⚠️  Potential JWT token found in: $FILE"
-      SECRETS_FOUND=1
-    fi
-  fi
-
-  # Slack webhooks
-  if echo "$CONTENT" | grep -qE 'hooks\.slack\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[a-zA-Z0-9]+'; then
-    echo "❌ Slack webhook URL found in: $FILE"
-    SECRETS_FOUND=1
-  fi
-
-  # Generic secrets in variable assignments (but not process.env references)
-  if echo "$CONTENT" | grep -vE 'process\.env\.' | grep -qiE "(password|passwd|secret|token|credential)['\"]?\s*[=:]\s*['\"][^'\"]{8,}['\"]"; then
-    # Skip common false positives
-    if ! echo "$CONTENT" | grep -qiE '(placeholder|example|your[_-]|<.*>|\$\{|process\.env)'; then
-      echo "⚠️  Potential hardcoded secret in: $FILE"
-      SECRETS_FOUND=1
-    fi
-  fi
-
-  # QuickBooks tokens (specific to this project)
-  if echo "$CONTENT" | grep -vE "process\.env\." | grep -qE "QUICKBOOKS_(ACCESS_TOKEN|REFRESH_TOKEN|CLIENT_SECRET)[^=]*="; then
-    echo "❌ Hardcoded QuickBooks credential found in: $FILE"
-    SECRETS_FOUND=1
-  fi
-
-  # Database URLs with credentials
-  if echo "$CONTENT" | grep -qE "(postgres|mysql|mongodb)://[^:]+:[^@]+@"; then
-    if ! echo "$CONTENT" | grep -qE "process\.env\."; then
-      echo "❌ Database URL with credentials found in: $FILE"
-      SECRETS_FOUND=1
-    fi
-  fi
-
-done
-
-if [ $SECRETS_FOUND -ne 0 ]; then
-  echo ""
-  echo "🚨 Security check failed!"
-  echo "Remove secrets from the files above before committing."
-  echo ""
-  echo "If these are false positives, you can bypass with: git commit --no-verify"
-  exit 1
+else
+  echo "⚠️  gitleaks not installed — skipping secret scan."
+  echo "   Install with: brew install gitleaks"
 fi
 
 echo "✅ Security checks passed!"

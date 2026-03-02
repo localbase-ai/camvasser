@@ -7,8 +7,8 @@ node_modules/
 .netlify/
 dist/
 *.log
-# scripts/
-tmp/
+# One-off scripts (kept locally, not committed)
+scripts/tmp/
 
 /generated/prisma
 docs/

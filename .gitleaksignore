@@ -1,0 +1,16 @@
+# Add gitleaks fingerprints here to ignore false positives
+# Format: one fingerprint per line (from gitleaks output)
+
+# Historical: Google Maps API key removed in c3e011e
+da92244c279f880a79f2f1ba6062d68773ebe992:public/admin.html:gcp-api-key:1417
+1ddbc88f5dab1fc532ba8d9755d3b4057f08f0be:public/admin.html:gcp-api-key:4919
+849207850a70166bc0cce80e4c3ab1312074194c:scripts/update-clay-coords.js:gcp-api-key:4
+c7d3eae86e7049a50e2acf2fa4509d3f2eb34e19:public/admin.html:gcp-api-key:3886
+c7d3eae86e7049a50e2acf2fa4509d3f2eb34e19:netlify/functions/create-project.js:gcp-api-key:12
+
+# Historical: Smartlead API key removed (hardcoded fallbacks)
+39a14470a74f4e5309034411afc23d41cd72ff52:scripts/sync-smartlead-contacts.js:smartlead-api-key:4
+a1b03d1f80361058daf113ed9def38808523ee05:netlify/functions/push-to-smartlead.js:smartlead-api-key:4
+
+# False positive: PEM header string in parser, not an actual key
+6cec9abef4264b0d29126cd6317e13133e7e6fc7:netlify/edge-functions/calendar-events.ts:private-key:52

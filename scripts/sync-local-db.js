@@ -62,6 +62,12 @@ async function exportTable(tableName, query, columns = null) {
     'id', 'leadId', 'tenant', 'googleEventId', 'summary', 'startTime', 'endTime',
     'durationMinutes', 'location', 'notes', 'status', 'eventType', 'createdAt', 'updatedAt'
   ]);
+  await exportTable('organizations', prisma.organization.findMany());
+  await exportTable('organization_contacts', prisma.organizationContact.findMany());
+  await exportTable('organization_properties', prisma.organizationProperty.findMany());
+  await exportTable('oauth_tokens', prisma.oAuthToken.findMany());
+  await exportTable('call_lists', prisma.callList.findMany());
+  await exportTable('call_scripts', prisma.callScript.findMany());
   db.close();
   await prisma.$disconnect();
   console.log('Done!');

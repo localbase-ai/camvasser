@@ -1,7 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const API_KEY = process.env.SMARTLEAD_API_KEY || 'd5660b37-5572-4f17-b72d-18ccd7a01bf6_d867d1e';
+const API_KEY = process.env.SMARTLEAD_API_KEY;
+if (!API_KEY) {
+  console.error('Missing SMARTLEAD_API_KEY environment variable');
+  process.exit(1);
+}
 
 const CAMPAIGN_IDS = [355169, 256177, 256083, 251581, 239753, 233075, 231543, 219728, 215968, 215469, 215394];
 
