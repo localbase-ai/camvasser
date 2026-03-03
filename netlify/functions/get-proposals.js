@@ -26,8 +26,18 @@ export async function handler(event) {
   }
 
   try {
-    const { email, name, all, tenant } = event.queryStringParameters || {};
+    const { email, name, all, tenant, customerId } = event.queryStringParameters || {};
     const tenantFilter = tenant || user.tenant;
+
+    const proposalSelect = {
+      proposalId: true,
+      customerName: true,
+      customerEmail: true,
+      proposalAmount: true,
+      sentDate: true,
+      signedDate: true,
+      status: true
+    };
 
     let proposals = [];
 
@@ -36,21 +46,20 @@ export async function handler(event) {
       proposals = await prisma.proposal.findMany({
         where: { tenant: tenantFilter },
         orderBy: { sentDate: 'desc' },
-        select: {
-          proposalId: true,
-          customerName: true,
-          customerEmail: true,
-          proposalAmount: true,
-          sentDate: true,
-          signedDate: true,
-          status: true
-        }
+        select: proposalSelect
+      });
+    } else if (customerId) {
+      // Fetch by Customer FK (most reliable path)
+      proposals = await prisma.proposal.findMany({
+        where: { tenant: tenantFilter, customerId },
+        orderBy: { sentDate: 'desc' },
+        select: proposalSelect
       });
     } else if (!email && !name) {
       return {
         statusCode: 400,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'email, name, or all=true parameter required' })
+        body: JSON.stringify({ error: 'email, name, customerId, or all=true parameter required' })
       };
     } else {
       // Try email match first (more reliable)
@@ -61,15 +70,7 @@ export async function handler(event) {
             customerEmail: { equals: email, mode: 'insensitive' }
           },
           orderBy: { sentDate: 'desc' },
-          select: {
-            proposalId: true,
-            customerName: true,
-            customerEmail: true,
-            proposalAmount: true,
-            sentDate: true,
-            signedDate: true,
-            status: true
-          }
+          select: proposalSelect
         });
       }
 
@@ -81,15 +82,7 @@ export async function handler(event) {
             customerName: { contains: name, mode: 'insensitive' }
           },
           orderBy: { sentDate: 'desc' },
-          select: {
-            proposalId: true,
-            customerName: true,
-            customerEmail: true,
-            proposalAmount: true,
-            sentDate: true,
-            signedDate: true,
-            status: true
-          }
+          select: proposalSelect
         });
       }
     }

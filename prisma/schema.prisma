@@ -36,6 +36,26 @@ model Appointment {
   @@index([tenant])
 }
 
+model Customer {
+  id            String     @id @default(cuid())
+  firstName     String
+  lastName      String     @default("")
+  email         String?
+  phone         String?
+  tenant        String
+  qbCustomerId  String?
+  qbDisplayName String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  leads         Lead[]
+  proposals     Proposal[]
+
+  @@unique([tenant, qbCustomerId])
+  @@index([tenant])
+  @@index([email])
+  @@index([lastName, firstName])
+}
+
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Lead {
   id            String    @id @default(cuid())
@@ -58,12 +78,15 @@ model Lead {
   coordinates   Json?
   flowData      Json?
   search_vector Unsupported("tsvector")?
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id])
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   @@index([tenant])
   @@index([status])
   @@index([createdAt])
+  @@index([customerId])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -342,12 +365,15 @@ model Proposal {
   qbDocNumber    String?
   qbEstimateId   String?   @unique
   qbSyncedAt     DateTime?
+  customerId     String?
+  customer       Customer? @relation(fields: [customerId], references: [id])
 
   @@index([customerEmail])
   @@index([customerName])
   @@index([qbEstimateId])
   @@index([status])
   @@index([tenant])
+  @@index([customerId])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.

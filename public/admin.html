@@ -456,6 +456,10 @@
                 <input type="checkbox" id="leadHasValueFilter" class="checkbox checkbox-sm checkbox-success">
                 <span class="label-text text-sm">Has Value</span>
               </label>
+              <label class="label cursor-pointer gap-2">
+                <input type="checkbox" id="leadGroupByCustomer" class="checkbox checkbox-sm checkbox-info" onchange="toggleGroupByCustomer()">
+                <span class="label-text text-sm">Group by Customer</span>
+              </label>
             </div>
             <button class="btn btn-sm btn-primary gap-1" onclick="openNewLeadModal()">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1472,6 +1476,10 @@
     // Leads view mode - restore from localStorage
     let leadsViewMode = localStorage.getItem('leadsViewMode') || 'list';
 
+    // Group by customer - restore from localStorage
+    let groupByCustomer = localStorage.getItem('groupByCustomer') === 'true';
+    let expandedCustomerGroups = JSON.parse(localStorage.getItem('expandedCustomerGroups') || '[]');
+
     // Collapsed kanban columns - restore from localStorage
     let collapsedColumns = JSON.parse(localStorage.getItem('collapsedColumns') || '[]');
 
@@ -1483,6 +1491,28 @@
       }
       localStorage.setItem('collapsedColumns', JSON.stringify(collapsedColumns));
       renderLeads();
+    }
+
+    function toggleGroupByCustomer() {
+      groupByCustomer = document.getElementById('leadGroupByCustomer').checked;
+      localStorage.setItem('groupByCustomer', groupByCustomer);
+      searchLeads();
+    }
+
+    function toggleCustomerGroup(customerId) {
+      const idx = expandedCustomerGroups.indexOf(customerId);
+      if (idx >= 0) {
+        expandedCustomerGroups.splice(idx, 1);
+      } else {
+        expandedCustomerGroups.push(customerId);
+      }
+      localStorage.setItem('expandedCustomerGroups', JSON.stringify(expandedCustomerGroups));
+
+      const rows = document.querySelectorAll(`tr[data-customer-group="${customerId}"]`);
+      const chevron = document.getElementById(`chevron-${customerId}`);
+      const isExpanded = expandedCustomerGroups.includes(customerId);
+      rows.forEach(r => r.classList.toggle('hidden', !isExpanded));
+      if (chevron) chevron.style.transform = isExpanded ? 'rotate(90deg)' : '';
     }
 
     // =====================
@@ -1842,9 +1872,12 @@
 
     async function loadLeads() {
       try {
+        // Initialize group-by-customer checkbox from persisted state
+        document.getElementById('leadGroupByCustomer').checked = groupByCustomer;
+
         const params = new URLSearchParams({
-          limit: String(PAGE_SIZE),
-          page: String(leadPage),
+          limit: groupByCustomer ? '10000' : String(PAGE_SIZE),
+          page: groupByCustomer ? '1' : String(leadPage),
           sortBy: leadSort.column,
           sortDir: leadSort.direction
         });
@@ -2593,7 +2626,7 @@
       const ownerFilterIsStatus = ownerFilter === '__has' || ownerFilter === '__no';
 
       // If filtering or sorting by value/owner, we need all leads to process client-side
-      const needsClientFilter = hasValueInSearch || noValueInSearch || sortByValue || document.getElementById('leadHasValueFilter').checked || ownerFilterIsStatus;
+      const needsClientFilter = hasValueInSearch || noValueInSearch || sortByValue || document.getElementById('leadHasValueFilter').checked || ownerFilterIsStatus || groupByCustomer;
 
       const params = new URLSearchParams({
         limit: needsClientFilter ? '10000' : PAGE_SIZE.toString(),
@@ -3504,9 +3537,144 @@
 
     let selectedLeadId = null;
 
+    function renderLeadRow(lead, opts = {}) {
+      const created = lead.createdAt ? formatDate(lead.createdAt) : '-';
+      const status = lead.status ? getStatusBadge(lead.status) : '-';
+      const isSelected = selectedLeadId === lead.id;
+      const jobValue = getLeadJobValue(lead);
+      const jobValueDisplay = jobValue ? `$${jobValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '-';
+      const hiddenClass = opts.hidden ? ' hidden' : '';
+      const groupAttr = opts.customerId ? ` data-customer-group="${opts.customerId}"` : '';
+
+      return `
+        <tr class="cursor-pointer hover:bg-base-200${hiddenClass} ${isSelected ? 'row-selected' : ''}" data-id="${lead.id}"${groupAttr} tabindex="0" onclick="showLeadDetail('${lead.id}')">
+          <td class="w-8" onclick="event.stopPropagation()">
+            <input type="checkbox" class="checkbox checkbox-sm lead-checkbox" data-id="${lead.id}" onchange="updateLeadSelectionUI()">
+          </td>
+          <td class="text-sm text-base-content/60" onclick="showLeadDetail('${lead.id}')">${created}</td>
+          <td class="font-medium" onclick="showLeadDetail('${lead.id}')">${lead.firstName || ''} ${lead.lastName || ''}</td>
+          <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.email || '-'}</td>
+          <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.phone || '-'}</td>
+          <td class="text-sm max-w-[200px] truncate" onclick="showLeadDetail('${lead.id}')">${lead.address || '-'}</td>
+          <td onclick="showLeadDetail('${lead.id}')">${status}</td>
+          <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.ownerName || '-'}</td>
+          <td class="text-sm text-success font-medium" onclick="showLeadDetail('${lead.id}')">${jobValueDisplay}</td>
+        </tr>
+      `;
+    }
+
+    function groupLeadsByCustomer(leads) {
+      const grouped = new Map();
+      const ungrouped = [];
+
+      for (const lead of leads) {
+        const custId = lead.customer?.id;
+        if (custId) {
+          if (!grouped.has(custId)) {
+            grouped.set(custId, { customer: lead.customer, leads: [] });
+          }
+          grouped.get(custId).leads.push(lead);
+        } else {
+          ungrouped.push(lead);
+        }
+      }
+
+      // Only keep groups with multiple leads — single-lead customers render as normal rows
+      const multiGroups = new Map();
+      const singleLeads = [];
+      for (const [custId, group] of grouped) {
+        if (group.leads.length > 1) {
+          // Sort leads within group by createdAt desc
+          group.leads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          multiGroups.set(custId, group);
+        } else {
+          singleLeads.push(group.leads[0]);
+        }
+      }
+
+      return { grouped: multiGroups, ungrouped: [...singleLeads, ...ungrouped] };
+    }
+
+    function renderGroupedLeadResults(leads) {
+      const tbody = document.getElementById('leadTableBody');
+
+      if (leads.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-base-content/60">No leads found</td></tr>`;
+        renderPagination('lead', 1, 1, 0, () => {});
+        return;
+      }
+
+      const { grouped, ungrouped } = groupLeadsByCustomer(leads);
+
+      // Sort groups by customer name
+      const customerDisplayName = (c) => c.qbDisplayName || [c.firstName, c.lastName].filter(Boolean).join(' ') || '';
+      const sortedGroups = [...grouped.entries()].sort((a, b) => {
+        return customerDisplayName(a[1].customer).toLowerCase().localeCompare(customerDisplayName(b[1].customer).toLowerCase());
+      });
+
+      let html = '';
+
+      for (const [custId, group] of sortedGroups) {
+        const isExpanded = expandedCustomerGroups.includes(custId);
+        const customerName = group.customer.qbDisplayName || [group.customer.firstName, group.customer.lastName].filter(Boolean).join(' ') || 'Unknown Customer';
+        const chevronStyle = isExpanded ? 'transform: rotate(90deg)' : '';
+
+        // Customer header row
+        html += `
+          <tr class="bg-base-200 cursor-pointer hover:bg-base-300" onclick="toggleCustomerGroup('${custId}')">
+            <td colspan="9" class="py-2 px-4">
+              <div class="flex items-center gap-2">
+                <svg id="chevron-${custId}" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" style="${chevronStyle}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                <span class="font-semibold">${customerName}</span>
+                <span class="badge badge-sm badge-info">${group.leads.length} leads</span>
+              </div>
+            </td>
+          </tr>
+        `;
+
+        // Child rows
+        for (const lead of group.leads) {
+          html += renderLeadRow(lead, { customerId: custId, hidden: !isExpanded });
+}
+      }
+
+      // Ungrouped leads
+      if (ungrouped.length > 0 && sortedGroups.length > 0) {
+        html += `
+          <tr class="bg-base-200">
+            <td colspan="9" class="py-2 px-4">
+              <span class="font-semibold text-base-content/60">Ungrouped</span>
+              <span class="badge badge-sm badge-ghost ml-2">${ungrouped.length}</span>
+            </td>
+          </tr>
+        `;
+      }
+      for (const lead of ungrouped) {
+        html += renderLeadRow(lead);
+      }
+
+      tbody.innerHTML = html;
+
+      // Reset selection UI
+      leadSelectAllMatching = false;
+      leadCurrentFilters = {};
+      document.getElementById('selectAllLeads').checked = false;
+      updateLeadSelectionUI();
+
+      // Show total count instead of pagination
+      renderPagination('lead', 1, 1, leads.length, () => {});
+    }
+
     function renderLeadResults(leads, total, totalPages) {
       if (leadsViewMode === 'kanban') {
         renderLeadsKanban(leads);
+        return;
+      }
+
+      if (groupByCustomer) {
+        renderGroupedLeadResults(leads);
         return;
       }
 
@@ -3515,29 +3683,7 @@
       if (leads.length === 0) {
         tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-base-content/60">No leads found</td></tr>`;
       } else {
-        tbody.innerHTML = leads.map(lead => {
-          const created = lead.createdAt ? formatDate(lead.createdAt) : '-';
-          const status = lead.status ? getStatusBadge(lead.status) : '-';
-          const isSelected = selectedLeadId === lead.id;
-          const jobValue = getLeadJobValue(lead);
-          const jobValueDisplay = jobValue ? `$${jobValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '-';
-
-          return `
-            <tr class="cursor-pointer hover:bg-base-200 ${isSelected ? 'row-selected' : ''}" data-id="${lead.id}" tabindex="0" onclick="showLeadDetail('${lead.id}')">
-              <td class="w-8" onclick="event.stopPropagation()">
-                <input type="checkbox" class="checkbox checkbox-sm lead-checkbox" data-id="${lead.id}" onchange="updateLeadSelectionUI()">
-              </td>
-              <td class="text-sm text-base-content/60" onclick="showLeadDetail('${lead.id}')">${created}</td>
-              <td class="font-medium" onclick="showLeadDetail('${lead.id}')">${lead.firstName || ''} ${lead.lastName || ''}</td>
-              <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.email || '-'}</td>
-              <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.phone || '-'}</td>
-              <td class="text-sm max-w-[200px] truncate" onclick="showLeadDetail('${lead.id}')">${lead.address || '-'}</td>
-              <td onclick="showLeadDetail('${lead.id}')">${status}</td>
-              <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.ownerName || '-'}</td>
-              <td class="text-sm text-success font-medium" onclick="showLeadDetail('${lead.id}')">${jobValueDisplay}</td>
-            </tr>
-          `;
-        }).join('');
+        tbody.innerHTML = leads.map(lead => renderLeadRow(lead)).join('');
       }
       // Reset select all checkbox and bulk actions when results change
       leadSelectAllMatching = false;
@@ -3633,8 +3779,17 @@
             </div>
           </div>
 
+          <!-- Customer Link -->
+          ${lead.customer ? `
+          <div class="space-y-2">
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Customer</h5>
+            <div class="text-sm font-medium">${lead.customer.qbDisplayName || (lead.customer.firstName + ' ' + lead.customer.lastName).trim()}</div>
+            <div id="customerSiblingCount" class="text-xs text-base-content/50"></div>
+          </div>
+          ` : ''}
+
           <!-- QuickBooks Integration -->
-          ${(() => { const qbId = lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id; const qbName = lead.flowData?.quickbooks_display_name || lead.flowData?.qb_customer_name; return `
+          ${(() => { const qbId = lead.customer?.qbCustomerId || lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id; const qbName = lead.customer?.qbDisplayName || lead.flowData?.quickbooks_display_name || lead.flowData?.qb_customer_name; return `
           <div class="space-y-2">
             <h5 class="text-xs font-semibold text-base-content/60 uppercase">QuickBooks</h5>
             ${qbId ? `
@@ -3847,8 +4002,17 @@
       // Load proposals for this lead (by email or name)
       loadLeadProposals(lead);
 
+      // Show sibling property count if customer is linked
+      if (lead.customer?.id) {
+        const siblingCount = allLeads.filter(l => l.customerId === lead.customer.id && l.id !== lead.id).length;
+        const el = document.getElementById('customerSiblingCount');
+        if (el && siblingCount > 0) {
+          el.textContent = `${siblingCount} other propert${siblingCount === 1 ? 'y' : 'ies'} linked`;
+        }
+      }
+
       // Load QB activity if customer is linked
-      if (lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id) {
+      if (lead.customer?.qbCustomerId || lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id) {
         loadQBCustomerActivity(lead);
       }
 
@@ -3962,7 +4126,7 @@
       const container = document.getElementById('qbActivityList');
       if (!container) return;
 
-      const customerId = lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id;
+      const customerId = lead.customer?.qbCustomerId || lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id;
       if (!customerId) return;
 
       try {
@@ -4048,11 +4212,16 @@
 
       try {
         const params = new URLSearchParams();
-        if (lead.email) params.set('email', lead.email);
-        const fullName = `${lead.firstName || ''} ${lead.lastName || ''}`.trim();
-        if (fullName) params.set('name', fullName);
+        if (lead.customerId) {
+          // Best path: fetch by Customer FK
+          params.set('customerId', lead.customerId);
+        } else {
+          if (lead.email) params.set('email', lead.email);
+          const fullName = `${lead.firstName || ''} ${lead.lastName || ''}`.trim();
+          if (fullName) params.set('name', fullName);
+        }
 
-        if (!lead.email && !fullName) {
+        if (!lead.customerId && !lead.email && !`${lead.firstName || ''} ${lead.lastName || ''}`.trim()) {
           container.innerHTML = '<div class="text-sm text-base-content/40 italic">No email or name to match</div>';
           return;
         }
@@ -6429,6 +6598,14 @@
             lead.flowData = lead.flowData || {};
             lead.flowData.quickbooks_customer_id = data.customer.id;
             lead.flowData.quickbooks_display_name = data.customer.displayName;
+            if (data.customer.camvasserId) {
+              lead.customerId = data.customer.camvasserId;
+              lead.customer = {
+                id: data.customer.camvasserId,
+                qbCustomerId: data.customer.id,
+                qbDisplayName: data.customer.displayName
+              };
+            }
           }
 
           // Refresh the detail pane

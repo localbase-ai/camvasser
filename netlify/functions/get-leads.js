@@ -84,7 +84,15 @@ export async function handler(event) {
     // Execute Prisma query
     let leads, total;
     [leads, total] = await Promise.all([
-      prisma.lead.findMany({ where, orderBy, take: limitNum, skip }),
+      prisma.lead.findMany({
+        where,
+        orderBy,
+        take: limitNum,
+        skip,
+        include: {
+          customer: { select: { id: true, firstName: true, lastName: true, qbCustomerId: true, qbDisplayName: true } }
+        }
+      }),
       prisma.lead.count({ where })
     ]);
 

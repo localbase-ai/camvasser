@@ -96,6 +96,26 @@ export function createMockPrisma() {
       delete: vi.fn(),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 })
     },
+    customer: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
+      count: vi.fn().mockResolvedValue(0),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn()
+    },
+    proposal: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
+      count: vi.fn().mockResolvedValue(0),
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      delete: vi.fn(),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 })
+    },
     organizationContact: {
       findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn().mockResolvedValue(null),
@@ -243,6 +263,40 @@ export const factories = {
     leadId: null,
     position: 0,
     createdAt: new Date(),
+    ...overrides
+  }),
+
+  customer: (overrides = {}) => ({
+    id: 'cust_123',
+    firstName: 'Jane',
+    lastName: 'Smith',
+    email: 'jane@example.com',
+    phone: '555-5678',
+    tenant: 'acme',
+    qbCustomerId: '1001',
+    qbDisplayName: 'Jane Smith',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides
+  }),
+
+  proposal: (overrides = {}) => ({
+    id: 'prop_123',
+    proposalId: 'qb-est-100',
+    customerName: 'Jane Smith',
+    customerEmail: 'jane@example.com',
+    proposalAmount: 5000.00,
+    sentDate: new Date(),
+    signedDate: null,
+    status: 'pending',
+    tenant: 'acme',
+    qbCustomerId: '1001',
+    qbDocNumber: '100',
+    qbEstimateId: 'est_100',
+    qbSyncedAt: new Date(),
+    customerId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
     ...overrides
   })
 };

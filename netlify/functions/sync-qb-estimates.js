@@ -114,6 +114,16 @@ export async function handler(event) {
         qbSyncedAt: new Date()
       };
 
+      // Look up Customer by qbCustomerId to set proposal.customerId
+      if (estimate.customer_id) {
+        const customer = await prisma.customer.findFirst({
+          where: { tenant, qbCustomerId: estimate.customer_id }
+        });
+        if (customer) {
+          proposalData.customerId = customer.id;
+        }
+      }
+
       if (existingProposal) {
         // Update existing
         await prisma.proposal.update({

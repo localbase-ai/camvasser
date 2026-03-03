@@ -93,57 +93,61 @@ export async function handler(event) {
     console.log('[QB] Checking for existing customer...');
     const existingCustomers = await findCustomer(customerData);
 
+    let qbId, qbDisplayName, wasExisting;
+
     if (existingCustomers.length > 0) {
       const existing = existingCustomers[0];
       console.log('[QB] Found existing customer:', existing.Id, existing.DisplayName);
-
-      // Link lead to existing customer
-      await prisma.lead.update({
-        where: { id: leadId },
-        data: {
-          flowData: {
-            ...lead.flowData,
-            quickbooks_customer_id: existing.Id,
-            quickbooks_display_name: existing.DisplayName,
-            quickbooks_linked_at: new Date().toISOString(),
-            quickbooks_was_existing: true
-          }
-        }
-      });
-
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          success: true,
-          action: 'linked',
-          message: `Linked to existing QuickBooks customer: ${existing.DisplayName}`,
-          customer: {
-            id: existing.Id,
-            displayName: existing.DisplayName,
-            email: existing.PrimaryEmailAddr?.Address,
-            wasExisting: true
-          }
-        })
-      };
+      qbId = existing.Id;
+      qbDisplayName = existing.DisplayName;
+      wasExisting = true;
+    } else {
+      console.log('[QB] Creating new customer...');
+      const newCustomer = await createCustomer(customerData);
+      qbId = newCustomer.Id;
+      qbDisplayName = newCustomer.DisplayName;
+      wasExisting = false;
     }
 
-    // Create new customer
-    console.log('[QB] Creating new customer...');
-    const newCustomer = await createCustomer(customerData);
+    // Find or create a Customer record
+    let customer = await prisma.customer.findFirst({
+      where: { tenant: lead.tenant, qbCustomerId: qbId }
+    });
 
-    // Update lead with QB customer ID
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: {
+          firstName: lead.firstName || '',
+          lastName: lead.lastName || '',
+          email: lead.email,
+          phone: lead.phone,
+          tenant: lead.tenant,
+          qbCustomerId: qbId,
+          qbDisplayName
+        }
+      });
+      console.log('[QB] Created Customer record:', customer.id);
+    }
+
+    // Update lead with QB data + Customer FK
     await prisma.lead.update({
       where: { id: leadId },
       data: {
+        customerId: customer.id,
         flowData: {
           ...lead.flowData,
-          quickbooks_customer_id: newCustomer.Id,
-          quickbooks_display_name: newCustomer.DisplayName,
+          quickbooks_customer_id: qbId,
+          quickbooks_display_name: qbDisplayName,
           quickbooks_linked_at: new Date().toISOString(),
-          quickbooks_was_existing: false
+          quickbooks_was_existing: wasExisting
         }
       }
+    });
+
+    // Also link any proposals with matching qbCustomerId
+    await prisma.proposal.updateMany({
+      where: { tenant: lead.tenant, qbCustomerId: qbId, customerId: null },
+      data: { customerId: customer.id }
     });
 
     return {
@@ -151,13 +155,15 @@ export async function handler(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         success: true,
-        action: 'created',
-        message: `Created QuickBooks customer: ${newCustomer.DisplayName}`,
+        action: wasExisting ? 'linked' : 'created',
+        message: wasExisting
+          ? `Linked to existing QuickBooks customer: ${qbDisplayName}`
+          : `Created QuickBooks customer: ${qbDisplayName}`,
         customer: {
-          id: newCustomer.Id,
-          displayName: newCustomer.DisplayName,
-          email: newCustomer.PrimaryEmailAddr?.Address,
-          wasExisting: false
+          id: qbId,
+          camvasserId: customer.id,
+          displayName: qbDisplayName,
+          wasExisting
         }
       })
     };

@@ -154,7 +154,10 @@ describe('create-quickbooks-customer API', () => {
         DisplayName: 'John Doe',
         PrimaryEmailAddr: { Address: 'john@example.com' }
       });
-      mockPrisma.lead.update.mockResolvedValue({ ...lead, flowData: { quickbooks_customer_id: '1002' } });
+      mockPrisma.customer.findFirst.mockResolvedValue(null);
+      mockPrisma.customer.create.mockResolvedValue({ id: 'cust_new', firstName: 'John', lastName: 'Doe', tenant: 'acme', qbCustomerId: '1002' });
+      mockPrisma.lead.update.mockResolvedValue({ ...lead, customerId: 'cust_new', flowData: { quickbooks_customer_id: '1002' } });
+      mockPrisma.proposal.updateMany.mockResolvedValue({ count: 0 });
 
       const event = createAuthenticatedEvent({
         httpMethod: 'POST',
@@ -167,6 +170,7 @@ describe('create-quickbooks-customer API', () => {
       expect(body.success).toBe(true);
       expect(body.action).toBe('created');
       expect(body.customer.id).toBe('1002');
+      expect(body.customer.camvasserId).toBe('cust_new');
       expect(body.customer.displayName).toBe('John Doe');
       expect(body.customer.wasExisting).toBe(false);
 
@@ -178,15 +182,34 @@ describe('create-quickbooks-customer API', () => {
         address: '123 Main St'
       });
 
+      // Should create a Customer record
+      expect(mockPrisma.customer.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          firstName: 'John',
+          lastName: 'Doe',
+          tenant: 'acme',
+          qbCustomerId: '1002',
+          qbDisplayName: 'John Doe'
+        })
+      });
+
+      // Should update lead with customerId + flowData
       expect(mockPrisma.lead.update).toHaveBeenCalledWith({
         where: { id: 'lead_123' },
         data: {
+          customerId: 'cust_new',
           flowData: expect.objectContaining({
             quickbooks_customer_id: '1002',
             quickbooks_display_name: 'John Doe',
             quickbooks_was_existing: false
           })
         }
+      });
+
+      // Should attempt to link orphaned proposals
+      expect(mockPrisma.proposal.updateMany).toHaveBeenCalledWith({
+        where: { tenant: 'acme', qbCustomerId: '1002', customerId: null },
+        data: { customerId: 'cust_new' }
       });
     });
   });
@@ -208,7 +231,10 @@ describe('create-quickbooks-customer API', () => {
         DisplayName: 'John Doe',
         PrimaryEmailAddr: { Address: 'john@example.com' }
       }]);
-      mockPrisma.lead.update.mockResolvedValue({ ...lead, flowData: { quickbooks_customer_id: '1001' } });
+      mockPrisma.customer.findFirst.mockResolvedValue(null);
+      mockPrisma.customer.create.mockResolvedValue({ id: 'cust_existing', firstName: 'John', lastName: 'Doe', tenant: 'acme', qbCustomerId: '1001' });
+      mockPrisma.lead.update.mockResolvedValue({ ...lead, customerId: 'cust_existing', flowData: { quickbooks_customer_id: '1001' } });
+      mockPrisma.proposal.updateMany.mockResolvedValue({ count: 0 });
 
       const event = createAuthenticatedEvent({
         httpMethod: 'POST',
@@ -223,17 +249,65 @@ describe('create-quickbooks-customer API', () => {
       expect(body.customer.id).toBe('1001');
       expect(body.customer.wasExisting).toBe(true);
 
-      // Should not call createCustomer when linking
+      // Should not call QB createCustomer when linking to existing QB customer
       expect(mockQB.createCustomer).not.toHaveBeenCalled();
+
+      // Should still create a Camvasser Customer record
+      expect(mockPrisma.customer.create).toHaveBeenCalled();
 
       expect(mockPrisma.lead.update).toHaveBeenCalledWith({
         where: { id: 'lead_123' },
         data: {
+          customerId: 'cust_existing',
           flowData: expect.objectContaining({
             quickbooks_customer_id: '1001',
             quickbooks_was_existing: true
           })
         }
+      });
+    });
+
+    it('should reuse existing Customer record when QB customer already has one', async () => {
+      const lead = {
+        id: 'lead_456',
+        tenant: 'acme',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        flowData: {}
+      };
+
+      const existingCustomer = { id: 'cust_existing', firstName: 'John', lastName: 'Doe', tenant: 'acme', qbCustomerId: '1001' };
+
+      mockPrisma.lead.findUnique.mockResolvedValue(lead);
+      mockQB.findCustomer.mockResolvedValue([{
+        Id: '1001',
+        DisplayName: 'John Doe',
+        PrimaryEmailAddr: { Address: 'john@example.com' }
+      }]);
+      mockPrisma.customer.findFirst.mockResolvedValue(existingCustomer);
+      mockPrisma.lead.update.mockResolvedValue({ ...lead, customerId: 'cust_existing' });
+      mockPrisma.proposal.updateMany.mockResolvedValue({ count: 0 });
+
+      const event = createAuthenticatedEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({ leadId: 'lead_456' })
+      });
+      const response = await handler(event);
+      const body = JSON.parse(response.body);
+
+      expect(response.statusCode).toBe(200);
+      expect(body.customer.camvasserId).toBe('cust_existing');
+
+      // Should NOT create a new Customer — reuses the existing one
+      expect(mockPrisma.customer.create).not.toHaveBeenCalled();
+
+      // Should link lead to existing customer
+      expect(mockPrisma.lead.update).toHaveBeenCalledWith({
+        where: { id: 'lead_456' },
+        data: expect.objectContaining({
+          customerId: 'cust_existing'
+        })
       });
     });
   });
@@ -315,7 +389,10 @@ describe('create-quickbooks-customer API', () => {
         DisplayName: 'Jane Smith',
         PrimaryEmailAddr: { Address: 'jane@example.com' }
       });
+      mockPrisma.customer.findFirst.mockResolvedValue(null);
+      mockPrisma.customer.create.mockResolvedValue({ id: 'cust_resp', tenant: 'acme', qbCustomerId: '1003' });
       mockPrisma.lead.update.mockResolvedValue(lead);
+      mockPrisma.proposal.updateMany.mockResolvedValue({ count: 0 });
 
       const event = createAuthenticatedEvent({
         httpMethod: 'POST',
@@ -330,6 +407,7 @@ describe('create-quickbooks-customer API', () => {
       expect(body).toHaveProperty('message');
       expect(body).toHaveProperty('customer');
       expect(body.customer).toHaveProperty('id');
+      expect(body.customer).toHaveProperty('camvasserId');
       expect(body.customer).toHaveProperty('displayName');
       expect(body.customer).toHaveProperty('wasExisting');
     });

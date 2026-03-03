@@ -7,6 +7,7 @@ export async function handler(event) {
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
@@ -30,44 +31,70 @@ export async function handler(event) {
       return {
         statusCode: 400,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Missing lead id' })
+        body: JSON.stringify({ error: 'Missing customer id' })
       };
     }
 
-    const lead = await prisma.lead.findUnique({
+    const customer = await prisma.customer.findUnique({
       where: { id },
-      include: { customer: true }
+      include: {
+        leads: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            address: true,
+            city: true,
+            state: true,
+            status: true,
+            createdAt: true
+          },
+          orderBy: { createdAt: 'desc' }
+        },
+        proposals: {
+          select: {
+            id: true,
+            proposalId: true,
+            proposalAmount: true,
+            status: true,
+            sentDate: true,
+            signedDate: true,
+            qbDocNumber: true
+          },
+          orderBy: { sentDate: 'desc' }
+        }
+      }
     });
 
-    if (!lead) {
+    if (!customer) {
       return {
         statusCode: 404,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Lead not found' })
+        body: JSON.stringify({ error: 'Customer not found' })
       };
     }
 
     // Tenant check
-    if (tenant && lead.tenant !== tenant) {
+    if (tenant && customer.tenant !== tenant) {
       return {
         statusCode: 404,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Lead not found' })
+        body: JSON.stringify({ error: 'Customer not found' })
       };
     }
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lead })
+      body: JSON.stringify({ customer })
     };
 
   } catch (error) {
-    console.error('Error fetching lead:', error);
+    console.error('Error fetching customer:', error);
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Failed to fetch lead', details: error.message })
+      body: JSON.stringify({ error: 'Failed to fetch customer', details: error.message })
     };
   }
 }
