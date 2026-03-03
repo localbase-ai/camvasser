@@ -62,6 +62,17 @@ export async function handler(event) {
             qbDocNumber: true
           },
           orderBy: { sentDate: 'desc' }
+        },
+        invoices: {
+          select: {
+            id: true,
+            invoiceAmount: true,
+            balance: true,
+            status: true,
+            invoiceDate: true,
+            qbDocNumber: true
+          },
+          orderBy: { invoiceDate: 'desc' }
         }
       }
     });

@@ -105,6 +105,15 @@ export function createMockPrisma() {
       update: vi.fn(),
       delete: vi.fn()
     },
+    invoice: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
+      count: vi.fn().mockResolvedValue(0),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn()
+    },
     proposal: {
       findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn().mockResolvedValue(null),
@@ -275,6 +284,24 @@ export const factories = {
     tenant: 'acme',
     qbCustomerId: '1001',
     qbDisplayName: 'Jane Smith',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides
+  }),
+
+  invoice: (overrides = {}) => ({
+    id: 'inv_123',
+    tenant: 'acme',
+    invoiceAmount: 7500.00,
+    balance: 0,
+    status: 'paid',
+    invoiceDate: new Date(),
+    customerId: 'cust_123',
+    customerName: 'Jane Smith',
+    qbInvoiceId: 'inv_100',
+    qbCustomerId: '1001',
+    qbDocNumber: '1001',
+    qbSyncedAt: new Date(),
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides

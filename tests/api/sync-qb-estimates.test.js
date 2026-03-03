@@ -61,6 +61,10 @@ describe('sync-qb-estimates API', () => {
       create: vi.fn().mockResolvedValue({ id: 'new_prop' }),
       update: vi.fn().mockResolvedValue({ id: 'updated_prop' })
     };
+
+    // Setup default customer mocks (auto-create stubs for unknown QB customers)
+    mockPrisma.customer.findFirst.mockResolvedValue(null);
+    mockPrisma.customer.create.mockResolvedValue({ id: 'auto_cust_123' });
   });
 
   describe('authentication', () => {

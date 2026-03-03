@@ -49,6 +49,7 @@ model Customer {
   updatedAt     DateTime   @updatedAt
   leads         Lead[]
   proposals     Proposal[]
+  invoices      Invoice[]
 
   @@unique([tenant, qbCustomerId])
   @@index([tenant])
@@ -87,6 +88,28 @@ model Lead {
   @@index([status])
   @@index([createdAt])
   @@index([customerId])
+}
+
+model Invoice {
+  id             String    @id @default(cuid())
+  tenant         String
+  invoiceAmount  Float?
+  balance        Float?
+  status         String?
+  invoiceDate    DateTime?
+  customerId     String?
+  customer       Customer? @relation(fields: [customerId], references: [id])
+  customerName   String?
+  qbInvoiceId    String?   @unique
+  qbCustomerId   String?
+  qbDocNumber    String?
+  qbSyncedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenant])
+  @@index([customerId])
+  @@index([qbCustomerId])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.

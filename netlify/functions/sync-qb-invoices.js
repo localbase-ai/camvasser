@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { createId } from '@paralleldrive/cuid2';
 import { verifyToken, getUserTenants } from './lib/auth.js';
 import Database from 'better-sqlite3';
 
@@ -43,14 +42,14 @@ export async function handler(event) {
       };
     }
 
-    console.log(`[sync-qb-estimates] Starting sync for tenant: ${tenant}`);
+    console.log(`[sync-qb-invoices] Starting sync for tenant: ${tenant}`);
 
     // Open the QuickBooks SQLite database
     let qbDb;
     try {
       qbDb = new Database(QB_DB_PATH, { readonly: true });
     } catch (err) {
-      console.error('[sync-qb-estimates] Could not open QuickBooks database:', err.message);
+      console.error('[sync-qb-invoices] Could not open QuickBooks database:', err.message);
       return {
         statusCode: 500,
         headers: { 'Content-Type': 'application/json' },
@@ -61,69 +60,57 @@ export async function handler(event) {
       };
     }
 
-    // Get today's date for filtering (sync from today forward)
-    const today = new Date().toISOString().split('T')[0];
-
-    // Query estimates from SQLite - get all for now, we'll filter in upsert
-    const estimates = qbDb.prepare(`
+    // Query invoices from SQLite
+    const invoices = qbDb.prepare(`
       SELECT
-        id, doc_number, txn_date, customer_id, customer_name, customer_email,
-        total_amt, txn_status, expiration_date, accepted_date, private_note,
-        created_time, last_updated_time
-      FROM estimates
+        id, txn_number, txn_date, customer_id, customer_name,
+        total_amt, balance
+      FROM invoices
       ORDER BY last_updated_time DESC
     `).all();
 
-    console.log(`[sync-qb-estimates] Found ${estimates.length} estimates in QuickBooks DB`);
+    console.log(`[sync-qb-invoices] Found ${invoices.length} invoices in QuickBooks DB`);
 
     let created = 0;
     let updated = 0;
     let skipped = 0;
 
-    for (const estimate of estimates) {
-      // Skip if no total amount
-      if (!estimate.total_amt || estimate.total_amt <= 0) {
+    for (const invoice of invoices) {
+      // Skip if no total amount or zero
+      if (!invoice.total_amt || invoice.total_amt <= 0) {
         skipped++;
         continue;
       }
 
-      // Map QB status to proposal status
-      let status = 'pending';
-      if (estimate.txn_status === 'Accepted') {
-        status = 'signed';
-      } else if (estimate.txn_status === 'Closed') {
-        status = 'closed';
-      } else if (estimate.txn_status === 'Rejected') {
-        status = 'rejected';
-      }
+      // Determine status based on balance
+      const status = invoice.balance === 0 ? 'paid' : 'open';
 
-      // Check if this estimate already exists
-      const existingProposal = await prisma.proposal.findFirst({
-        where: { qbEstimateId: estimate.id }
+      // Check if this invoice already exists
+      const existing = await prisma.invoice.findFirst({
+        where: { qbInvoiceId: invoice.id }
       });
 
-      const proposalData = {
-        customerName: estimate.customer_name || null,
-        customerEmail: estimate.customer_email || null,
-        proposalAmount: estimate.total_amt,
-        sentDate: estimate.txn_date ? new Date(estimate.txn_date) : null,
-        signedDate: estimate.accepted_date ? new Date(estimate.accepted_date) : null,
-        status,
+      const invoiceData = {
         tenant,
-        qbEstimateId: estimate.id,
-        qbCustomerId: estimate.customer_id || null,
-        qbDocNumber: estimate.doc_number || null,
-        qbSyncedAt: new Date(),
-        updatedAt: new Date()
+        invoiceAmount: invoice.total_amt,
+        balance: invoice.balance ?? null,
+        status,
+        invoiceDate: invoice.txn_date ? new Date(invoice.txn_date) : null,
+        customerName: invoice.customer_name || null,
+        qbInvoiceId: invoice.id,
+        qbCustomerId: invoice.customer_id || null,
+        qbDocNumber: invoice.txn_number || null,
+        qbSyncedAt: new Date()
       };
 
       // Look up Customer by qbCustomerId — create stub if missing
-      if (estimate.customer_id) {
+      if (invoice.customer_id) {
         let customer = await prisma.customer.findFirst({
-          where: { tenant, qbCustomerId: estimate.customer_id }
+          where: { tenant, qbCustomerId: invoice.customer_id }
         });
         if (!customer) {
-          const nameParts = (estimate.customer_name || '').trim().split(/\s+/);
+          // Parse "First Last" from QB customer_name
+          const nameParts = (invoice.customer_name || '').trim().split(/\s+/);
           const firstName = nameParts[0] || '';
           const lastName = nameParts.slice(1).join(' ') || '';
           customer = await prisma.customer.create({
@@ -131,29 +118,23 @@ export async function handler(event) {
               firstName,
               lastName,
               tenant,
-              qbCustomerId: estimate.customer_id,
-              qbDisplayName: estimate.customer_name || null
+              qbCustomerId: invoice.customer_id,
+              qbDisplayName: invoice.customer_name || null
             }
           });
         }
-        proposalData.customerId = customer.id;
+        invoiceData.customerId = customer.id;
       }
 
-      if (existingProposal) {
-        // Update existing
-        await prisma.proposal.update({
-          where: { id: existingProposal.id },
-          data: proposalData
+      if (existing) {
+        await prisma.invoice.update({
+          where: { id: existing.id },
+          data: invoiceData
         });
         updated++;
       } else {
-        // Create new - need a unique proposalId
-        await prisma.proposal.create({
-          data: {
-            id: createId(),
-            ...proposalData,
-            proposalId: `qb-est-${estimate.id}`
-          }
+        await prisma.invoice.create({
+          data: invoiceData
         });
         created++;
       }
@@ -161,7 +142,7 @@ export async function handler(event) {
 
     qbDb.close();
 
-    console.log(`[sync-qb-estimates] Sync complete: ${created} created, ${updated} updated, ${skipped} skipped`);
+    console.log(`[sync-qb-invoices] Sync complete: ${created} created, ${updated} updated, ${skipped} skipped`);
 
     return {
       statusCode: 200,
@@ -172,13 +153,13 @@ export async function handler(event) {
         created,
         updated,
         skipped,
-        total: estimates.length,
-        message: `Synced ${created + updated} estimates from QuickBooks`
+        total: invoices.length,
+        message: `Synced ${created + updated} invoices from QuickBooks`
       })
     };
 
   } catch (error) {
-    console.error('[sync-qb-estimates] Error:', error);
+    console.error('[sync-qb-invoices] Error:', error);
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },

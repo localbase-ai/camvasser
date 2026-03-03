@@ -164,6 +164,15 @@
             </a>
           </li>
           <li>
+            <a href="#customers" class="nav-link" data-view="customers">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <span class="nav-text">Customers</span>
+              <span id="customerCount" class="badge badge-sm badge-ghost">-</span>
+            </a>
+          </li>
+          <li>
             <a href="#map" class="nav-link" data-view="map">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -1065,6 +1074,48 @@
             </div>
           </div>
 
+          <!-- QuickBooks Invoices -->
+          <div class="card bg-base-200 shadow-sm">
+            <div class="card-body">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold">QuickBooks Invoices</h3>
+                    <p class="text-sm text-base-content/60">Sync invoices for revenue tracking</p>
+                  </div>
+                </div>
+                <div id="qbInvoicesStatus" class="badge badge-ghost">Ready</div>
+              </div>
+
+              <div class="divider my-2"></div>
+
+              <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Last Sync</span>
+                  <span id="qbInvoicesLastSync" class="font-medium">-</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-base-content/60">Invoices Synced</span>
+                  <span id="qbInvoicesSynced" class="font-medium">-</span>
+                </div>
+              </div>
+
+              <div class="card-actions justify-end mt-4">
+                <button id="qbInvoicesSyncBtn" onclick="syncQbInvoices()" class="btn btn-primary btn-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Sync Invoices
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- SmartLead Integration -->
           <div class="card bg-base-200 shadow-sm">
             <div class="card-body">
@@ -1235,6 +1286,75 @@
         </div>
       </div>
 
+      <div id="view-customers" class="view hidden flex flex-col h-full">
+        <!-- Sticky Header -->
+        <div class="sticky top-0 bg-base-100 z-10 py-2">
+          <div class="flex justify-between items-center gap-4">
+            <h2 class="text-lg font-bold">Customers</h2>
+            <span id="customerCountLabel" class="text-xs text-base-content/60"></span>
+            <div class="flex flex-wrap gap-2 items-center flex-1">
+              <input type="text" id="customerSearch" placeholder="Search customers..." class="input input-bordered input-sm flex-1 min-w-[200px]">
+              <select id="customerQbFilter" class="select select-bordered select-sm">
+                <option value="">All QB Status</option>
+                <option value="synced">Synced</option>
+                <option value="not_linked">Not Linked</option>
+              </select>
+              <label class="label cursor-pointer gap-2">
+                <input type="checkbox" id="customerHasValueFilter" class="checkbox checkbox-sm checkbox-success">
+                <span class="label-text text-sm">Has Value</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Split Pane Container -->
+        <div class="relative flex-1 min-h-0 mt-1">
+          <!-- Table Pane -->
+          <div id="customerListPane" class="h-full flex flex-col">
+            <div class="overflow-auto flex-1">
+              <table class="table w-full">
+                <thead class="sticky top-0 bg-base-100 z-10">
+                  <tr>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortCustomers('lastName')">Name <span id="customerSortLastName" class="text-xs opacity-50"></span></th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortCustomers('_count.leads')">Leads <span id="customerSort_count.leads" class="text-xs opacity-50"></span></th>
+                    <th>Revenue</th>
+                    <th>QB Status</th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortCustomers('createdAt')">Created <span id="customerSortCreatedAt" class="text-xs opacity-50"></span></th>
+                  </tr>
+                </thead>
+                <tbody id="customerTableBody">
+                  <tr>
+                    <td colspan="7" class="text-center py-8">
+                      <span class="loading loading-spinner loading-md"></span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            <div id="customerPagination" class="flex justify-center mt-4 flex-shrink-0"></div>
+          </div>
+
+          <!-- Detail Pane (absolute overlay) -->
+          <div id="customerDetailPane" class="fixed top-0 right-0 h-screen w-[450px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+            <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
+              <h3 class="font-semibold text-sm">Customer Details</h3>
+              <button onclick="closeCustomerDetail()" class="btn btn-ghost btn-xs btn-square">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div id="customerDetailContent" class="p-4 overflow-y-auto flex-1">
+              <!-- Customer details will be rendered here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
       </div><!-- end content area -->
     </main>
   </div>
@@ -1279,6 +1399,7 @@
     let allLeads = [];
     let allTags = [];
     let allOrganizations = [];
+    let allCustomers = [];
 
     // Proposals lookup map (keyed by email and name)
     let proposalsLookup = { byEmail: {}, byName: {} };
@@ -1356,12 +1477,16 @@
     let prospectTotal = 0;
     let leadTotal = 0;
     let orgTotal = 0;
+    let customerPage = 1;
+    let customerTotalPages = 1;
+    let customerTotal = 0;
 
     // Sort state - all default to most recent first
     let addressSort = { column: 'ccCreatedAt', direction: 'desc' };
     let prospectSort = { column: 'createdAt', direction: 'desc' };
     let leadSort = { column: 'createdAt', direction: 'desc' };
     let orgSort = { column: 'name', direction: 'asc' };
+    let customerSort = { column: 'lastName', direction: 'asc' };
 
     // Filters
     let currentAddressFilter = null; // For filtering prospects by address
@@ -1633,7 +1758,7 @@
 
       // Check initial hash, then localStorage, then default to 'calls'
       const initialHash = window.location.hash.slice(1);
-      const validViews = ['calls', 'addresses', 'contacts', 'leads', 'map', 'calendar', 'integrations'];
+      const validViews = ['calls', 'addresses', 'contacts', 'leads', 'organizations', 'customers', 'map', 'calendar', 'integrations'];
       if (initialHash && validViews.includes(initialHash)) {
         switchView(initialHash, false);
       } else {
@@ -1739,6 +1864,11 @@
         loadOrganizations();
       }
 
+      // Load customers when switching to customers view
+      if (view === 'customers') {
+        loadCustomers();
+      }
+
       // Load call lists when switching to calls view
       if (view === 'calls') {
         loadCallLists();
@@ -1769,7 +1899,8 @@
         loadProspects(),
         loadLeads(),
         loadTags(),
-        loadOrgCount()
+        loadOrgCount(),
+        loadCustomerCount()
       ]);
 
       // Pre-cache map URLs for faster display
@@ -2069,6 +2200,7 @@
     }
 
     let currentOrgId = null;
+    let currentCustomerId = null;
 
     function showOrgDetail(orgId) {
       const org = allOrganizations.find(o => o.id === orgId);
@@ -2338,6 +2470,300 @@
       });
     }
 
+    // =====================
+    // Customer Functions
+    // =====================
+
+    async function loadCustomerCount() {
+      try {
+        const params = new URLSearchParams({ limit: '1', page: '1' });
+        if (currentTenant) params.set('tenant', currentTenant);
+        const response = await fetch(`/.netlify/functions/get-customers?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await response.json();
+        document.getElementById('customerCount').textContent = data.total || 0;
+      } catch (error) {
+        console.error('Error loading customer count:', error);
+      }
+    }
+
+    async function loadCustomers() {
+      try {
+        const search = document.getElementById('customerSearch')?.value || '';
+        const qbFilter = document.getElementById('customerQbFilter')?.value || '';
+        const hasValue = document.getElementById('customerHasValueFilter')?.checked || false;
+
+        const params = new URLSearchParams({
+          limit: String(PAGE_SIZE),
+          page: String(customerPage),
+          sortBy: customerSort.column,
+          sortDir: customerSort.direction
+        });
+        if (currentTenant) params.set('tenant', currentTenant);
+        if (search) params.set('search', search);
+        if (qbFilter) params.set('qbStatus', qbFilter);
+        if (hasValue) params.set('hasValue', 'true');
+
+        const response = await fetch(`/.netlify/functions/get-customers?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+
+        const data = await response.json();
+        allCustomers = data.customers || [];
+        customerTotal = data.total || 0;
+        customerTotalPages = data.totalPages || 1;
+
+        document.getElementById('customerCount').textContent = customerTotal;
+        document.getElementById('customerCountLabel').textContent = `${customerTotal.toLocaleString()} customers`;
+
+        renderCustomers();
+      } catch (error) {
+        console.error('Error loading customers:', error);
+      }
+    }
+
+    function renderCustomers() {
+      const tbody = document.getElementById('customerTableBody');
+
+      if (allCustomers.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-8 text-base-content/60">
+              No customers found
+            </td>
+          </tr>
+        `;
+        document.getElementById('customerPagination').innerHTML = '';
+        return;
+      }
+
+      tbody.innerHTML = allCustomers.map(cust => {
+        const name = [cust.firstName, cust.lastName].filter(Boolean).join(' ') || cust.qbDisplayName || '—';
+        const valueStr = cust.totalRevenue ? `$${cust.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—';
+        const qbBadge = cust.qbCustomerId
+          ? '<span class="badge badge-sm badge-success">Synced</span>'
+          : '<span class="badge badge-sm badge-ghost">Not linked</span>';
+        const created = cust.createdAt ? new Date(cust.createdAt).toLocaleDateString() : '';
+        const isSelected = currentCustomerId === cust.id;
+        return `
+          <tr class="hover cursor-pointer hover:bg-base-200 ${isSelected ? 'row-selected' : ''}" data-id="${cust.id}" tabindex="0" onclick="showCustomerDetail('${cust.id}')">
+            <td class="font-medium">${escapeHtml(name)}</td>
+            <td class="text-sm">${escapeHtml(cust.email || '—')}</td>
+            <td class="text-sm">${cust.phone ? formatPhone(cust.phone) : '—'}</td>
+            <td class="text-center">${cust._count?.leads || 0}</td>
+            <td class="text-sm">${valueStr}</td>
+            <td>${qbBadge}</td>
+            <td class="text-sm text-base-content/70">${created}</td>
+          </tr>
+        `;
+      }).join('');
+
+      renderCustomerPagination();
+    }
+
+    function renderCustomerPagination() {
+      const container = document.getElementById('customerPagination');
+      if (customerTotalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '<div class="join">';
+      for (let i = 1; i <= customerTotalPages; i++) {
+        const active = i === customerPage ? 'btn-active' : '';
+        html += `<button class="join-item btn btn-sm ${active}" onclick="goToCustomerPage(${i})">${i}</button>`;
+      }
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function goToCustomerPage(page) {
+      customerPage = page;
+      loadCustomers();
+    }
+
+    function sortCustomers(column) {
+      if (customerSort.column === column) {
+        customerSort.direction = customerSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        customerSort.column = column;
+        customerSort.direction = 'asc';
+      }
+      updateCustomerSortIndicators();
+      customerPage = 1;
+      loadCustomers();
+    }
+
+    function updateCustomerSortIndicators() {
+      ['lastName', '_count.leads', 'createdAt'].forEach(col => {
+        const el = document.getElementById(`customerSort${col === '_count.leads' ? '_count.leads' : col.charAt(0).toUpperCase() + col.slice(1)}`);
+        if (el) {
+          el.textContent = customerSort.column === col ? (customerSort.direction === 'asc' ? '↑' : '↓') : '';
+        }
+      });
+    }
+
+    async function showCustomerDetail(customerId) {
+      // Update row highlight
+      const prevSelected = document.querySelector('#customerTableBody tr.row-selected');
+      if (prevSelected) prevSelected.classList.remove('row-selected');
+      const newSelected = document.querySelector(`#customerTableBody tr[data-id="${customerId}"]`);
+      if (newSelected) newSelected.classList.add('row-selected');
+
+      currentCustomerId = customerId;
+      const pane = document.getElementById('customerDetailPane');
+      const content = document.getElementById('customerDetailContent');
+
+      content.innerHTML = '<div class="flex justify-center py-8"><span class="loading loading-spinner loading-md"></span></div>';
+      pane.style.transform = 'translateX(0)';
+
+      try {
+        const params = new URLSearchParams({ id: customerId });
+        if (currentTenant) params.set('tenant', currentTenant);
+
+        const response = await fetch(`/.netlify/functions/get-customer?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (!response.ok) {
+          content.innerHTML = '<p class="text-error">Failed to load customer</p>';
+          return;
+        }
+
+        const data = await response.json();
+        const cust = data.customer;
+        const name = [cust.firstName, cust.lastName].filter(Boolean).join(' ') || cust.qbDisplayName || '—';
+
+        let html = `
+          <div class="space-y-3">
+            <div>
+              <h4 class="font-bold text-base">${escapeHtml(name)}</h4>
+              ${cust.qbDisplayName && cust.qbDisplayName !== name ? `<div class="text-xs text-base-content/60">QB: ${escapeHtml(cust.qbDisplayName)}</div>` : ''}
+            </div>
+            ${cust.email ? `<div class="text-sm">${escapeHtml(cust.email)}</div>` : ''}
+            ${cust.phone ? `<div class="text-sm">${formatPhone(cust.phone)}</div>` : ''}
+            <div class="text-xs text-base-content/60">Created ${new Date(cust.createdAt).toLocaleDateString()}</div>
+            ${cust.qbCustomerId ? `<a href="https://app.qbo.intuit.com/app/customerdetail?nameId=${cust.qbCustomerId}" target="_blank" class="btn btn-sm btn-ghost gap-1" onclick="event.stopPropagation()">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+              Open in QuickBooks
+            </a>` : ''}
+          </div>
+
+          <div class="divider"></div>
+
+          <div>
+            <label class="text-xs text-base-content/60">Leads (${cust.leads?.length || 0})</label>
+            <div class="mt-2 space-y-2">
+        `;
+
+        if (cust.leads && cust.leads.length > 0) {
+          cust.leads.forEach(lead => {
+            const statusClass = lead.status === 'new' ? 'badge-info' : lead.status === 'completed' ? 'badge-success' : 'badge-ghost';
+            html += `
+              <div class="bg-base-200 rounded-lg p-3 cursor-pointer hover:bg-base-300 transition-colors" onclick="navigateToLead('${lead.id}')">
+                <div class="font-medium text-sm">${escapeHtml(lead.address || '—')}</div>
+                <div class="text-xs text-base-content/60">${[lead.city, lead.state].filter(Boolean).join(', ')}</div>
+                <div class="flex justify-between items-center mt-1">
+                  <span class="badge badge-sm ${statusClass}">${escapeHtml(lead.status || 'unknown')}</span>
+                  <span class="text-xs text-base-content/50">${new Date(lead.createdAt).toLocaleDateString()}</span>
+                </div>
+              </div>
+            `;
+          });
+        } else {
+          html += '<p class="text-sm text-base-content/60">No leads</p>';
+        }
+
+        html += '</div></div>';
+
+        // Proposals section
+        html += `
+          <div class="mt-4">
+            <label class="text-xs text-base-content/60">Proposals (${cust.proposals?.length || 0})</label>
+        `;
+
+        if (cust.proposals && cust.proposals.length > 0) {
+          html += `
+            <table class="table table-xs mt-2">
+              <thead><tr><th>Doc #</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+              <tbody>
+          `;
+          cust.proposals.forEach(p => {
+            const amount = p.proposalAmount ? `$${p.proposalAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—';
+            const date = p.sentDate ? new Date(p.sentDate).toLocaleDateString() : '—';
+            html += `
+              <tr>
+                <td>${escapeHtml(p.qbDocNumber || '—')}</td>
+                <td>${amount}</td>
+                <td><span class="badge badge-xs badge-ghost">${escapeHtml(p.status || '—')}</span></td>
+                <td>${date}</td>
+              </tr>
+            `;
+          });
+          html += '</tbody></table>';
+        } else {
+          html += '<p class="text-sm text-base-content/60 mt-2">No proposals</p>';
+        }
+
+        html += '</div>';
+
+        // Invoices section
+        html += `
+          <div class="mt-4">
+            <label class="text-xs text-base-content/60">Invoices (${cust.invoices?.length || 0})</label>
+        `;
+
+        if (cust.invoices && cust.invoices.length > 0) {
+          html += `
+            <table class="table table-xs mt-2">
+              <thead><tr><th>Doc #</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+              <tbody>
+          `;
+          cust.invoices.forEach(inv => {
+            const amount = inv.invoiceAmount ? `$${inv.invoiceAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—';
+            const date = inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString() : '—';
+            const statusBadge = inv.status === 'paid' ? 'badge-success' : 'badge-warning';
+            html += `
+              <tr>
+                <td>${escapeHtml(inv.qbDocNumber || '—')}</td>
+                <td>${amount}</td>
+                <td><span class="badge badge-xs ${statusBadge}">${escapeHtml(inv.status || '—')}</span></td>
+                <td>${date}</td>
+              </tr>
+            `;
+          });
+          html += '</tbody></table>';
+        } else {
+          html += '<p class="text-sm text-base-content/60 mt-2">No invoices</p>';
+        }
+
+        html += '</div>';
+
+        content.innerHTML = html;
+      } catch (error) {
+        console.error('Error loading customer detail:', error);
+        content.innerHTML = '<p class="text-error">Error loading customer details</p>';
+      }
+    }
+
+    function closeCustomerDetail() {
+      document.getElementById('customerDetailPane').style.transform = 'translateX(100%)';
+      currentCustomerId = null;
+    }
+
+    function navigateToLead(leadId) {
+      if (!leadId) return;
+      closeCustomerDetail();
+      switchView('leads');
+      openLeadFromDeepLink(leadId);
+    }
+
     async function viewLinkedContact(prospectId) {
       if (!prospectId) return;
       // Switch to contacts view
@@ -2516,6 +2942,15 @@
         orgSearchTimeout = setTimeout(() => { orgPage = 1; loadOrganizations(); }, 300);
       });
       document.getElementById('orgTypeFilter').addEventListener('change', () => { orgPage = 1; loadOrganizations(); });
+
+      // Customer search & filters
+      let customerSearchTimeout;
+      document.getElementById('customerSearch').addEventListener('input', () => {
+        clearTimeout(customerSearchTimeout);
+        customerSearchTimeout = setTimeout(() => { customerPage = 1; loadCustomers(); }, 300);
+      });
+      document.getElementById('customerQbFilter').addEventListener('change', () => { customerPage = 1; loadCustomers(); });
+      document.getElementById('customerHasValueFilter').addEventListener('change', () => { customerPage = 1; loadCustomers(); });
     }
 
     // =====================
@@ -8474,7 +8909,8 @@
           leads: { tbody: 'leadTableBody', idAttr: 'id', selectedId: selectedLeadId, showFn: showLeadDetail },
           addresses: { tbody: 'addressTableBody', idAttr: 'id', selectedId: selectedAddressId, showFn: showAddressDetail },
           contacts: { tbody: 'prospectTableBody', idAttr: 'id', selectedId: selectedProspectId, showFn: showProspectDetail },
-          organizations: { tbody: 'orgTableBody', idAttr: 'id', selectedId: currentOrgId, showFn: showOrgDetail }
+          organizations: { tbody: 'orgTableBody', idAttr: 'id', selectedId: currentOrgId, showFn: showOrgDetail },
+          customers: { tbody: 'customerTableBody', idAttr: 'id', selectedId: currentCustomerId, showFn: showCustomerDetail }
         };
 
         const config = viewConfig[currentView];
@@ -8560,7 +8996,8 @@
           leads: { paneId: 'leadDetailPane', selectedId: selectedLeadId, showFn: showLeadDetail },
           addresses: { paneId: 'addressDetailPane', selectedId: selectedAddressId, showFn: showAddressDetail },
           contacts: { paneId: 'prospectDetailPane', selectedId: selectedProspectId, showFn: showProspectDetail },
-          organizations: { paneId: 'orgDetailPane', selectedId: currentOrgId, showFn: showOrgDetail }
+          organizations: { paneId: 'orgDetailPane', selectedId: currentOrgId, showFn: showOrgDetail },
+          customers: { paneId: 'customerDetailPane', selectedId: currentCustomerId, showFn: showCustomerDetail }
         };
 
         const config = enterConfig[currentView];
@@ -9049,8 +9486,8 @@
           syncedEl.textContent = data.synced.toLocaleString();
           showInfoModal('success', 'Sync Complete', `Synced ${data.synced} estimates (${data.created} new, ${data.updated} updated)`);
 
-          // Refresh proposals to show new data
-          await fetchProposals();
+          // Refresh customers to show updated estimate values
+          await loadCustomers();
         } else {
           throw new Error(data.error || 'Sync failed');
         }
@@ -9066,6 +9503,64 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           Sync Estimates
+        `;
+      }
+    }
+
+    // =====================
+    // QuickBooks Invoices Sync
+    // =====================
+    async function syncQbInvoices() {
+      const btn = document.getElementById('qbInvoicesSyncBtn');
+      const statusEl = document.getElementById('qbInvoicesStatus');
+      const lastSyncEl = document.getElementById('qbInvoicesLastSync');
+      const syncedEl = document.getElementById('qbInvoicesSynced');
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="loading loading-spinner loading-xs"></span> Syncing...`;
+      statusEl.className = 'badge badge-warning';
+      statusEl.textContent = 'Syncing';
+
+      try {
+        const response = await fetch(`/.netlify/functions/sync-qb-invoices?tenant=${currentTenant}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          statusEl.className = 'badge badge-success';
+          statusEl.textContent = 'Synced';
+          lastSyncEl.textContent = 'Just now';
+          syncedEl.textContent = data.synced.toLocaleString();
+          showInfoModal('success', 'Sync Complete', `Synced ${data.synced} invoices (${data.created} new, ${data.updated} updated)`);
+
+          // Refresh customers to show updated revenue
+          await loadCustomers();
+        } else {
+          throw new Error(data.error || 'Sync failed');
+        }
+      } catch (error) {
+        console.error('QB Invoices sync error:', error);
+        statusEl.className = 'badge badge-error';
+        statusEl.textContent = 'Error';
+        showInfoModal('error', 'Sync Failed', error.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Sync Invoices
         `;
       }
     }
