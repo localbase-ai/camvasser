@@ -8017,6 +8017,7 @@
 
       document.getElementById('leadsListView').classList.toggle('hidden', mode !== 'list');
       document.getElementById('leadsKanbanView').classList.toggle('hidden', mode !== 'kanban');
+      document.getElementById('leadGroupByCustomer').parentElement.classList.toggle('hidden', mode === 'kanban');
 
       if (mode === 'kanban') {
         // Fetch ALL leads for kanban view (no pagination limit)
