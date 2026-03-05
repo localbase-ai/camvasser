@@ -121,8 +121,8 @@ export async function handler(event) {
       const prospectsWithEmail = await prisma.$queryRaw`
         SELECT id FROM "Prospect"
         WHERE emails IS NOT NULL
-          AND jsonb_typeof(emails) = 'array'
-          AND jsonb_array_length(emails) > 0
+          AND emails::text != 'null'
+          AND emails::text != '[]'
       `;
       const emailIds = prospectsWithEmail.map(p => p.id);
       if (emailIds.length === 0) {
