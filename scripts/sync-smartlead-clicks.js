@@ -60,7 +60,9 @@ function parseCsvLine(line) {
 }
 
 async function fetchAllClickers() {
-  const campaigns = await fetch(`${SMARTLEAD_API_BASE}/campaigns?api_key=${API_KEY}`).then(r => r.json());
+  const allCampaigns = await fetch(`${SMARTLEAD_API_BASE}/campaigns?api_key=${API_KEY}`).then(r => r.json());
+  const campaigns = allCampaigns.filter(c => c.status === 'ACTIVE');
+  console.log(`Scanning ${campaigns.length} active campaign(s): ${campaigns.map(c => c.name).join(', ')}`);
   const clickerMap = new Map();
 
   for (const campaign of campaigns) {
@@ -200,7 +202,7 @@ async function main() {
             companyName: cl.company || null,
             tenant: TENANT,
             campaign: cl.campaigns.join(', '),
-            status: 'smartlead_clicker',
+            status: 'clicked',
             notes: `[smartlead: ${cl.clicks} clicks, ${cl.opens} opens, ${cl.replies} replies, campaigns: ${cl.campaigns.join(', ')}]`
           }
         });
