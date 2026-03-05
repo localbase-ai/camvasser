@@ -118,10 +118,10 @@ export async function handler(event) {
 
     // Filter by hasEmail - must have non-empty emails array
     if (hasEmail === 'true') {
-      // Find prospects with at least one email using raw SQL
       const prospectsWithEmail = await prisma.$queryRaw`
         SELECT id FROM "Prospect"
         WHERE emails IS NOT NULL
+          AND jsonb_typeof(emails) = 'array'
           AND jsonb_array_length(emails) > 0
       `;
       const emailIds = prospectsWithEmail.map(p => p.id);
