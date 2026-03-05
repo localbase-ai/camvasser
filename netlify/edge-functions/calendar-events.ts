@@ -148,12 +148,20 @@ export default async function handler(request: Request, context: Context) {
 
   try {
     const url = new URL(request.url);
-    const days = parseInt(url.searchParams.get("days") || "14", 10);
-    const maxResults = parseInt(url.searchParams.get("maxResults") || "50", 10);
+    const maxResults = parseInt(url.searchParams.get("maxResults") || "100", 10);
 
-    const timeMin = new Date();
-    const timeMax = new Date();
-    timeMax.setDate(timeMax.getDate() + days);
+    let timeMin: Date, timeMax: Date;
+    const timeMinParam = url.searchParams.get("timeMin");
+    const timeMaxParam = url.searchParams.get("timeMax");
+    if (timeMinParam && timeMaxParam) {
+      timeMin = new Date(timeMinParam);
+      timeMax = new Date(timeMaxParam);
+    } else {
+      const days = parseInt(url.searchParams.get("days") || "14", 10);
+      timeMin = new Date();
+      timeMax = new Date();
+      timeMax.setDate(timeMax.getDate() + days);
+    }
 
     const params = new URLSearchParams({
       maxResults: String(maxResults),

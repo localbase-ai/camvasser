@@ -94,6 +94,95 @@
     table {
       will-change: contents;
     }
+    /* Calendar grid styles */
+    .cal-month {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      border-left: 1px solid oklch(var(--bc) / 0.1);
+      border-top: 1px solid oklch(var(--bc) / 0.1);
+    }
+    .cal-month-cell {
+      min-height: 100px;
+      border-right: 1px solid oklch(var(--bc) / 0.1);
+      border-bottom: 1px solid oklch(var(--bc) / 0.1);
+      padding: 4px;
+      overflow: hidden;
+    }
+    .cal-month-cell.outside { opacity: 0.35; }
+    .cal-month-cell.today { background: oklch(var(--p) / 0.07); }
+    .cal-event-pill {
+      font-size: 0.7rem;
+      line-height: 1.1;
+      padding: 2px 6px;
+      margin-bottom: 2px;
+      border-radius: 4px;
+      background: oklch(var(--p));
+      color: oklch(var(--pc));
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .cal-event-pill:hover { background: oklch(var(--pf, var(--p)) / 0.85); }
+    .cal-week-wrapper {
+      display: grid;
+      grid-template-columns: 54px repeat(7, 1fr);
+      border-left: 1px solid oklch(var(--bc) / 0.1);
+      border-top: 1px solid oklch(var(--bc) / 0.1);
+    }
+    .cal-week-header {
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.8rem;
+      padding: 6px 0;
+      border-right: 1px solid oklch(var(--bc) / 0.1);
+      border-bottom: 1px solid oklch(var(--bc) / 0.15);
+    }
+    .cal-week-header.today { background: oklch(var(--p) / 0.07); }
+    .cal-week-body {
+      display: grid;
+      grid-template-columns: 54px repeat(7, 1fr);
+      position: relative;
+    }
+    .cal-week-times {
+      display: flex;
+      flex-direction: column;
+    }
+    .cal-week-time {
+      font-size: 0.7rem;
+      color: oklch(var(--bc) / 0.5);
+      text-align: right;
+      padding-right: 6px;
+      height: 48px;
+      border-bottom: 1px solid oklch(var(--bc) / 0.1);
+      border-right: 1px solid oklch(var(--bc) / 0.1);
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+    }
+    .cal-week-day {
+      position: relative;
+      border-right: 1px solid oklch(var(--bc) / 0.1);
+    }
+    .cal-week-day-line {
+      height: 48px;
+      border-bottom: 1px solid oklch(var(--bc) / 0.1);
+    }
+    .cal-week-event {
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      background: oklch(var(--p));
+      color: oklch(var(--pc));
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-size: 0.7rem;
+      line-height: 1.2;
+      overflow: hidden;
+      cursor: pointer;
+      z-index: 1;
+    }
+    .cal-week-event:hover { filter: brightness(1.1); }
   </style>
 
 </head>
@@ -622,39 +711,38 @@
 
       <!-- Calendar View -->
       <div id="view-calendar" class="view hidden flex flex-col h-full">
-        <div class="py-4">
-          <h2 class="text-2xl font-bold">Calendar</h2>
-          <p class="text-base-content/60">Upcoming appointments from Google Calendar</p>
-        </div>
-
-        <div id="calendarContent" class="flex-1 overflow-auto">
-          <!-- Loading state -->
-          <div id="calendarLoading" class="flex flex-col items-center justify-center py-12">
-            <span class="loading loading-spinner loading-lg text-primary"></span>
-            <p class="text-base-content/60 mt-4">Loading calendar events...</p>
+        <div class="py-4 flex justify-between items-center">
+          <div>
+            <h2 class="text-2xl font-bold">Calendar</h2>
+            <p class="text-base-content/60" id="calendarSubtitle"></p>
           </div>
-
-          <!-- Not configured state -->
-          <div id="calendarNotConfigured" class="hidden flex flex-col items-center justify-center py-12">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <p class="text-base-content/60">Google Calendar not configured</p>
-          </div>
-
-          <!-- Events list -->
-          <div id="calendarEvents" class="hidden space-y-4">
-            <!-- Events grouped by day will be rendered here -->
-          </div>
-
-          <!-- No events state -->
-          <div id="calendarNoEvents" class="hidden flex flex-col items-center justify-center py-12">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p class="text-base-content/60">No upcoming appointments</p>
+          <div class="flex items-center gap-2">
+            <button onclick="calNav(-1)" class="btn btn-sm btn-ghost">‹</button>
+            <button onclick="calNav(0)" class="btn btn-sm">Today</button>
+            <button onclick="calNav(1)" class="btn btn-sm btn-ghost">›</button>
+            <div class="join ml-4">
+              <button onclick="setCalView('month')" class="btn btn-sm join-item" id="calBtnMonth">Month</button>
+              <button onclick="setCalView('week')" class="btn btn-sm join-item" id="calBtnWeek">Week</button>
+            </div>
           </div>
         </div>
+
+        <!-- Loading state -->
+        <div id="calendarLoading" class="flex flex-col items-center justify-center py-12">
+          <span class="loading loading-spinner loading-lg text-primary"></span>
+          <p class="text-base-content/60 mt-4">Loading calendar events...</p>
+        </div>
+
+        <!-- Not configured state -->
+        <div id="calendarNotConfigured" class="hidden flex flex-col items-center justify-center py-12">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <p class="text-base-content/60">Google Calendar not configured</p>
+        </div>
+
+        <!-- Calendar grid -->
+        <div id="calendarGrid" class="hidden flex-1 overflow-auto"></div>
       </div>
 
       <!-- Calls View -->
@@ -9768,27 +9856,86 @@
     // =====================
     // Calendar Functions
     // =====================
+    let calView = localStorage.getItem('calView') || 'month';
+    let calDate = new Date();
+    let calEvents = [];
+
+    function setCalView(view) {
+      calView = view;
+      localStorage.setItem('calView', view);
+      document.getElementById('calBtnMonth').classList.toggle('btn-active', view === 'month');
+      document.getElementById('calBtnWeek').classList.toggle('btn-active', view === 'week');
+      loadCalendarEvents();
+    }
+
+    function calNav(dir) {
+      if (dir === 0) {
+        calDate = new Date();
+      } else if (calView === 'month') {
+        calDate.setMonth(calDate.getMonth() + dir);
+      } else {
+        calDate.setDate(calDate.getDate() + dir * 7);
+      }
+      loadCalendarEvents();
+    }
+
+    function getCalDateRange() {
+      if (calView === 'month') {
+        const first = new Date(calDate.getFullYear(), calDate.getMonth(), 1);
+        const last = new Date(calDate.getFullYear(), calDate.getMonth() + 1, 0);
+        // Pad to full weeks
+        const start = new Date(first);
+        start.setDate(start.getDate() - start.getDay());
+        const end = new Date(last);
+        end.setDate(end.getDate() + (6 - end.getDay()));
+        end.setHours(23, 59, 59, 999);
+        return { start, end };
+      } else {
+        const start = new Date(calDate);
+        start.setDate(start.getDate() - start.getDay());
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+        return { start, end };
+      }
+    }
+
     async function loadCalendarEvents() {
       const loading = document.getElementById('calendarLoading');
       const notConfigured = document.getElementById('calendarNotConfigured');
-      const events = document.getElementById('calendarEvents');
-      const noEvents = document.getElementById('calendarNoEvents');
+      const grid = document.getElementById('calendarGrid');
 
-      // Reset states
       loading.classList.remove('hidden');
       notConfigured.classList.add('hidden');
-      events.classList.add('hidden');
-      noEvents.classList.add('hidden');
+      grid.classList.add('hidden');
+
+      // Update subtitle
+      const subtitle = document.getElementById('calendarSubtitle');
+      if (calView === 'month') {
+        subtitle.textContent = calDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      } else {
+        const { start, end } = getCalDateRange();
+        subtitle.textContent = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' – ' + end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+
+      // Highlight active view button
+      document.getElementById('calBtnMonth').classList.toggle('btn-active', calView === 'month');
+      document.getElementById('calBtnWeek').classList.toggle('btn-active', calView === 'week');
 
       try {
-        const response = await fetch('/api/calendar/events?days=30', {
+        const { start, end } = getCalDateRange();
+        const params = new URLSearchParams({
+          timeMin: start.toISOString(),
+          timeMax: end.toISOString()
+        });
+        const response = await fetch(`/api/calendar/events?${params}`, {
           headers: { 'Authorization': `Bearer ${authToken}` }
         });
 
         if (response.status === 401) { logout(); return; }
 
         const data = await response.json();
-
         loading.classList.add('hidden');
 
         if (response.status === 503) {
@@ -9796,58 +9943,13 @@
           return;
         }
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to load events');
-        }
+        if (!response.ok) throw new Error(data.error || 'Failed to load events');
 
-        if (data.events.length === 0) {
-          noEvents.classList.remove('hidden');
-          return;
-        }
+        calEvents = data.events || [];
+        grid.classList.remove('hidden');
 
-        // Group events by day
-        const grouped = {};
-        data.events.forEach(event => {
-          const date = new Date(event.start).toLocaleDateString('en-US', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-          });
-          if (!grouped[date]) grouped[date] = [];
-          grouped[date].push(event);
-        });
-
-        // Render events
-        events.innerHTML = Object.entries(grouped).map(([date, dayEvents]) => `
-          <div class="mb-6">
-            <h3 class="font-semibold text-lg mb-3">${date}</h3>
-            <div class="space-y-2">
-              ${dayEvents.map(event => `
-                <div class="card bg-base-200 shadow-sm">
-                  <div class="card-body p-4">
-                    <div class="flex items-start justify-between">
-                      <div>
-                        <h4 class="font-medium">${escapeHtml(event.summary)}</h4>
-                        <p class="text-sm text-base-content/60">
-                          ${new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                          ${event.end ? ' - ' + new Date(event.end).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}
-                        </p>
-                        ${event.location ? `<p class="text-sm text-base-content/60 mt-1">${escapeHtml(event.location)}</p>` : ''}
-                      </div>
-                      <div class="flex items-center gap-1">
-                        <button onclick="deleteCalendarEvent('${event.id}')" class="btn btn-ghost btn-xs text-error" title="Delete">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `).join('');
-
-        events.classList.remove('hidden');
+        if (calView === 'month') renderMonthView();
+        else renderWeekView();
       } catch (error) {
         console.error('Error loading calendar events:', error);
         loading.classList.add('hidden');
@@ -9855,13 +9957,181 @@
       }
     }
 
+    function renderMonthView() {
+      const grid = document.getElementById('calendarGrid');
+      const year = calDate.getFullYear();
+      const month = calDate.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const startDate = new Date(firstDay);
+      startDate.setDate(startDate.getDate() - startDate.getDay());
+
+      const today = new Date();
+      const todayStr = today.toDateString();
+
+      // Day headers
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      let html = '<div class="cal-month">';
+      dayNames.forEach(d => {
+        html += `<div class="text-center text-xs font-semibold py-2 border-r border-b" style="border-color: oklch(var(--bc) / 0.1)">${d}</div>`;
+      });
+
+      // Build event map keyed by date string
+      const eventMap = {};
+      calEvents.forEach(ev => {
+        const d = new Date(ev.start).toDateString();
+        if (!eventMap[d]) eventMap[d] = [];
+        eventMap[d].push(ev);
+      });
+
+      // Cells
+      const cursor = new Date(startDate);
+      while (cursor <= lastDay || cursor.getDay() !== 0) {
+        const dateStr = cursor.toDateString();
+        const isOutside = cursor.getMonth() !== month;
+        const isToday = dateStr === todayStr;
+        const classes = ['cal-month-cell', isOutside ? 'outside' : '', isToday ? 'today' : ''].filter(Boolean).join(' ');
+
+        html += `<div class="${classes}">`;
+        html += `<div class="text-xs font-medium mb-1 ${isToday ? 'text-primary font-bold' : ''}">${cursor.getDate()}</div>`;
+
+        const dayEvents = eventMap[dateStr] || [];
+        dayEvents.slice(0, 3).forEach(ev => {
+          const time = new Date(ev.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          html += `<div class="cal-event-pill" style="background:#6366f1;color:#fff" onclick="showCalEventDetail('${ev.id}')" title="${escapeHtml(ev.summary)}">${time} ${escapeHtml(ev.summary)}</div>`;
+        });
+        if (dayEvents.length > 3) {
+          html += `<div class="text-xs text-base-content/50 pl-1">+${dayEvents.length - 3} more</div>`;
+        }
+
+        html += '</div>';
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      html += '</div>';
+      grid.innerHTML = html;
+    }
+
+    function renderWeekView() {
+      const grid = document.getElementById('calendarGrid');
+      const { start } = getCalDateRange();
+      const today = new Date();
+      const todayStr = today.toDateString();
+      const startHour = 6;
+      const endHour = 21;
+
+      // Build event map keyed by date string
+      const eventMap = {};
+      calEvents.forEach(ev => {
+        const d = new Date(ev.start).toDateString();
+        if (!eventMap[d]) eventMap[d] = [];
+        eventMap[d].push(ev);
+      });
+
+      // Header row
+      let html = '<div class="cal-week-wrapper">';
+      html += '<div class="cal-week-header" style="border-right: 1px solid oklch(var(--bc) / 0.1)"></div>';
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        const isToday = d.toDateString() === todayStr;
+        const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+        html += `<div class="cal-week-header ${isToday ? 'today' : ''}">${label}</div>`;
+      }
+      html += '</div>';
+
+      // Body: time labels + day columns with absolutely positioned events
+      html += '<div class="cal-week-body">';
+
+      // Time label column
+      html += '<div class="cal-week-times">';
+      for (let h = startHour; h < endHour; h++) {
+        const label = h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`;
+        html += `<div class="cal-week-time">${label}</div>`;
+      }
+      html += '</div>';
+
+      // Day columns
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toDateString();
+
+        html += '<div class="cal-week-day">';
+
+        // Hour grid lines
+        for (let h = startHour; h < endHour; h++) {
+          html += '<div class="cal-week-day-line"></div>';
+        }
+
+        // Events overlay
+        const dayEvents = eventMap[dateStr] || [];
+        dayEvents.forEach(ev => {
+          const evStart = new Date(ev.start);
+          const evEnd = ev.end ? new Date(ev.end) : new Date(evStart.getTime() + 3600000);
+          const startMins = evStart.getHours() * 60 + evStart.getMinutes();
+          const endMins = evEnd.getHours() * 60 + evEnd.getMinutes();
+          const topPx = ((startMins - startHour * 60) / 60) * 48;
+          const heightPx = Math.max(((endMins - startMins) / 60) * 48, 20);
+          const time = evStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+          html += `<div class="cal-week-event" style="top:${topPx}px;height:${heightPx}px;background:#6366f1;color:#fff" onclick="showCalEventDetail('${ev.id}')" title="${escapeHtml(ev.summary)}">${time} ${escapeHtml(ev.summary)}</div>`;
+        });
+
+        html += '</div>';
+      }
+
+      html += '</div>';
+      grid.innerHTML = html;
+    }
+
+    function showCalEventDetail(eventId) {
+      const ev = calEvents.find(e => e.id === eventId);
+      if (!ev) return;
+
+      const startDt = new Date(ev.start);
+      const endDt = ev.end ? new Date(ev.end) : null;
+      const dateStr = startDt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      const timeStr = startDt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) +
+        (endDt ? ' – ' + endDt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '');
+
+      const modal = document.getElementById('confirmModal');
+      const title = document.getElementById('confirmModalTitle');
+      const msg = document.getElementById('confirmModalMessage');
+      const confirmBtn = document.getElementById('confirmModalBtn');
+
+      title.textContent = escapeHtml(ev.summary);
+      msg.innerHTML = `
+        <div class="space-y-2">
+          <p class="text-sm">${dateStr}</p>
+          <p class="text-sm text-base-content/70">${timeStr}</p>
+          ${ev.location ? `<p class="text-sm text-base-content/60">${escapeHtml(ev.location)}</p>` : ''}
+          ${ev.description ? `<p class="text-sm text-base-content/60 whitespace-pre-wrap">${escapeHtml(ev.description)}</p>` : ''}
+          <div class="flex gap-2 pt-2">
+            ${ev.htmlLink ? `<a href="${ev.htmlLink}" target="_blank" class="btn btn-sm btn-ghost">Open in Google</a>` : ''}
+            <button onclick="deleteCalendarEvent('${ev.id}')" class="btn btn-sm btn-error btn-outline">Delete</button>
+          </div>
+        </div>
+      `;
+      confirmBtn.classList.add('hidden');
+      modal.showModal();
+
+      modal.addEventListener('close', () => {
+        confirmBtn.classList.remove('hidden');
+        msg.innerHTML = '';
+      }, { once: true });
+    }
+
     // Delete a calendar event (from calendar view - no DB appointment record)
     async function deleteCalendarEvent(googleEventId) {
+      // Close detail modal if open
+      const modal = document.getElementById('confirmModal');
+      if (modal.open) modal.close();
+
       const confirmed = await showConfirmModal('Delete Event', 'Delete this event from Google Calendar?');
       if (!confirmed) return;
 
       try {
-        // Use a dummy appointment ID since we're deleting from calendar view
         const params = new URLSearchParams({ id: 'calendar-view', googleEventId });
 
         const response = await fetch(`/api/calendar/delete?${params}`, {
@@ -9874,7 +10144,6 @@
           throw new Error(data.error || 'Failed to delete event');
         }
 
-        // Reload calendar events
         loadCalendarEvents();
       } catch (error) {
         console.error('Error deleting calendar event:', error);
