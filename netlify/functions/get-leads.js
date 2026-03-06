@@ -35,7 +35,7 @@ export async function handler(event) {
     const skip = (pageNum - 1) * limitNum;
 
     // Build sort order - default to createdAt desc
-    const validSortFields = ['createdAt', 'firstName', 'lastName', 'email', 'phone', 'address', 'status'];
+    const validSortFields = ['createdAt', 'updatedAt', 'firstName', 'lastName', 'email', 'phone', 'address', 'status'];
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
     const sortDirection = sortDir === 'asc' ? 'asc' : 'desc';
     const orderBy = { [sortField]: sortDirection };

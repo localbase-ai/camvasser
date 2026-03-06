@@ -605,11 +605,12 @@
                     <th class="cursor-pointer hover:bg-base-200" onclick="sortLeads('status')">Status</th>
                     <th>Owner</th>
                     <th>Value</th>
+                    <th class="cursor-pointer hover:bg-base-200" onclick="sortLeads('updatedAt')">Updated</th>
                   </tr>
                 </thead>
                 <tbody id="leadTableBody">
                   <tr>
-                    <td colspan="9" class="text-center py-8">
+                    <td colspan="10" class="text-center py-8">
                       <span class="loading loading-spinner loading-md"></span>
                     </td>
                   </tr>
@@ -4062,6 +4063,7 @@
 
     function renderLeadRow(lead, opts = {}) {
       const created = lead.createdAt ? formatDate(lead.createdAt) : '-';
+      const updated = lead.updatedAt ? formatDate(lead.updatedAt) : '-';
       const status = lead.status ? getStatusBadge(lead.status) : '-';
       const isSelected = selectedLeadId === lead.id;
       const jobValue = getLeadJobValue(lead);
@@ -4082,6 +4084,7 @@
           <td onclick="showLeadDetail('${lead.id}')">${status}</td>
           <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.ownerName || '-'}</td>
           <td class="text-sm text-success font-medium" onclick="showLeadDetail('${lead.id}')">${jobValueDisplay}</td>
+          <td class="text-sm text-base-content/60" onclick="showLeadDetail('${lead.id}')">${updated}</td>
         </tr>
       `;
     }
@@ -4122,7 +4125,7 @@
       const tbody = document.getElementById('leadTableBody');
 
       if (leads.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-base-content/60">No leads found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-base-content/60">No leads found</td></tr>`;
         renderPagination('lead', 1, 1, 0, () => {});
         return;
       }
@@ -4145,7 +4148,7 @@
         // Customer header row
         html += `
           <tr class="bg-base-200 cursor-pointer hover:bg-base-300" onclick="toggleCustomerGroup('${custId}')">
-            <td colspan="9" class="py-2 px-4">
+            <td colspan="10" class="py-2 px-4">
               <div class="flex items-center gap-2">
                 <svg id="chevron-${custId}" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" style="${chevronStyle}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -4167,7 +4170,7 @@
       if (ungrouped.length > 0 && sortedGroups.length > 0) {
         html += `
           <tr class="bg-base-200">
-            <td colspan="9" class="py-2 px-4">
+            <td colspan="10" class="py-2 px-4">
               <span class="font-semibold text-base-content/60">Ungrouped</span>
               <span class="badge badge-sm badge-ghost ml-2">${ungrouped.length}</span>
             </td>
@@ -4204,7 +4207,7 @@
       const tbody = document.getElementById('leadTableBody');
 
       if (leads.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-base-content/60">No leads found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-base-content/60">No leads found</td></tr>`;
       } else {
         tbody.innerHTML = leads.map(lead => renderLeadRow(lead)).join('');
       }
