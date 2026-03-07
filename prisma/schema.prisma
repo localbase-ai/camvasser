@@ -78,6 +78,7 @@ model Lead {
   notes         String?
   coordinates   Json?
   flowData      Json?
+  tags          Json?
   search_vector Unsupported("tsvector")?
   customerId    String?
   customer      Customer? @relation(fields: [customerId], references: [id])

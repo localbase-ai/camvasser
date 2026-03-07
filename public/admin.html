@@ -4077,7 +4077,7 @@
             <input type="checkbox" class="checkbox checkbox-sm lead-checkbox" data-id="${lead.id}" onchange="updateLeadSelectionUI()">
           </td>
           <td class="text-sm text-base-content/60" onclick="showLeadDetail('${lead.id}')">${created}</td>
-          <td class="font-medium" onclick="showLeadDetail('${lead.id}')">${lead.firstName || ''} ${lead.lastName || ''}</td>
+          <td class="font-medium" onclick="showLeadDetail('${lead.id}')">${lead.firstName || ''} ${lead.lastName || ''}${(lead.tags && lead.tags.length) ? ' ' + lead.tags.map(t => `<span class="badge badge-xs">${t}</span>`).join(' ') : ''}</td>
           <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.email || '-'}</td>
           <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.phone || '-'}</td>
           <td class="text-sm max-w-[200px] truncate" onclick="showLeadDetail('${lead.id}')">${lead.address || '-'}</td>
@@ -4302,6 +4302,15 @@
                 ${lead.ownerName && !tenantUsers.some(u => u.name === lead.ownerName) ? `<option value="${lead.ownerName}" selected>${lead.ownerName}</option>` : ''}
                 ${tenantUsers.map(u => `<option value="${u.name}" ${lead.ownerName === u.name ? 'selected' : ''}>${u.name}</option>`).join('')}
               </select>
+            </div>
+            <div class="mt-2">
+              <label class="text-xs font-semibold text-base-content/60 uppercase block mb-1">Tags</label>
+              <div id="leadTagsContainer" class="flex flex-wrap gap-1 mb-1">
+                ${(lead.tags || []).map(tag => `
+                  <span class="badge badge-sm gap-1">${escapeHtml(tag)}<button onclick="removeLeadTag('${lead.id}', '${tag.replace(/'/g, "\\'")}')" class="btn btn-ghost btn-xs p-0 h-auto min-h-0">&times;</button></span>
+                `).join('')}
+              </div>
+              <input type="text" id="leadTagInput" class="input input-bordered input-sm w-full max-w-xs" placeholder="Add tag…" onkeydown="if(event.key==='Enter'){event.preventDefault();addLeadTag('${lead.id}', this.value);this.value='';}" />
             </div>
           </div>
 
@@ -7045,6 +7054,52 @@
       } catch (error) {
         console.error('Error updating lead owner:', error);
         alert('Failed to update owner');
+      }
+    }
+
+    async function addLeadTag(leadId, tag) {
+      tag = tag.trim().toLowerCase();
+      if (!tag) return;
+      const lead = allLeads.find(l => l.id === leadId);
+      if (!lead) return;
+      const current = lead.tags || [];
+      if (current.includes(tag)) return;
+      const updated = [...current, tag];
+      try {
+        const response = await fetch('/.netlify/functions/update-lead-status', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId, tags: updated })
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+        if (data.success) {
+          lead.tags = updated;
+          showLeadDetail(leadId);
+        }
+      } catch (error) {
+        console.error('Error adding tag:', error);
+      }
+    }
+
+    async function removeLeadTag(leadId, tag) {
+      const lead = allLeads.find(l => l.id === leadId);
+      if (!lead) return;
+      const updated = (lead.tags || []).filter(t => t !== tag);
+      try {
+        const response = await fetch('/.netlify/functions/update-lead-status', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId, tags: updated })
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+        if (data.success) {
+          lead.tags = updated;
+          showLeadDetail(leadId);
+        }
+      } catch (error) {
+        console.error('Error removing tag:', error);
       }
     }
 
