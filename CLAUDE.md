@@ -12,7 +12,7 @@ npx vitest run tests/api/update-lead-status.test.js  # Run a single test file
 npm run test:e2e         # Playwright end-to-end tests
 npm run build            # Prisma generate + compile Tailwind CSS
 npm run db:migrate       # Run Prisma migrations (dev)
-npm run db:push          # Push schema changes without migration
+npm run db:push          # Push schema changes without migration (local dev DB)
 npm run db:studio        # Open Prisma Studio GUI
 npm run deploy           # Deploy to Netlify production
 node scripts/sync-local-db.js  # Sync Postgres → prisma/camvasser_local.db (for VisiData)
@@ -87,6 +87,23 @@ expect(response.statusCode).toBe(200);
 - **Prod:** Supabase (pooled via `DATABASE_URL`, direct via `DIRECT_URL` for migrations)
 - Full-text search on Lead, Project, Prospect using PostgreSQL `tsvector` with GIN indexes
 - `Lead.ownerName` is a plain string, not a FK — no customer model yet
+
+### Pushing schema to production
+
+Prisma always reads `.env` and ignores env var overrides. To push schema changes to Supabase prod, temporarily swap the connection string:
+
+```bash
+# Get the prod DIRECT_URL from Netlify
+netlify env:get DIRECT_URL
+
+# Swap .env, push, restore
+cp .env .env.bak
+# Replace DATABASE_URL and DIRECT_URL in .env with the Supabase URL
+npx prisma db push --skip-generate
+mv .env.bak .env
+```
+
+Use `db push` (not `migrate dev`) — Prisma migrations have shadow DB issues with the RLS migration history. `db push` works fine for additive changes (new columns, new models).
 
 ## Security
 
