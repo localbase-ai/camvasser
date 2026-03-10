@@ -195,6 +195,41 @@ describe('update-lead-status API', () => {
     });
   });
 
+  describe('measurementUrl updates', () => {
+    it('should set measurementUrl on a lead', async () => {
+      const url = 'https://drive.google.com/file/d/abc123/view';
+      const updated = factories.lead({ measurementUrl: url });
+      mockPrisma.lead.update.mockResolvedValue(updated);
+
+      const event = createAuthenticatedEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({ leadId: 'lead_123', measurementUrl: url })
+      });
+      const response = await handler(event);
+      expect(response.statusCode).toBe(200);
+      expect(mockPrisma.lead.update).toHaveBeenCalledWith({
+        where: { id: 'lead_123' },
+        data: { measurementUrl: url }
+      });
+    });
+
+    it('should clear measurementUrl when empty string passed', async () => {
+      const updated = factories.lead({ measurementUrl: null });
+      mockPrisma.lead.update.mockResolvedValue(updated);
+
+      const event = createAuthenticatedEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({ leadId: 'lead_123', measurementUrl: '' })
+      });
+      const response = await handler(event);
+      expect(response.statusCode).toBe(200);
+      expect(mockPrisma.lead.update).toHaveBeenCalledWith({
+        where: { id: 'lead_123' },
+        data: { measurementUrl: null }
+      });
+    });
+  });
+
   describe('access control', () => {
     it('should return 403 when user has no access to tenant', async () => {
       mockPrisma.lead.findUnique.mockResolvedValue({ tenant: 'other-company' });

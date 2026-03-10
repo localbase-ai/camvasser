@@ -79,6 +79,7 @@ model Lead {
   coordinates   Json?
   flowData      Json?
   tags          Json?
+  measurementUrl String?
   search_vector Unsupported("tsvector")?
   customerId    String?
   customer      Customer? @relation(fields: [customerId], references: [id])
@@ -388,6 +389,7 @@ model Proposal {
   qbCustomerId   String?
   qbDocNumber    String?
   qbEstimateId   String?   @unique
+  pdfUrl         String?
   qbSyncedAt     DateTime?
   customerId     String?
   customer       Customer? @relation(fields: [customerId], references: [id])

@@ -4488,6 +4488,22 @@
             </div>
           </div>
 
+          <!-- Measurement -->
+          <div class="space-y-2">
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Measurement</h5>
+            ${lead.measurementUrl
+              ? `<a href="${lead.measurementUrl}" target="_blank" class="text-sm text-primary hover:underline flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  View Measurement
+                </a>
+                <button onclick="setMeasurementUrl('${lead.id}')" class="text-xs text-base-content/40 hover:text-primary">Change link</button>`
+              : `<button onclick="setMeasurementUrl('${lead.id}')" class="text-sm text-base-content/40 hover:text-primary flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                  Attach measurement
+                </button>`
+            }
+          </div>
+
           <!-- UTM Data -->
           ${(lead.utmSource || lead.utmMedium || lead.utmCampaign) ? `
             <div class="space-y-2">
@@ -4787,6 +4803,14 @@
                     <div class="font-medium text-sm">${amount}</div>
                     <div class="text-xs text-base-content/60">Sent: ${sentDate}</div>
                     ${signedDate ? `<div class="text-xs text-success">Signed: ${signedDate}</div>` : ''}
+                    ${p.pdf_url
+                      ? `<a href="${p.pdf_url}" target="_blank" class="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                          View PDF</a>`
+                      : `<button onclick="setProposalPdfUrl('${p.proposal_id}')" class="text-xs text-base-content/40 hover:text-primary flex items-center gap-1 mt-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                          Attach PDF</button>`
+                    }
                   </div>
                   <div class="flex flex-col items-end gap-1">
                     ${statusBadge}
@@ -4845,6 +4869,62 @@
       } catch (error) {
         console.error('Error deleting proposal:', error);
         alert('Failed to delete proposal: ' + error.message);
+      }
+    }
+
+    // Set PDF URL on a proposal
+    async function setProposalPdfUrl(proposalId) {
+      const url = prompt('Paste the PDF link (Google Drive, Dropbox, etc.):');
+      if (!url) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/update-proposal', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ proposalId, pdfUrl: url })
+        });
+
+        if (!response.ok) throw new Error('Failed to update proposal');
+
+        // Refresh proposals
+        const lead = allLeads.find(l => l.id === selectedLeadId);
+        if (lead) loadLeadProposals(lead);
+      } catch (error) {
+        console.error('Error setting proposal PDF URL:', error);
+        alert('Failed to attach PDF: ' + error.message);
+      }
+    }
+
+    // Set measurement URL on a lead
+    async function setMeasurementUrl(leadId) {
+      const lead = allLeads.find(l => l.id === leadId);
+      const current = lead?.measurementUrl || '';
+      const url = prompt('Paste the measurement link:', current);
+      if (url === null) return; // cancelled
+
+      try {
+        const response = await fetch('/.netlify/functions/update-lead-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ leadId, measurementUrl: url })
+        });
+
+        if (!response.ok) throw new Error('Failed to update measurement URL');
+
+        // Update local state
+        if (lead) lead.measurementUrl = url || null;
+
+        // Refresh detail pane
+        showLeadDetail(leadId);
+      } catch (error) {
+        console.error('Error setting measurement URL:', error);
+        alert('Failed to set measurement URL: ' + error.message);
       }
     }
 
@@ -10273,7 +10353,13 @@
 
         if (response.status === 401) { logout(); return; }
 
-        const data = await response.json();
+        const textBody = await response.text();
+        let data;
+        try {
+          data = JSON.parse(textBody);
+        } catch {
+          throw new Error(`Server returned ${response.status} with no valid JSON`);
+        }
 
         if (data.success) {
           // Show inline success view

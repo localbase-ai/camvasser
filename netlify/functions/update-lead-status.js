@@ -41,7 +41,7 @@ export async function handler(event) {
   }
 
   try {
-    const { leadId, status, ownerName, firstName, lastName, tags } = JSON.parse(event.body);
+    const { leadId, status, ownerName, firstName, lastName, tags, measurementUrl } = JSON.parse(event.body);
 
     if (!leadId) {
       return {
@@ -109,6 +109,9 @@ export async function handler(event) {
     }
     if (tags !== undefined) {
       updateData.tags = tags;
+    }
+    if (measurementUrl !== undefined) {
+      updateData.measurementUrl = measurementUrl || null;
     }
 
     // Update the lead

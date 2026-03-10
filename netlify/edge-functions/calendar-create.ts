@@ -121,39 +121,44 @@ async function getAccessToken(): Promise<string> {
 }
 
 export default async function handler(request: Request, context: Context) {
-  // Only allow POST
-  if (request.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  // Verify auth
-  const user = await verifyAuthToken(request.headers.get("Authorization"));
-  if (!user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  // Check config
-  if (!SERVICE_ACCOUNT_EMAIL || !PRIVATE_KEY || !CALENDAR_ID) {
-    return new Response(JSON.stringify({ error: "Google Calendar not configured" }), {
-      status: 503,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+  const jsonHeaders = { "Content-Type": "application/json" };
 
   try {
+    // Only allow POST
+    if (request.method !== "POST") {
+      return new Response(JSON.stringify({ error: "Method not allowed" }), {
+        status: 405, headers: jsonHeaders,
+      });
+    }
+
+    // Verify auth
+    console.log("[calendar-create] Verifying auth...");
+    const user = await verifyAuthToken(request.headers.get("Authorization"));
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: jsonHeaders,
+      });
+    }
+    console.log("[calendar-create] Auth OK, tenant:", user.tenant);
+
+    // Check config
+    if (!SERVICE_ACCOUNT_EMAIL || !PRIVATE_KEY || !CALENDAR_ID) {
+      console.error("[calendar-create] Missing config:", {
+        hasEmail: !!SERVICE_ACCOUNT_EMAIL,
+        hasKey: !!PRIVATE_KEY,
+        hasCalId: !!CALENDAR_ID,
+      });
+      return new Response(JSON.stringify({ error: "Google Calendar not configured" }), {
+        status: 503, headers: jsonHeaders,
+      });
+    }
+
     const body = await request.json();
     const { leadId, leadName, leadPhone, leadEmail, leadAddress, startTime, durationMinutes = 60, notes, eventType = 'sales' } = body;
 
     if (!startTime) {
       return new Response(JSON.stringify({ error: "startTime is required" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
+        status: 400, headers: jsonHeaders,
       });
     }
 
@@ -181,8 +186,22 @@ export default async function handler(request: Request, context: Context) {
       end: { dateTime: end.toISOString() },
     };
 
-    // Create event
-    const token = await getAccessToken();
+    // Get Google access token
+    console.log("[calendar-create] Getting Google access token...");
+    let token: string;
+    try {
+      token = await getAccessToken();
+      console.log("[calendar-create] Got access token");
+    } catch (tokenError) {
+      console.error("[calendar-create] Token error:", tokenError);
+      return new Response(JSON.stringify({
+        error: "Failed to authenticate with Google Calendar",
+        details: String(tokenError),
+      }), { status: 502, headers: jsonHeaders });
+    }
+
+    // Create calendar event
+    console.log("[calendar-create] Creating calendar event...");
     const response = await fetch(`${CALENDAR_API}/calendars/${encodeURIComponent(CALENDAR_ID)}/events`, {
       method: "POST",
       headers: {
@@ -193,18 +212,29 @@ export default async function handler(request: Request, context: Context) {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || "Calendar API error");
+      const errorText = await response.text();
+      console.error("[calendar-create] Calendar API error:", response.status, errorText);
+      let errorDetail: string;
+      try {
+        errorDetail = JSON.parse(errorText).error?.message || errorText;
+      } catch {
+        errorDetail = errorText;
+      }
+      return new Response(JSON.stringify({
+        error: "Google Calendar API error",
+        details: errorDetail,
+        status: response.status,
+      }), { status: 502, headers: jsonHeaders });
     }
 
     const createdEvent = await response.json();
+    console.log("[calendar-create] Event created:", createdEvent.id);
 
     // Save appointment to database
     let appointmentSaved = false;
     let appointmentId = null;
     try {
       const saveUrl = new URL("/.netlify/functions/save-appointment", request.url).href;
-      console.log("Saving appointment to:", saveUrl);
 
       const appointmentData = {
         leadId,
@@ -218,7 +248,6 @@ export default async function handler(request: Request, context: Context) {
         notes,
         eventType,
       };
-      console.log("Appointment data:", JSON.stringify(appointmentData));
 
       const saveResponse = await fetch(saveUrl, {
         method: "POST",
@@ -227,16 +256,14 @@ export default async function handler(request: Request, context: Context) {
       });
 
       const saveResult = await saveResponse.json();
-      console.log("Save appointment response:", saveResponse.status, JSON.stringify(saveResult));
-
       if (saveResponse.ok && saveResult.success) {
         appointmentSaved = true;
         appointmentId = saveResult.appointmentId;
       } else {
-        console.error("Failed to save appointment:", saveResult);
+        console.error("[calendar-create] Failed to save appointment:", saveResult);
       }
     } catch (saveError) {
-      console.error("Error saving appointment to database:", saveError);
+      console.error("[calendar-create] Error saving appointment:", saveError);
     }
 
     return new Response(JSON.stringify({
@@ -251,15 +278,14 @@ export default async function handler(request: Request, context: Context) {
       appointmentSaved,
       appointmentId,
     }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+      status: 200, headers: jsonHeaders,
     });
 
   } catch (error) {
-    console.error("Error creating calendar event:", error);
+    console.error("[calendar-create] Unhandled error:", error);
     return new Response(JSON.stringify({
       error: "Failed to create calendar event",
-      details: error.message,
+      details: String(error),
     }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

@@ -36,7 +36,8 @@ export async function handler(event) {
       proposalAmount: true,
       sentDate: true,
       signedDate: true,
-      status: true
+      status: true,
+      pdfUrl: true
     };
 
     let proposals = [];
@@ -95,7 +96,8 @@ export async function handler(event) {
       proposal_amount: p.proposalAmount,
       sent_date: p.sentDate,
       signed_date: p.signedDate,
-      status: p.status
+      status: p.status,
+      pdf_url: p.pdfUrl
     }));
 
     return {
