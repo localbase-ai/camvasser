@@ -657,7 +657,7 @@
               class="input input-sm input-bordered w-48"
               oninput="clearTimeout(mapAddressFilterTimeout); mapAddressFilterTimeout = setTimeout(applyMapFilters, 300)">
             <select id="mapCallListFilter" class="select select-sm select-bordered w-44" onchange="applyMapFilters()">
-              <option value="">All addresses</option>
+              <option value="">Call list</option>
             </select>
             <select id="mapTagFilter" class="select select-sm select-bordered w-36" onchange="applyMapFilters()">
               <option value="">All tags</option>
@@ -8492,10 +8492,21 @@
           statusSelect.innerHTML = '<option value="">All lead statuses</option>' +
             mapAvailableStatuses.map(s => `<option value="${s.status}">${formatStatus(s.status)} (${s.count})</option>`).join('');
 
-          // Populate call list filter dropdown
+          // Load call lists if not already loaded, then populate dropdown
+          if (allCallLists.length === 0) {
+            try {
+              const clResp = await fetch(`/.netlify/functions/get-call-lists?tenant=${currentTenant}&all=true`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+              });
+              if (clResp.ok) {
+                const clData = await clResp.json();
+                allCallLists = clData.callLists || [];
+              }
+            } catch (e) { console.error('Error loading call lists for map:', e); }
+          }
           const callListSelect = document.getElementById('mapCallListFilter');
-          if (callListSelect && allCallLists.length > 0) {
-            callListSelect.innerHTML = '<option value="">All addresses</option>' +
+          if (callListSelect) {
+            callListSelect.innerHTML = '<option value="">Call list</option>' +
               allCallLists.map(cl => `<option value="${cl.id}">${cl.name} (${cl._count?.items || 0})</option>`).join('');
           }
         }
