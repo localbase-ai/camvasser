@@ -8543,7 +8543,10 @@
             if (!tagNames.includes(selectedTag)) return false;
           }
           if (callListProjectIds && !callListProjectIds.has(addr.id)) return false;
-          if (addressFilterText && !(addr.address || '').toLowerCase().includes(addressFilterText)) return false;
+          if (addressFilterText) {
+            const full = [addr.address, addr.city, addr.state, addr.postalCode].filter(Boolean).join(' ').toLowerCase();
+            if (!addressFilterText.split(/\s+/).every(word => full.includes(word))) return false;
+          }
           return true;
         });
 
@@ -8615,7 +8618,10 @@
         // Filter leads based on status and address text
         const filteredLeads = leads.filter(lead => {
           if (selectedLeadStatus && lead.status !== selectedLeadStatus) return false;
-          if (addressFilterText && !(lead.address || '').toLowerCase().includes(addressFilterText)) return false;
+          if (addressFilterText) {
+            const full = [lead.address, lead.city, lead.state].filter(Boolean).join(' ').toLowerCase();
+            if (!addressFilterText.split(/\s+/).every(word => full.includes(word))) return false;
+          }
           if (callListProjectIds) return false; // Hide leads when filtering by call list (show addresses only)
           return true;
         });
