@@ -8528,9 +8528,6 @@
             const clData = await clResp.json();
             const items = clData.items || [];
             callListProjectIds = new Set(items.map(item => item.contact?.projectId).filter(Boolean).map(String));
-            console.log('Call list filter:', items.length, 'items,', callListProjectIds.size, 'project IDs', [...callListProjectIds].slice(0, 3));
-            console.log('Sample addr IDs:', addresses.slice(0, 3).map(a => ({id: a.id, type: typeof a.id})));
-            console.log('Matches:', addresses.filter(a => callListProjectIds.has(String(a.id))).length);
           } catch (e) {
             console.error('Error fetching call list items for map:', e);
           }
@@ -8669,6 +8666,13 @@
 
         // Reset flag after layers are set up
         mapUpdating = false;
+
+        // Auto-zoom to fit filtered results when any filter is active
+        const hasActiveFilter = hasTagsOnly || selectedTag || selectedCallList || addressFilterText || selectedLeadStatus;
+        if (hasActiveFilter && mapMarkers.length > 0) {
+          const group = L.featureGroup(mapMarkers);
+          map.fitBounds(group.getBounds(), { padding: [40, 40], maxZoom: 15 });
+        }
 
         // Update count
         document.getElementById('mapAddressCount').textContent =
