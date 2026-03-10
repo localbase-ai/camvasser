@@ -9136,6 +9136,19 @@
         }
       }
 
+      // E = expand all kanban columns, C = collapse all kanban columns
+      if (!e.target.matches('input, textarea, select') && currentView === 'leads' && leadsViewMode === 'kanban') {
+        if (e.key === 'e') {
+          collapsedColumns = [];
+          localStorage.setItem('collapsedColumns', JSON.stringify(collapsedColumns));
+          renderLeads();
+        } else if (e.key === 'c') {
+          collapsedColumns = [...new Set(allLeads.map(l => l.status).filter(Boolean))];
+          localStorage.setItem('collapsedColumns', JSON.stringify(collapsedColumns));
+          renderLeads();
+        }
+      }
+
       // Up/Down arrow navigation for list views
       if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.target.matches('input, textarea, select')) {
         const viewConfig = {
