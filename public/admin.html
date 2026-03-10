@@ -8592,7 +8592,7 @@
         let leadCount = 0;
 
         // Add address markers (filtered)
-        console.log('Filtered addresses:', filteredAddresses.length, 'Filtered leads:', filteredLeads?.length);
+        console.log('Filtered addresses:', filteredAddresses.length);
         filteredAddresses.forEach((addr, i) => {
           const coords = addr.coordinates;
           if (i < 3) console.log('addr', addr.id, 'coords:', coords, 'prospectCount:', addr.prospectCount);
