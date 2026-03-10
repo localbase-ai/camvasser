@@ -3231,6 +3231,12 @@
 
         document.getElementById('leadCountLabel').textContent = `${leadTotal.toLocaleString()} records`;
         renderLeads();
+
+        // Restore selected lead from URL hash
+        const hashMatch = window.location.hash.match(/^#lead=(.+)$/);
+        if (hashMatch && !selectedLeadId) {
+          showLeadDetail(hashMatch[1]);
+        }
       } catch (error) {
         console.error('Error searching leads:', error);
       }
@@ -4246,6 +4252,7 @@
       if (newSelected) newSelected.classList.add('row-selected');
 
       selectedLeadId = leadId;
+      history.replaceState(null, '', `#lead=${leadId}`);
 
       // Fresh fetch from server to get latest data
       const requestId = ++_leadDetailRequestId;
@@ -7322,6 +7329,7 @@
           // Close detail pane
           document.getElementById('leadDetailPane').classList.add('hidden');
           selectedLeadId = null;
+          history.replaceState(null, '', window.location.pathname);
           // Refresh list
           searchLeads();
         } else {
@@ -7588,6 +7596,7 @@
           alert(`${msg}${data.prospectCreated ? ' and contact created' : ''}!`);
           document.getElementById('leadDetailPane').classList.add('hidden');
           selectedLeadId = null;
+          history.replaceState(null, '', window.location.pathname);
           // Switch to addresses view
           showView('addresses');
           searchAddresses();
@@ -7963,7 +7972,9 @@
 
     function closeLeadDetail() {
       selectedLeadId = null;
+      history.replaceState(null, '', window.location.pathname);
       document.getElementById('leadDetailPane').style.transform = 'translateX(100%)';
+
       // Only re-render list view, not kanban
       if (leadsViewMode !== 'kanban') {
         renderLeadResults(allLeads, leadTotal, leadTotalPages);
