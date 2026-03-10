@@ -8592,8 +8592,10 @@
         let leadCount = 0;
 
         // Add address markers (filtered)
-        filteredAddresses.forEach(addr => {
+        console.log('Filtered addresses:', filteredAddresses.length, 'Filtered leads:', filteredLeads?.length);
+        filteredAddresses.forEach((addr, i) => {
           const coords = addr.coordinates;
+          if (i < 3) console.log('addr', addr.id, 'coords:', coords, 'prospectCount:', addr.prospectCount);
           if (!coords || !coords.lat || !coords.lon) return;
 
           addressesWithCoords++;
@@ -8666,6 +8668,8 @@
 
         // Reset flag after layers are set up
         mapUpdating = false;
+
+        console.log('Markers:', mapMarkers.length, 'contacts:', contactCount, 'leads:', leadCount, 'visibility:', mapLayerVisibility);
 
         // Auto-zoom to fit filtered results when any filter is active
         const hasActiveFilter = hasTagsOnly || selectedTag || selectedCallList || addressFilterText || selectedLeadStatus;
