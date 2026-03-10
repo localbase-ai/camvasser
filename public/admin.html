@@ -2127,6 +2127,12 @@
 
         // Apply saved view mode on initial load
         await setLeadsView(leadsViewMode);
+
+        // Restore selected lead from URL hash
+        const hashMatch = window.location.hash.match(/^#lead=(.+)$/);
+        if (hashMatch) {
+          showLeadDetail(hashMatch[1]);
+        }
       } catch (error) {
         console.error('Error loading leads:', error);
       }
