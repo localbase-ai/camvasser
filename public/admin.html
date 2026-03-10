@@ -8529,6 +8529,8 @@
             const items = clData.items || [];
             callListProjectIds = new Set(items.map(item => item.contact?.projectId).filter(Boolean).map(String));
             console.log('Call list filter:', items.length, 'items,', callListProjectIds.size, 'project IDs', [...callListProjectIds].slice(0, 3));
+            console.log('Sample addr IDs:', addresses.slice(0, 3).map(a => ({id: a.id, type: typeof a.id})));
+            console.log('Matches:', addresses.filter(a => callListProjectIds.has(String(a.id))).length);
           } catch (e) {
             console.error('Error fetching call list items for map:', e);
           }
