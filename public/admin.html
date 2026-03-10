@@ -682,6 +682,12 @@
               <select id="mapLeadStatusFilter" class="select select-sm select-bordered w-40" onchange="applyMapFilters()">
                 <option value="">All lead statuses</option>
               </select>
+              <select id="mapCallListFilter" class="select select-sm select-bordered w-44" onchange="applyMapFilters()">
+                <option value="">All addresses</option>
+              </select>
+              <input type="text" id="mapAddressFilter" placeholder="Filter by address..."
+                class="input input-sm input-bordered w-44"
+                oninput="clearTimeout(mapAddressFilterTimeout); mapAddressFilterTimeout = setTimeout(applyMapFilters, 300)">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" id="clusterToggle" checked class="checkbox checkbox-sm" onchange="toggleClustering(this.checked)">
                 <span class="text-sm">Cluster</span>
@@ -8333,6 +8339,7 @@
     let mapLayerControl = null;
     let mapClusteringEnabled = true;
     let mapDataCache = { addresses: [], leads: [] }; // Cache for toggling
+    let mapAddressFilterTimeout = null;
     let mapAvailableTags = []; // Available tags for filter dropdown
     let mapLayerVisibility = { contacts: true, leads: true, other: true }; // Track layer visibility
     let mapUpdating = false; // Flag to prevent event handler interference during updates
@@ -8487,14 +8494,38 @@
           const statusSelect = document.getElementById('mapLeadStatusFilter');
           statusSelect.innerHTML = '<option value="">All lead statuses</option>' +
             mapAvailableStatuses.map(s => `<option value="${s.status}">${formatStatus(s.status)} (${s.count})</option>`).join('');
+
+          // Populate call list filter dropdown
+          const callListSelect = document.getElementById('mapCallListFilter');
+          if (callListSelect && allCallLists.length > 0) {
+            callListSelect.innerHTML = '<option value="">All addresses</option>' +
+              allCallLists.map(cl => `<option value="${cl.id}">${cl.name} (${cl._count?.items || 0})</option>`).join('');
+          }
         }
 
         // Get filter values
         const hasTagsOnly = document.getElementById('mapHasTagsToggle')?.checked || false;
         const selectedTag = document.getElementById('mapTagFilter')?.value || '';
         const selectedLeadStatus = document.getElementById('mapLeadStatusFilter')?.value || '';
+        const selectedCallList = document.getElementById('mapCallListFilter')?.value || '';
+        const addressFilterText = (document.getElementById('mapAddressFilter')?.value || '').toLowerCase().trim();
 
-        // Filter addresses based on tag settings
+        // If filtering by call list, fetch the project IDs for that list's contacts
+        let callListProjectIds = null;
+        if (selectedCallList) {
+          try {
+            const clResp = await fetch(`/.netlify/functions/get-call-list-items?listId=${selectedCallList}`, {
+              headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const clData = await clResp.json();
+            const items = clData.items || [];
+            callListProjectIds = new Set(items.map(item => item.contact?.projectId).filter(Boolean));
+          } catch (e) {
+            console.error('Error fetching call list items for map:', e);
+          }
+        }
+
+        // Filter addresses based on all filters
         const filteredAddresses = addresses.filter(addr => {
           const hasTags = Array.isArray(addr.tags) && addr.tags.length > 0;
           if (hasTagsOnly && !hasTags) return false;
@@ -8503,6 +8534,8 @@
             const tagNames = addr.tags.map(t => t.display_value || t.displayValue || t.value || t);
             if (!tagNames.includes(selectedTag)) return false;
           }
+          if (callListProjectIds && !callListProjectIds.has(addr.id)) return false;
+          if (addressFilterText && !(addr.address || '').toLowerCase().includes(addressFilterText)) return false;
           return true;
         });
 
@@ -8571,9 +8604,11 @@
           mapMarkers.push(marker);
         });
 
-        // Filter leads based on status
+        // Filter leads based on status and address text
         const filteredLeads = leads.filter(lead => {
           if (selectedLeadStatus && lead.status !== selectedLeadStatus) return false;
+          if (addressFilterText && !(lead.address || '').toLowerCase().includes(addressFilterText)) return false;
+          if (callListProjectIds) return false; // Hide leads when filtering by call list (show addresses only)
           return true;
         });
 
