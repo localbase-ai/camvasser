@@ -648,50 +648,47 @@
 
       <!-- Map View -->
       <div id="view-map" class="view hidden flex flex-col h-full">
-        <!-- Sticky Header -->
-        <div class="sticky top-0 bg-base-100 z-10 py-2">
-          <div class="flex justify-between items-center gap-4">
-            <div class="flex items-center gap-4">
-              <h2 class="text-lg font-bold">Map</h2>
-              <!-- Add Pin Controls -->
-              <div class="flex items-center gap-2">
-                <button id="addPinBtn" onclick="toggleAddPinMode()" class="btn btn-sm btn-outline gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add Pin
-                </button>
-                <div class="relative">
-                  <input type="text" id="addressSearchInput" placeholder="Search address..."
-                    class="input input-sm input-bordered w-64"
-                    onkeydown="if(event.key==='Enter') searchAndAddAddress()">
-                  <div id="addressSuggestions" class="hidden absolute top-full left-0 right-0 mt-1 bg-base-100 border border-base-300 shadow-lg max-h-60 overflow-y-auto z-50">
-                  </div>
-                </div>
+        <!-- Fixed Header - separated from map -->
+        <div class="flex-none bg-base-100 z-10 py-2 border-b border-base-300">
+          <!-- Row 1: Title + filters -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <h2 class="text-lg font-bold mr-2">Map</h2>
+            <input type="text" id="mapAddressFilter" placeholder="Filter addresses..."
+              class="input input-sm input-bordered w-48"
+              oninput="clearTimeout(mapAddressFilterTimeout); mapAddressFilterTimeout = setTimeout(applyMapFilters, 300)">
+            <select id="mapCallListFilter" class="select select-sm select-bordered w-44" onchange="applyMapFilters()">
+              <option value="">All addresses</option>
+            </select>
+            <select id="mapTagFilter" class="select select-sm select-bordered w-36" onchange="applyMapFilters()">
+              <option value="">All tags</option>
+            </select>
+            <select id="mapLeadStatusFilter" class="select select-sm select-bordered w-36" onchange="applyMapFilters()">
+              <option value="">All lead statuses</option>
+            </select>
+            <label class="flex items-center gap-1 cursor-pointer">
+              <input type="checkbox" id="mapHasTagsToggle" class="checkbox checkbox-xs" onchange="applyMapFilters()">
+              <span class="text-xs">Has tags</span>
+            </label>
+            <label class="flex items-center gap-1 cursor-pointer">
+              <input type="checkbox" id="clusterToggle" checked class="checkbox checkbox-xs" onchange="toggleClustering(this.checked)">
+              <span class="text-xs">Cluster</span>
+            </label>
+            <span id="mapAddressCount" class="text-xs text-base-content/60 ml-auto">Loading...</span>
+            <button id="addPinBtn" onclick="toggleAddPinMode()" class="btn btn-xs btn-outline gap-1 ml-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Pin
+            </button>
+          </div>
+          <!-- Hidden add-pin search (shown when Add Pin is active) -->
+          <div id="addPinSearchRow" class="hidden mt-2">
+            <div class="relative">
+              <input type="text" id="addressSearchInput" placeholder="Search address to add..."
+                class="input input-sm input-bordered w-80"
+                onkeydown="if(event.key==='Enter') searchAndAddAddress()">
+              <div id="addressSuggestions" class="hidden absolute top-full left-0 right-0 mt-1 bg-base-100 border border-base-300 shadow-lg max-h-60 overflow-y-auto z-50">
               </div>
-            </div>
-            <div class="flex flex-wrap gap-2 items-center">
-              <span id="mapAddressCount" class="text-sm text-base-content/60">Loading...</span>
-              <label class="flex items-center gap-2 cursor-pointer ml-4">
-                <input type="checkbox" id="mapHasTagsToggle" class="checkbox checkbox-sm" onchange="applyMapFilters()">
-                <span class="text-sm">Has tags</span>
-              </label>
-              <select id="mapTagFilter" class="select select-sm select-bordered w-40" onchange="applyMapFilters()">
-                <option value="">All tags</option>
-              </select>
-              <select id="mapLeadStatusFilter" class="select select-sm select-bordered w-40" onchange="applyMapFilters()">
-                <option value="">All lead statuses</option>
-              </select>
-              <select id="mapCallListFilter" class="select select-sm select-bordered w-44" onchange="applyMapFilters()">
-                <option value="">All addresses</option>
-              </select>
-              <input type="text" id="mapAddressFilter" placeholder="Filter by address..."
-                class="input input-sm input-bordered w-44"
-                oninput="clearTimeout(mapAddressFilterTimeout); mapAddressFilterTimeout = setTimeout(applyMapFilters, 300)">
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" id="clusterToggle" checked class="checkbox checkbox-sm" onchange="toggleClustering(this.checked)">
-                <span class="text-sm">Cluster</span>
-              </label>
             </div>
           </div>
         </div>
@@ -8681,15 +8678,17 @@
       addPinMode = !addPinMode;
       const btn = document.getElementById('addPinBtn');
 
+      const searchRow = document.getElementById('addPinSearchRow');
       if (addPinMode) {
         btn.classList.remove('btn-outline');
         btn.classList.add('btn-primary');
         btn.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
           Cancel
         `;
+        if (searchRow) searchRow.classList.remove('hidden');
 
         // Change cursor on map
         document.getElementById('mapContainer').style.cursor = 'crosshair';
@@ -8705,11 +8704,12 @@
         btn.classList.add('btn-outline');
         btn.classList.remove('btn-primary');
         btn.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
           Add Pin
         `;
+        if (searchRow) searchRow.classList.add('hidden');
 
         // Reset cursor
         document.getElementById('mapContainer').style.cursor = '';
