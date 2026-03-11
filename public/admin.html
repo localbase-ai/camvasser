@@ -8448,6 +8448,8 @@
 
           // Cache the data
           mapDataCache = { addresses, leads };
+          const withCoords = addresses.filter(a => a.coordinates && a.coordinates.lat).length;
+          console.log(`Map data: ${addresses.length} addrs, ${withCoords} with coordinates, ${leads.length} leads`);
 
           // Extract unique tags for filter dropdown
           const tagCounts = {};
@@ -8691,7 +8693,9 @@
     }
 
     function applyMapFilters() {
-      loadMapData(true); // Use cached data with new filters
+      // Force fresh fetch when call list filter changes (coordinates may have been backfilled)
+      const callListChanged = document.getElementById('mapCallListFilter')?.value;
+      loadMapData(!callListChanged); // Fresh fetch for call list, cached for other filters
     }
 
     // ===== Add Pin Functionality =====
