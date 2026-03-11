@@ -1525,6 +1525,9 @@
     }
 
     // Get total job value for a lead
+    // Statuses that mean a lead is back in the active pipeline
+    const ACTIVE_PIPELINE_STATUSES = ['new', 'contacted', 'appointment_set', 'follow_up', null, undefined, ''];
+
     function getLeadJobValue(lead) {
       const proposals = getLeadProposals(lead);
 
@@ -1541,9 +1544,14 @@
         }
       }
 
-      // Fall back to flowData.job_value (backfilled from QB/localbase)
+      // Fall back to flowData.job_value — but NOT if the lead is back in an active pipeline status
+      // (e.g. returning customer with a new appointment but no new proposal yet)
       if (lead.flowData && (lead.flowData.job_value || lead.flowData.job_value === 0)) {
-        return lead.flowData.job_value;
+        const isActivePipeline = ACTIVE_PIPELINE_STATUSES.includes(lead.status);
+        const hadPriorJob = lead.flowData.jobs || lead.flowData.total_revenue;
+        if (!isActivePipeline || !hadPriorJob) {
+          return lead.flowData.job_value;
+        }
       }
 
       return null;
