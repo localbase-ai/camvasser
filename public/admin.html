@@ -4335,9 +4335,49 @@
       const content = document.getElementById('leadDetailContent');
 
       // Render lead details
+      content.innerHTML = buildLeadDetailHtml(lead);
+
+      // Show pane (slide in from right)
+      pane.style.transform = 'translateX(0)';
+
+      // Load map for the address
+      if (lead.address) {
+        loadLeadMap(lead);
+      }
+
+      // Load notes for this lead
+      loadLeadNotes(leadId);
+
+      // Load appointments for this lead
+      loadLeadAppointments(leadId);
+
+      // Load proposals for this lead (by email or name)
+      loadLeadProposals(lead);
+
+      // Show sibling property count if customer is linked
+      if (lead.customer?.id) {
+        const siblingCount = allLeads.filter(l => l.customerId === lead.customer.id && l.id !== lead.id).length;
+        const el = document.getElementById('customerSiblingCount');
+        if (el && siblingCount > 0) {
+          el.textContent = `${siblingCount} other propert${siblingCount === 1 ? 'y' : 'ies'}`;
+        }
+      }
+
+      // Load QB activity if customer is linked
+      if (lead.customer?.qbCustomerId || lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id) {
+        loadQBCustomerActivity(lead);
+      }
+
+      // Re-render to update selected state - respect current view mode
+      if (leadsViewMode !== 'kanban') {
+        renderLeadResults(allLeads, leadTotal, leadTotalPages);
+      }
+    }
+
+    function buildLeadDetailHtml(lead) {
       const leadStatuses = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
 
-      content.innerHTML = `
+      return `
         <div class="space-y-4">
           <!-- Name & Status -->
           <div>
@@ -4624,44 +4664,6 @@
           </div>
         </div>
       `;
-
-      // Show pane (slide in from right)
-      pane.style.transform = 'translateX(0)';
-
-      // Load map for the address
-      if (lead.address) {
-        loadLeadMap(lead);
-      }
-
-      // Load notes for this lead
-      loadLeadNotes(leadId);
-
-      // Load appointments for this lead
-      loadLeadAppointments(leadId);
-
-      // Load proposals for this lead (by email or name)
-      loadLeadProposals(lead);
-
-      // Show sibling property count if customer is linked
-      if (lead.customer?.id) {
-        const siblingCount = allLeads.filter(l => l.customerId === lead.customer.id && l.id !== lead.id).length;
-        const el = document.getElementById('customerSiblingCount');
-        if (el && siblingCount > 0) {
-          el.textContent = `${siblingCount} other propert${siblingCount === 1 ? 'y' : 'ies'} linked`;
-        }
-      }
-
-      // Load QB activity if customer is linked
-      if (lead.customer?.qbCustomerId || lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id) {
-        loadQBCustomerActivity(lead);
-      }
-
-      // Re-render to update selected state - respect current view mode
-      if (leadsViewMode === 'kanban') {
-        // Don't re-render kanban, just keep the pane open
-      } else {
-        renderLeadResults(allLeads, leadTotal, leadTotalPages);
-      }
     }
 
     // Load notes for a lead
@@ -6468,7 +6470,7 @@
     }));
 
     // Show detail pane for a call list item - focused calling UI
-    function showCallDetail(itemId) {
+    async function showCallDetail(itemId) {
       const item = currentCallListItems.find(i => i.id === itemId);
       if (!item) return;
 
@@ -6483,6 +6485,89 @@
       const isContact = !!item.contact;
       const pane = document.getElementById('callDetailPane');
       const content = document.getElementById('callDetailContent');
+
+      // For lead items, show the full lead detail with call outcomes on top
+      if (!isContact && record?.id) {
+        // Fetch fresh lead data
+        let lead = record;
+        try {
+          const params = new URLSearchParams({ id: record.id, tenant: currentTenant });
+          const resp = await fetch(`/.netlify/functions/get-lead?${params}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.lead) lead = data.lead;
+          }
+        } catch (e) {
+          console.warn('Fresh lead fetch failed, using cached data:', e);
+        }
+
+        const status = lead.status || '';
+        const callStatuses = [
+          { value: 'no_answer', label: 'No Answer', icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z' },
+          { value: 'left_voicemail', label: 'Voicemail', icon: 'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z' },
+          { value: 'callback', label: 'Callback', icon: 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6' },
+          { value: 'appointment_set', label: 'Appt Set', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', success: true },
+          { value: 'not_interested', label: 'Not Interested', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' },
+          { value: 'wrong_number', label: 'Wrong #', icon: 'M6 18L18 6M6 6l12 12' },
+          { value: 'do_not_call', label: 'Do Not Call', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636M15.536 8.464l-7.072 7.072' }
+        ];
+
+        const scriptHtml = currentCallScript ? `
+          <details class="border-b border-base-300 pb-3">
+            <summary class="flex items-center gap-2 cursor-pointer text-xs font-medium text-base-content/60 uppercase hover:text-base-content">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              ${currentCallScript.name}
+            </summary>
+            <div class="prose prose-sm max-w-none text-sm bg-base-200 rounded-lg p-3 mt-2">
+              ${marked.parse(currentCallScript.content)}
+            </div>
+          </details>
+        ` : '';
+
+        const callOutcomesHtml = `
+          <div class="pb-3 mb-3 border-b border-base-300">
+            <label class="text-xs text-base-content/60 uppercase font-medium block mb-2">Call Outcome</label>
+            <div class="grid grid-cols-2 gap-2">
+              ${callStatuses.map(s => {
+                const color = getStatusColor(s.value);
+                const isActive = status === s.value;
+                const btnStyle = isActive
+                  ? `background-color: ${color.bg}; color: ${color.text}; border: none;`
+                  : `border-color: ${color.bg}; color: ${color.bg};`;
+                return `
+                <button
+                  onclick="updateCallItemStatus('lead', '${lead.id}', '${s.value}')"
+                  class="btn btn-sm justify-start gap-2 h-auto py-2 ${isActive ? '' : 'btn-outline'}"
+                  style="${btnStyle}"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${s.icon}" />
+                  </svg>
+                  <span class="text-xs">${s.label}</span>
+                </button>
+              `}).join('')}
+            </div>
+          </div>
+          ${scriptHtml}
+        `;
+
+        content.innerHTML = callOutcomesHtml + buildLeadDetailHtml(lead);
+        pane.style.transform = 'translateX(0)';
+
+        // Load async data for lead detail
+        if (lead.address) loadLeadMap(lead);
+        loadLeadNotes(lead.id);
+        loadLeadAppointments(lead.id);
+        loadLeadProposals(lead);
+        if (lead.customer?.qbCustomerId || lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id) {
+          loadQBCustomerActivity(lead);
+        }
+        return;
+      }
 
       // Get common fields
       const rawName = isContact ? (record.name || '') : `${record.firstName || ''} ${record.lastName || ''}`.trim();
