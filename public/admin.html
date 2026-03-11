@@ -6411,6 +6411,22 @@
         </div>
       ` : '';
 
+      // Build photos HTML from project photos
+      const projectPhotos = isContact ? (record.project?.photos || []) : [];
+      const photosHtml = projectPhotos.length > 0 ? `
+        <div class="py-2 border-b border-base-300">
+          <label class="text-xs text-base-content/60 uppercase font-medium block mb-1">Photos (${projectPhotos.length})</label>
+          <div class="flex gap-1 overflow-x-auto pb-1">
+            ${projectPhotos.slice(0, 8).map(photo => {
+              const thumb = photo.uris?.find(u => u.type === 'thumbnail')?.url || photo.uris?.find(u => u.type === 'web')?.url || '';
+              const full = photo.uris?.find(u => u.type === 'original')?.url || thumb;
+              return thumb ? `<a href="${full}" target="_blank" rel="noopener"><img src="${thumb}" class="rounded w-20 h-20 object-cover flex-shrink-0 hover:opacity-80 cursor-pointer" loading="lazy"></a>` : '';
+            }).join('')}
+            ${projectPhotos.length > 8 ? `<div class="flex items-center justify-center w-20 h-20 bg-base-200 rounded flex-shrink-0 text-xs text-base-content/60">+${projectPhotos.length - 8}</div>` : ''}
+          </div>
+        </div>
+      ` : '';
+
       content.innerHTML = `
         <div class="flex flex-col h-full">
           <!-- Header: Name + Phone -->
@@ -6432,6 +6448,9 @@
 
           <!-- Address Section -->
           ${addressHtml}
+
+          <!-- Photos Section -->
+          ${photosHtml}
 
           <!-- Quick Status Buttons -->
           <div class="py-3 border-b border-base-300">
