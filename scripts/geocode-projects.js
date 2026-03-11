@@ -58,6 +58,13 @@ async function main() {
 
   if (dryRun) console.log('=== DRY RUN ===\n');
 
+  // Fix JSON null → SQL NULL first (jsonb 'null' is not the same as SQL NULL)
+  const jsonNullCount = await prisma.$executeRaw`
+    UPDATE "Project" SET coordinates = NULL
+    WHERE tenant = ${tenant} AND coordinates::text = 'null'
+  `;
+  if (jsonNullCount > 0) console.log(`Fixed ${jsonNullCount} records with JSON null coordinates`);
+
   const where = { tenant, coordinates: { equals: Prisma.DbNull } };
   const total = await prisma.project.count({ where });
   console.log(`${total} projects need geocoding for tenant "${tenant}"`);

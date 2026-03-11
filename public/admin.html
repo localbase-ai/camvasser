@@ -8448,8 +8448,6 @@
 
           // Cache the data
           mapDataCache = { addresses, leads };
-          const withCoords = addresses.filter(a => a.coordinates && a.coordinates.lat).length;
-          console.log(`Map data: ${addresses.length} addrs, ${withCoords} with coordinates, ${leads.length} leads`);
 
           // Extract unique tags for filter dropdown
           const tagCounts = {};
@@ -8671,9 +8669,6 @@
 
         // Auto-zoom to fit filtered results when any filter is active
         const hasActiveFilter = hasTagsOnly || selectedTag || selectedCallList || addressFilterText || selectedLeadStatus;
-        if (hasActiveFilter) {
-          console.log(`MAP FILTER: ${filteredAddresses.length} filtered → ${addressesWithCoords} with coords → ${mapMarkers.length} markers (${contactCount} contacts, ${leadCount} leads) | visibility:`, JSON.stringify(mapLayerVisibility));
-        }
         if (hasActiveFilter && mapMarkers.length > 0) {
           const group = L.featureGroup(mapMarkers);
           map.fitBounds(group.getBounds(), { padding: [40, 40], maxZoom: 15 });
