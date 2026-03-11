@@ -48,7 +48,7 @@ export async function handler(event) {
         userId: user.userId,
         assignedToUserId: userIdsToAssign[0] || user.userId, // legacy field - first assignee
         scriptId: scriptId || null,
-        items: {
+        CallListItem: {
           create: [
             ...contactIds.map((contactId, index) => ({
               id: createId(),
@@ -68,7 +68,7 @@ export async function handler(event) {
       },
       include: {
         _count: {
-          select: { items: true }
+          select: { CallListItem: true }
         },
         CallListAssignment: {
           include: {

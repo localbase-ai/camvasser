@@ -177,7 +177,7 @@ describe('create-call-list API', () => {
       expect(mockPrisma.callList.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            items: {
+            CallListItem: {
               create: [
                 expect.objectContaining({ contactId: 'contact_1', position: 0 }),
                 expect.objectContaining({ contactId: 'contact_2', position: 1 }),
