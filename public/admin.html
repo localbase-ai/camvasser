@@ -288,13 +288,13 @@
         </ul>
       </nav>
 
-      <!-- User/Logout -->
+      <!-- Toggle Sidebar -->
       <div class="p-4 border-t border-base-300">
-        <button onclick="logout()" class="btn btn-outline btn-error btn-sm w-full btn-logout">
+        <button onclick="toggleSidebar()" class="btn btn-outline btn-sm w-full">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
           </svg>
-          <span class="sidebar-text">Logout</span>
+          <span class="sidebar-text">Collapse</span>
         </button>
       </div>
     </aside>
@@ -307,12 +307,17 @@
         <select id="tenantSwitcher" class="select select-bordered select-xs" onchange="switchTenant(this.value)">
           <option value="">Loading...</option>
         </select>
-        <!-- User Info -->
-        <div class="flex items-center gap-2 text-sm text-base-content/60">
+        <!-- User Info + Logout -->
+        <div class="flex items-center gap-3 text-sm text-base-content/60">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
           <span id="userEmail">-</span>
+          <button onclick="logout()" class="btn btn-ghost btn-xs text-error" title="Logout">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
         </div>
       </div>
 
