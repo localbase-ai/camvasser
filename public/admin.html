@@ -6005,12 +6005,12 @@
       const record = item.contact || item.lead;
       const isContact = !!item.contact;
       const rawName = record?.name || `${record?.firstName || ''} ${record?.lastName || ''}`.trim() || '';
-      const projectAddr = isContact ? record?.project?.address : null;
-      const name = (rawName && rawName !== '---') ? rawName : (projectAddr || 'Unknown');
+      const name = (rawName && rawName !== '---') ? rawName : '-';
       const phoneRaw = record?.phones?.[0]?.phone_number || record?.phone || '';
       const phone = phoneRaw ? formatPhone(phoneRaw) : '-';
       const emailObj = record?.emails?.[0];
       const email = emailObj?.email_address || emailObj?.address || (typeof emailObj === 'string' ? emailObj : null) || record?.email || '-';
+      const projectAddr = isContact ? record?.project?.address : null;
       const address = record?.lookupAddress || record?.address || projectAddr || '-';
       const status = record?.status || 'new';
       const isSelected = item.id === selectedCallItemId;
@@ -6275,8 +6275,7 @@
 
       // Get common fields
       const rawName = isContact ? (record.name || '') : `${record.firstName || ''} ${record.lastName || ''}`.trim();
-      const projectAddr = isContact ? record?.project?.address : null;
-      const name = (rawName && rawName !== '---') ? rawName : (projectAddr || 'Unknown');
+      const name = (rawName && rawName !== '---') ? rawName : '-';
       const phoneRaw = record?.phones?.[0]?.phone_number || record?.phone || '';
       const phone = phoneRaw ? formatPhone(phoneRaw) : '';
       const status = record.status || '';
