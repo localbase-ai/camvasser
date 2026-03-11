@@ -7343,7 +7343,6 @@
           showInfoModal('success', title, message);
 
           // Auto-sync estimates from QB
-          const lead = allLeads.find(l => l.id === leadId);
           if (lead?.tenant && data.customer.id) {
             syncQBEstimates(data.customer.id, lead.tenant);
           }
