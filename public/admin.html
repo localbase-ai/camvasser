@@ -1526,7 +1526,7 @@
 
     // Get total job value for a lead
     // Statuses that mean a lead is back in the active pipeline
-    const ACTIVE_PIPELINE_STATUSES = ['new', 'contacted', 'appointment_set', 'follow_up', null, undefined, ''];
+    const ACTIVE_PIPELINE_STATUSES = ['new', 'contacted', 'appointment_scheduled', 'appointment_set', 'insurance_claim', 'proposal_sent', 'follow_up', null, undefined, ''];
 
     function getLeadJobValue(lead) {
       const proposals = getLeadProposals(lead);
