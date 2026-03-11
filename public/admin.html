@@ -4325,12 +4325,18 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </a>
+              <button onclick="syncQBEstimates('${qbId}', '${lead.tenant}')" class="btn btn-sm btn-outline gap-1" title="Pull latest estimates from QuickBooks">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Sync Estimates
+              </button>
             ` : `
               <button id="createQBCustomerBtn" onclick="createQuickBooksCustomer('${lead.id}')" class="btn btn-sm btn-outline gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                 </svg>
-                Create QB Customer
+                Sync to QuickBooks
               </button>
             `}
           </div>
@@ -7292,7 +7298,7 @@
       const btn = document.getElementById('createQBCustomerBtn');
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Creating...';
+        btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Syncing...';
       }
 
       try {
@@ -7335,6 +7341,12 @@
             ? `Linked to existing QuickBooks customer: ${data.customer.displayName}`
             : `Created new QuickBooks customer: ${data.customer.displayName}`;
           showInfoModal('success', title, message);
+
+          // Auto-sync estimates from QB
+          const lead = allLeads.find(l => l.id === leadId);
+          if (lead?.tenant && data.customer.id) {
+            syncQBEstimates(data.customer.id, lead.tenant);
+          }
         } else {
           showInfoModal('error', 'Error', 'Failed to create QB customer: ' + (data.error || 'Unknown error'));
           if (btn) {
@@ -7343,7 +7355,7 @@
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
               </svg>
-              Create QB Customer
+              Sync to QuickBooks
             `;
           }
         }
@@ -7356,9 +7368,32 @@
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
-            Create QB Customer
+            Sync to QuickBooks
           `;
         }
+      }
+    }
+
+    async function syncQBEstimates(qbCustomerId, tenant) {
+      try {
+        const response = await fetch('/.netlify/functions/sync-qb-customer-estimates', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ qbCustomerId, tenant })
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+        if (data.success) {
+          const msg = `Synced ${data.created + data.updated} estimate(s) (${data.created} new, ${data.updated} updated)`;
+          showInfoModal('success', 'Estimates Synced', msg);
+          // Refresh lead detail to show updated proposals
+          if (selectedLeadId) showLeadDetail(selectedLeadId);
+        } else {
+          showInfoModal('error', 'Sync Failed', data.error || 'Failed to sync estimates');
+        }
+      } catch (e) {
+        console.error('Error syncing estimates:', e);
+        showInfoModal('error', 'Sync Failed', 'Could not sync estimates from QuickBooks');
       }
     }
 
