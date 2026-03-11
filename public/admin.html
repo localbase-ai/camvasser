@@ -8653,7 +8653,7 @@
           const hasContacts = addr.prospectCount > 0;
 
           // Gray for addresses
-          const icon = createMapIcon('#6b7280', hasContacts);
+          const icon = createMapIcon('#2563eb', hasContacts);
           const marker = L.marker([lat, lon], { icon })
             .on('click', () => showMapPopup(addr, null, hasContacts));
 
@@ -8968,7 +8968,6 @@
     }
 
     function createMapIcon(color, hasContacts) {
-      // SVG icon - smaller pins (20x25) for less clutter
       const svg = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="20" height="25">
           <!-- Pin shape -->
