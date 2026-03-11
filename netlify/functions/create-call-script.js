@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { verifyToken } from './lib/auth.js';
 
 const prisma = new PrismaClient();
@@ -35,10 +36,12 @@ export async function handler(event) {
 
     const script = await prisma.callScript.create({
       data: {
+        id: randomUUID(),
         name,
         content,
         tenantId,
-        createdBy: user.userId
+        createdBy: user.userId,
+        updatedAt: new Date()
       }
     });
 

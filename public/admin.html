@@ -773,13 +773,36 @@
       <div id="view-calls" class="view hidden flex flex-col h-full relative overflow-hidden">
         <!-- Call List Content -->
         <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <!-- Header row with controls -->
-          <div class="flex justify-between items-center py-2 border-b border-base-300">
+          <!-- Header row: list overview mode -->
+          <div id="callListOverviewHeader" class="flex justify-between items-center py-2 border-b border-base-300">
             <div class="flex items-center gap-2 pl-4">
-              <h2 class="text-lg font-bold">Calls</h2>
-              <select id="callListDropdown" class="select select-sm select-bordered w-56" onchange="onCallListDropdownChange(this.value)">
-                <option value="">Select a list...</option>
-              </select>
+              <h2 class="text-lg font-bold">Call Lists</h2>
+            </div>
+            <div class="flex items-center gap-2 pr-4">
+              <button onclick="openScriptManagerModal()" class="btn btn-ghost btn-sm gap-1" title="Manage Scripts">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span class="text-xs">Scripts</span>
+              </button>
+              <button onclick="openCreateCallListModal()" class="btn btn-primary btn-sm gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                New List
+              </button>
+            </div>
+          </div>
+          <!-- Header row: list detail mode (hidden by default) -->
+          <div id="callListDetailHeader" class="hidden flex justify-between items-center py-2 border-b border-base-300">
+            <div class="flex items-center gap-2 pl-4">
+              <button onclick="backToCallListOverview()" class="btn btn-ghost btn-xs gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Lists
+              </button>
+              <h2 id="callListDetailName" class="text-lg font-bold"></h2>
               <span id="callListCount" class="text-sm text-base-content/60"></span>
               <button id="editCallListBtn" onclick="openEditCallListModal()" class="btn btn-ghost btn-xs hidden" title="Edit list">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -833,16 +856,26 @@
               </div>
             </div>
 
-            <!-- Empty state -->
-            <div id="callListEmpty" class="flex-1 flex flex-col items-center justify-center py-12 bg-base-200 rounded-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-              <h3 class="text-lg font-semibold mb-1">Select a call list</h3>
-              <p class="text-base-content/60 text-sm text-center">Choose a list from the dropdown above</p>
+            <!-- Call list overview (shown when no list is selected) -->
+            <div id="callListOverview" class="flex-1 overflow-auto p-4">
+              <div id="callListCards" class="grid gap-3 max-w-3xl"></div>
+              <div id="callListOverviewEmpty" class="hidden flex flex-col items-center justify-center py-12">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                <h3 class="text-lg font-semibold mb-1">No call lists yet</h3>
+                <p class="text-base-content/60 text-sm text-center mb-3">Create a list to start making calls</p>
+                <button onclick="openCreateCallListModal()" class="btn btn-primary btn-sm">Create List</button>
+              </div>
             </div>
 
             <!-- Call list table with virtual scrolling (hidden by default) -->
+            <!-- Empty list state (list selected but has no items) -->
+            <div id="callListItemsEmpty" class="hidden flex-1 flex flex-col items-center justify-center py-12">
+              <h3 class="text-lg font-semibold mb-1">List is empty</h3>
+              <p class="text-base-content/60 text-sm text-center">Add contacts or leads to this list</p>
+            </div>
+
             <div id="callListTable" class="hidden flex-1 flex flex-col min-h-0">
               <!-- Fixed header -->
               <div class="bg-base-100 border-b border-base-300 flex-shrink-0">
@@ -5728,10 +5761,11 @@
     }
 
     // Edit Call List functions
-    window.openEditCallListModal = async function() {
-      if (!currentCallListId) return;
+    window.openEditCallListModal = async function(listId) {
+      const editListId = listId || currentCallListId;
+      if (!editListId) return;
 
-      const list = allCallLists.find(l => l.id === currentCallListId);
+      const list = allCallLists.find(l => l.id === editListId);
       if (!list) return;
 
       // Fetch tenant users if not already loaded
@@ -5828,64 +5862,104 @@
     window.openCallListDrawer = function() {};
     window.closeCallListDrawer = function() {};
 
-    function renderCallListDropdown() {
-      const dropdown = document.getElementById('callListDropdown');
-      if (!dropdown) return;
+    function renderCallListOverview() {
+      const container = document.getElementById('callListCards');
+      const emptyState = document.getElementById('callListOverviewEmpty');
+      if (!container) return;
 
-      const isAdmin = isCurrentUserAdmin();
-      const myLists = allCallLists.filter(list =>
-        list.assignedUsers?.some(u => u.id === currentUser?.userId)
-      );
-      const otherLists = allCallLists.filter(list =>
-        !list.assignedUsers?.some(u => u.id === currentUser?.userId)
-      );
-
-      let html = '<option value="">Select a list...</option>';
-
-      if (myLists.length > 0) {
-        html += '<optgroup label="My Lists">';
-        myLists.forEach(list => {
-          const count = list._count?.CallListItem || list._count?.items || 0;
-          const selected = currentCallListId === list.id ? 'selected' : '';
-          html += `<option value="${list.id}" ${selected}>${escapeHtml(list.name)} (${count})</option>`;
-        });
-        html += '</optgroup>';
-      }
-
-      if (isAdmin && otherLists.length > 0) {
-        html += '<optgroup label="Other Lists">';
-        otherLists.forEach(list => {
-          const count = list._count?.CallListItem || list._count?.items || 0;
-          const selected = currentCallListId === list.id ? 'selected' : '';
-          html += `<option value="${list.id}" ${selected}>${escapeHtml(list.name)} (${count})</option>`;
-        });
-        html += '</optgroup>';
-      }
-
-      html += '<option value="__create__">+ Create new list</option>';
-      dropdown.innerHTML = html;
-    }
-
-    async function onCallListDropdownChange(value) {
-      if (value === '__create__') {
-        // Reset dropdown to previous selection and open modal
-        const dropdown = document.getElementById('callListDropdown');
-        dropdown.value = currentCallListId || '';
-        openCreateCallListModal();
+      if (allCallLists.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
         return;
       }
-      if (value) {
-        loadCallList(value);
-      } else {
-        // Reset to empty state
-        currentCallListId = null;
-        currentCallListItems = [];
-        document.getElementById('callListTable').classList.add('hidden');
-        document.getElementById('callListEmpty').classList.remove('hidden');
-        document.getElementById('callListFilters').classList.add('hidden');
-        document.getElementById('editCallListBtn').classList.add('hidden');
-        document.getElementById('callListCount').textContent = '';
+      emptyState.classList.add('hidden');
+
+      const isAdmin = isCurrentUserAdmin();
+      const uid = currentUser?.userId || currentUser?.id;
+      const myLists = allCallLists.filter(list =>
+        list.assignedUsers?.some(u => u.id === uid)
+      );
+      const myListIds = new Set(myLists.map(l => l.id));
+      const otherLists = allCallLists.filter(list => !myListIds.has(list.id));
+
+      let html = '';
+
+      function renderSection(title, lists) {
+        if (lists.length === 0) return '';
+        let s = `<h3 class="text-sm font-semibold text-base-content/60 uppercase tracking-wide mb-2 mt-2">${title}</h3>`;
+        lists.forEach(list => {
+          const count = list._count?.CallListItem || list._count?.items || 0;
+          const assignees = (list.assignedUsers || []).map(u => escapeHtml(u.name || u.email)).join(', ');
+          const date = list.createdAt ? new Date(list.createdAt).toLocaleDateString() : '';
+          s += `
+            <div class="card card-compact bg-base-100 border border-base-300 hover:border-primary/50 cursor-pointer transition-colors" onclick="loadCallList('${list.id}')">
+              <div class="flex items-center justify-between px-4 py-2">
+                <div class="flex items-center gap-3 min-w-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  <span class="font-semibold truncate">${escapeHtml(list.name)}</span>
+                  <span class="badge badge-sm badge-primary">${count} records</span>
+                  <span class="text-xs text-base-content/50">${assignees ? assignees : 'Unassigned'}${date ? ` &middot; ${date}` : ''}</span>
+                </div>
+                <div class="flex items-center gap-0 flex-shrink-0 ml-4">
+                  <button onclick="event.stopPropagation(); openEditCallListModal('${list.id}')" class="btn btn-ghost btn-sm btn-square" title="Edit list">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button onclick="event.stopPropagation(); deleteCallList('${list.id}', '${escapeHtml(list.name).replace(/'/g, "\\'")}')" class="btn btn-ghost btn-sm btn-square text-error" title="Delete list">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>`;
+        });
+        return s;
       }
+
+      html += renderSection('Assigned to me', myLists);
+      if (isAdmin && otherLists.length > 0) html += renderSection('Other', otherLists);
+      container.innerHTML = html;
+    }
+
+    async function deleteCallList(id, name) {
+      if (!confirm(`Delete "${name}"? This will remove all items from the list.`)) return;
+      try {
+        const response = await fetch('/.netlify/functions/delete-call-list', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+        if (data.success) {
+          if (currentCallListId === id) backToCallListOverview();
+          await loadCallLists();
+        } else {
+          alert(data.error || 'Failed to delete list');
+        }
+      } catch (e) {
+        console.error('Error deleting call list:', e);
+        alert('Failed to delete list');
+      }
+    }
+
+    function backToCallListOverview() {
+      currentCallListId = null;
+      currentCallListItems = [];
+      selectedCallItemId = null;
+      document.getElementById('callListOverviewHeader').classList.remove('hidden');
+      document.getElementById('callListDetailHeader').classList.add('hidden');
+      document.getElementById('callListOverview').classList.remove('hidden');
+      document.getElementById('callListTable').classList.add('hidden');
+      document.getElementById('callListLoading').classList.add('hidden');
+      document.getElementById('callListFilters').classList.add('hidden');
+      document.getElementById('callListCount').textContent = '';
+      // Refresh the overview in case items changed
+      renderCallListOverview();
     }
 
     async function openCreateCallListModal() {
@@ -5968,8 +6042,8 @@
         const data = await response.json();
         allCallLists = data.callLists || [];
 
-        // Render the dropdown
-        renderCallListDropdown();
+        // Render the overview cards
+        renderCallListOverview();
       } catch (e) {
         console.error('Error loading call lists:', e);
       }
@@ -7053,31 +7127,25 @@
       const filtersEl = document.getElementById('callListFilters');
 
       if (!listId) {
-        document.getElementById('callListEmpty').classList.remove('hidden');
-        document.getElementById('callListTable').classList.add('hidden');
-        loadingEl.classList.add('hidden');
-        document.getElementById('callListCount').textContent = '';
-        filtersEl?.classList.add('hidden');
-        detailPane.classList.add('hidden');
-        document.getElementById('editCallListBtn')?.classList.add('hidden');
-        currentCallListItems = [];
-        currentCallListId = null;
-        callListState.checkedItems.clear();
-        callListState.sortedItems = [];
-        const dropdown = document.getElementById('callListDropdown');
-        if (dropdown) dropdown.value = '';
+        backToCallListOverview();
         return;
       }
 
       currentCallListId = listId;
 
+      // Switch to detail mode
+      document.getElementById('callListOverviewHeader').classList.add('hidden');
+      document.getElementById('callListDetailHeader').classList.remove('hidden');
+      document.getElementById('callListOverview').classList.add('hidden');
+
+      // Set list name in detail header
+      const listData = allCallLists.find(l => l.id === listId);
+      const nameEl = document.getElementById('callListDetailName');
+      if (nameEl) nameEl.textContent = listData?.name || 'Call List';
+
       // Clear search and filters when switching lists
       const searchInput = document.getElementById('callListSearch');
       if (searchInput) searchInput.value = '';
-
-      // Update dropdown selection
-      const dropdown = document.getElementById('callListDropdown');
-      if (dropdown) dropdown.value = listId;
 
       // Show edit button for admins when list is selected
       const editBtn = document.getElementById('editCallListBtn');
@@ -7090,7 +7158,7 @@
 
       // Show loading state
       loadingEl.classList.remove('hidden');
-      document.getElementById('callListEmpty').classList.add('hidden');
+      document.getElementById('callListItemsEmpty')?.classList.add('hidden');
       document.getElementById('callListTable').classList.add('hidden');
 
       try {
@@ -7141,13 +7209,11 @@
         currentCallScript = script || null;
 
         if (items.length === 0) {
-          document.getElementById('callListEmpty').classList.remove('hidden');
+          document.getElementById('callListItemsEmpty')?.classList.remove('hidden');
           document.getElementById('callListTable').classList.add('hidden');
           detailPane.classList.add('hidden');
-          document.getElementById('callListEmpty').querySelector('h3').textContent = 'List is empty';
-          document.getElementById('callListEmpty').querySelector('p').innerHTML = 'Add contacts or leads to this list';
         } else {
-          document.getElementById('callListEmpty').classList.add('hidden');
+          document.getElementById('callListItemsEmpty')?.classList.add('hidden');
           document.getElementById('callListTable').classList.remove('hidden');
 
           renderCallListTable();
@@ -7208,8 +7274,8 @@
         const data = await response.json();
         if (data.success) {
           showInfoModal('success', 'Deleted', 'Call list has been deleted.');
-          loadCallLists();
-          loadCallList(''); // Clear the view
+          await loadCallLists();
+          backToCallListOverview();
         } else {
           showInfoModal('error', 'Error', data.error || 'Failed to delete list');
         }
