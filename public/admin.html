@@ -393,14 +393,19 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="addressDetailPane" class="fixed top-0 right-0 h-screen w-[600px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+          <div id="addressDetailPane" class="fixed top-0 right-0 h-screen detail-pane-width bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
             <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Address Details</h3>
-              <button onclick="closeAddressDetail()" class="btn btn-ghost btn-xs btn-square">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div class="flex items-center gap-1">
+                <button onclick="toggleDetailPaneWidth('addressDetailPane')" class="btn btn-ghost btn-xs btn-square detail-expand-btn" title="Expand">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                </button>
+                <button onclick="closeAddressDetail()" class="btn btn-ghost btn-xs btn-square">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div id="addressDetailContent" class="p-4 overflow-y-auto flex-1">
               <!-- Address details will be rendered here -->
@@ -513,14 +518,19 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="prospectDetailPane" class="fixed top-0 right-0 h-screen w-[600px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+          <div id="prospectDetailPane" class="fixed top-0 right-0 h-screen detail-pane-width bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
             <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Contact Details</h3>
-              <button onclick="closeProspectDetail()" class="btn btn-ghost btn-xs btn-square">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div class="flex items-center gap-1">
+                <button onclick="toggleDetailPaneWidth('prospectDetailPane')" class="btn btn-ghost btn-xs btn-square detail-expand-btn" title="Expand">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                </button>
+                <button onclick="closeProspectDetail()" class="btn btn-ghost btn-xs btn-square">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div id="prospectDetailContent" class="p-4 overflow-y-auto flex-1">
               <!-- Contact details will be rendered here -->
@@ -635,14 +645,19 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="leadDetailPane" class="fixed top-0 right-0 h-screen w-[600px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+          <div id="leadDetailPane" class="fixed top-0 right-0 h-screen detail-pane-width bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
             <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Lead Details</h3>
-              <button onclick="closeLeadDetail()" class="btn btn-ghost btn-xs btn-square">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div class="flex items-center gap-1">
+                <button onclick="toggleDetailPaneWidth('leadDetailPane')" class="btn btn-ghost btn-xs btn-square detail-expand-btn" title="Expand">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                </button>
+                <button onclick="closeLeadDetail()" class="btn btn-ghost btn-xs btn-square">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div id="leadDetailContent" class="p-4 overflow-y-auto flex-1">
               <!-- Lead details will be rendered here -->
@@ -863,14 +878,19 @@
         </div>
 
         <!-- Right Detail Pane - Fixed position to avoid container issues -->
-        <div id="callDetailPane" class="fixed top-0 right-0 h-screen w-[600px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+        <div id="callDetailPane" class="fixed top-0 right-0 h-screen detail-pane-width bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
           <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
             <h3 class="font-semibold text-sm">Details</h3>
-            <button onclick="closeCallDetailPane()" class="btn btn-ghost btn-xs btn-square">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div class="flex items-center gap-1">
+              <button onclick="toggleDetailPaneWidth('callDetailPane')" class="btn btn-ghost btn-xs btn-square detail-expand-btn" title="Expand">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+              </button>
+              <button onclick="closeCallDetailPane()" class="btn btn-ghost btn-xs btn-square">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
           <div id="callDetailContent" class="p-4 overflow-y-auto flex-1">
             <!-- Detail content will be rendered here -->
@@ -1342,14 +1362,19 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="orgDetailPane" class="fixed top-0 right-0 h-screen w-[600px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+          <div id="orgDetailPane" class="fixed top-0 right-0 h-screen detail-pane-width bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
             <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Organization Details</h3>
-              <button onclick="closeOrgDetail()" class="btn btn-ghost btn-xs btn-square">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div class="flex items-center gap-1">
+                <button onclick="toggleDetailPaneWidth('orgDetailPane')" class="btn btn-ghost btn-xs btn-square detail-expand-btn" title="Expand">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                </button>
+                <button onclick="closeOrgDetail()" class="btn btn-ghost btn-xs btn-square">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div id="orgDetailContent" class="p-4 overflow-y-auto flex-1">
               <!-- Organization details will be rendered here -->
@@ -1411,14 +1436,19 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="customerDetailPane" class="fixed top-0 right-0 h-screen w-[600px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+          <div id="customerDetailPane" class="fixed top-0 right-0 h-screen detail-pane-width bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
             <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Customer Details</h3>
-              <button onclick="closeCustomerDetail()" class="btn btn-ghost btn-xs btn-square">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div class="flex items-center gap-1">
+                <button onclick="toggleDetailPaneWidth('customerDetailPane')" class="btn btn-ghost btn-xs btn-square detail-expand-btn" title="Expand">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                </button>
+                <button onclick="closeCustomerDetail()" class="btn btn-ghost btn-xs btn-square">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div id="customerDetailContent" class="p-4 overflow-y-auto flex-1">
               <!-- Customer details will be rendered here -->
@@ -2530,6 +2560,7 @@
     }
 
     function closeOrgDetail() {
+      resetDetailPaneWidth('orgDetailPane');
       document.getElementById('orgDetailPane').style.transform = 'translateX(100%)';
     }
 
@@ -2826,6 +2857,7 @@
     }
 
     function closeCustomerDetail() {
+      resetDetailPaneWidth('customerDetailPane');
       document.getElementById('customerDetailPane').style.transform = 'translateX(100%)';
       currentCustomerId = null;
     }
@@ -3515,8 +3547,37 @@
       }
     }
 
+    function resetDetailPaneWidth(paneId) {
+      const pane = document.getElementById(paneId);
+      pane.classList.remove('detail-pane-expanded');
+      pane.classList.add('detail-pane-width');
+      const btn = pane.querySelector('.detail-expand-btn');
+      if (btn) {
+        btn.title = 'Expand';
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>';
+      }
+    }
+
+    function toggleDetailPaneWidth(paneId) {
+      const pane = document.getElementById(paneId);
+      const isExpanded = pane.classList.contains('detail-pane-expanded');
+      const btn = pane.querySelector('.detail-expand-btn');
+      if (isExpanded) {
+        pane.classList.remove('detail-pane-expanded');
+        pane.classList.add('detail-pane-width');
+        btn.title = 'Expand';
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>';
+      } else {
+        pane.classList.remove('detail-pane-width');
+        pane.classList.add('detail-pane-expanded');
+        btn.title = 'Collapse';
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9L4 4m0 0v4m0-4h4m7 11l5 5m0 0v-4m0 4h-4M9 15l-5 5m0 0h4m-4 0v-4m11-7l5-5m0 0h-4m4 0v4" /></svg>';
+      }
+    }
+
     function closeAddressDetail() {
       selectedAddressId = null;
+      resetDetailPaneWidth('addressDetailPane');
       document.getElementById('addressDetailPane').style.transform = 'translateX(100%)';
       renderAddressResults(allAddresses, addressTotal, addressTotalPages);
     }
@@ -3997,6 +4058,7 @@
 
     function closeProspectDetail() {
       selectedProspectId = null;
+      resetDetailPaneWidth('prospectDetailPane');
       document.getElementById('prospectDetailPane').style.transform = 'translateX(100%)';
       renderProspects();
     }
@@ -4784,9 +4846,15 @@
             const sentDate = p.sent_date ? new Date(p.sent_date).toLocaleDateString() : '-';
             const signedDate = p.signed_date ? new Date(p.signed_date).toLocaleDateString() : null;
             const amount = p.proposal_amount ? `$${p.proposal_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '-';
-            const statusBadge = p.status === 'signed'
-              ? '<span class="badge badge-success badge-xs">Signed</span>'
-              : '<span class="badge badge-warning badge-xs">Sent</span>';
+            const statusBadges = {
+              signed: '<span class="badge badge-success badge-xs">Signed</span>',
+              sent: '<span class="badge badge-warning badge-xs">Sent</span>',
+              pending: '<span class="badge badge-info badge-xs">Pending</span>',
+              lost: '<span class="badge badge-error badge-xs">Lost</span>',
+              rejected: '<span class="badge badge-error badge-xs">Rejected</span>',
+              closed: '<span class="badge badge-ghost badge-xs">Closed</span>'
+            };
+            const statusBadge = statusBadges[p.status] || '<span class="badge badge-ghost badge-xs">' + (p.status || 'Unknown') + '</span>';
 
             return `
               <div class="bg-base-200 p-3 rounded">
@@ -4808,7 +4876,7 @@
                     ${statusBadge}
                     <div class="flex items-center gap-2">
                       <span class="text-xs text-base-content/40">#${p.proposal_id}</span>
-                      <button onclick="deleteProposal('${p.proposal_id}')" class="btn btn-ghost btn-xs text-error hover:bg-error/10" title="Delete proposal">
+                      <button onclick="deleteProposal('${p.proposal_id}', ${!!p.qb_estimate_id})" class="btn btn-ghost btn-xs text-error hover:bg-error/10" title="Delete proposal${p.qb_estimate_id ? ' + QB estimate' : ''}">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
@@ -4827,8 +4895,11 @@
     }
 
     // Delete a proposal
-    async function deleteProposal(proposalId) {
-      if (!confirm(`Delete proposal #${proposalId}? This cannot be undone.`)) {
+    async function deleteProposal(proposalId, hasQbEstimate) {
+      const msg = hasQbEstimate
+        ? `Delete proposal #${proposalId} and its QuickBooks estimate? This cannot be undone.`
+        : `Delete proposal #${proposalId}? This cannot be undone.`;
+      if (!confirm(msg)) {
         return;
       }
 
@@ -6226,6 +6297,7 @@
 
     // Close the call detail pane
     function closeCallDetailPane() {
+      resetDetailPaneWidth('callDetailPane');
       document.getElementById('callDetailPane').style.transform = 'translateX(100%)';
       selectedCallItemId = null;
       // Remove highlight from all rows
@@ -8056,6 +8128,7 @@
 
     function closeLeadDetail() {
       selectedLeadId = null;
+      resetDetailPaneWidth('leadDetailPane');
       history.replaceState(null, '', `#leads`);
       document.getElementById('leadDetailPane').style.transform = 'translateX(100%)';
 

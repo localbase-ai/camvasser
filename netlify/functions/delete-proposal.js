@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { verifyToken } from './lib/auth.js';
+import { deleteEstimate } from './lib/quickbooks.js';
 
 const prisma = new PrismaClient();
 
@@ -36,15 +37,15 @@ export async function handler(event) {
       };
     }
 
-    // Delete the proposal (only if it belongs to user's tenant)
-    const deleted = await prisma.proposal.deleteMany({
+    // Find the proposal first to check for QB estimate
+    const proposal = await prisma.proposal.findFirst({
       where: {
         proposalId: id,
         tenant: user.tenant
       }
     });
 
-    if (deleted.count === 0) {
+    if (!proposal) {
       return {
         statusCode: 404,
         headers: { 'Content-Type': 'application/json' },
@@ -52,14 +53,33 @@ export async function handler(event) {
       };
     }
 
-    console.log(`Deleted proposal: ${id}`);
+    // Delete from QuickBooks if linked to an estimate
+    let qbDeleted = false;
+    if (proposal.qbEstimateId) {
+      try {
+        await deleteEstimate(proposal.qbEstimateId);
+        qbDeleted = true;
+        console.log(`Deleted QB estimate ${proposal.qbEstimateId} for proposal ${id}`);
+      } catch (qbError) {
+        console.error(`Failed to delete QB estimate ${proposal.qbEstimateId}:`, qbError.message);
+        // Continue with local delete even if QB fails
+      }
+    }
+
+    // Delete the proposal locally
+    await prisma.proposal.delete({
+      where: { id: proposal.id }
+    });
+
+    console.log(`Deleted proposal: ${id}${qbDeleted ? ' (+ QB estimate)' : ''}`);
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         success: true,
-        deleted: id
+        deleted: id,
+        qbEstimateDeleted: qbDeleted
       })
     };
 

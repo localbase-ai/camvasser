@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { createId } from '@paralleldrive/cuid2';
 
 const QB_TOKEN_ENDPOINT = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
 const QB_API_BASE = 'https://quickbooks.api.intuit.com';
@@ -51,14 +52,17 @@ async function saveTokens(prisma, { accessToken, refreshToken, expiresAt, compan
       accessToken,
       refreshToken,
       expiresAt,
-      companyId
+      companyId,
+      updatedAt: new Date()
     },
     create: {
+      id: createId(),
       provider: PROVIDER,
       accessToken,
       refreshToken,
       expiresAt,
-      companyId
+      companyId,
+      updatedAt: new Date()
     }
   });
 }
@@ -356,4 +360,54 @@ export async function updateCustomerNotes(customerId, notes) {
   console.log('[QuickBooks] Notes updated for customer:', customerId);
 
   return data.Customer;
+}
+
+/**
+ * Delete an estimate in QuickBooks
+ */
+export async function deleteEstimate(estimateId) {
+  const accessToken = await getAccessToken();
+  const companyId = process.env.QUICKBOOKS_COMPANY_ID;
+
+  // First get the estimate to get the SyncToken
+  const getUrl = `${QB_API_BASE}/v3/company/${companyId}/estimate/${estimateId}`;
+  const getRes = await fetch(getUrl, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Accept': 'application/json'
+    }
+  });
+
+  if (!getRes.ok) {
+    const errText = await getRes.text();
+    throw new Error(`Failed to fetch estimate ${estimateId}: ${errText}`);
+  }
+
+  const estimateData = await getRes.json();
+  const estimate = estimateData.Estimate;
+
+  console.log('[QuickBooks] Deleting estimate:', estimateId, 'SyncToken:', estimate.SyncToken);
+
+  const deleteUrl = `${QB_API_BASE}/v3/company/${companyId}/estimate?operation=delete`;
+  const response = await fetch(deleteUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      Id: estimateId,
+      SyncToken: estimate.SyncToken
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    const errorText = errorData?.Fault?.Error?.[0]?.Detail || response.statusText;
+    throw new Error(`Failed to delete estimate: ${errorText}`);
+  }
+
+  console.log('[QuickBooks] Estimate deleted:', estimateId);
+  return true;
 }

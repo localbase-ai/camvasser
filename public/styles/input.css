@@ -78,6 +78,14 @@ body {
   scrollbar-width: none; /* Firefox */
 }
 
+/* Detail pane width */
+.detail-pane-width {
+  width: 600px;
+}
+.detail-pane-expanded {
+  width: 100%;
+}
+
 /* Sidebar collapse */
 #sidebar.collapsed {
   width: 60px;
