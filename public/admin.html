@@ -388,7 +388,7 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="addressDetailPane" class="fixed top-0 right-0 h-screen w-[450px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+          <div id="addressDetailPane" class="fixed top-0 right-0 h-screen w-[600px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
             <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Address Details</h3>
               <button onclick="closeAddressDetail()" class="btn btn-ghost btn-xs btn-square">
@@ -508,7 +508,7 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="prospectDetailPane" class="fixed top-0 right-0 h-screen w-[450px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+          <div id="prospectDetailPane" class="fixed top-0 right-0 h-screen w-[600px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
             <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Contact Details</h3>
               <button onclick="closeProspectDetail()" class="btn btn-ghost btn-xs btn-square">
@@ -630,7 +630,7 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="leadDetailPane" class="fixed top-0 right-0 h-screen w-[450px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+          <div id="leadDetailPane" class="fixed top-0 right-0 h-screen w-[600px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
             <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Lead Details</h3>
               <button onclick="closeLeadDetail()" class="btn btn-ghost btn-xs btn-square">
@@ -857,7 +857,7 @@
         </div>
 
         <!-- Right Detail Pane - Fixed position to avoid container issues -->
-        <div id="callDetailPane" class="fixed top-0 right-0 h-screen w-[450px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+        <div id="callDetailPane" class="fixed top-0 right-0 h-screen w-[600px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
           <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
             <h3 class="font-semibold text-sm">Details</h3>
             <button onclick="closeCallDetailPane()" class="btn btn-ghost btn-xs btn-square">
@@ -1336,7 +1336,7 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="orgDetailPane" class="fixed top-0 right-0 h-screen w-[450px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+          <div id="orgDetailPane" class="fixed top-0 right-0 h-screen w-[600px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
             <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Organization Details</h3>
               <button onclick="closeOrgDetail()" class="btn btn-ghost btn-xs btn-square">
@@ -1405,7 +1405,7 @@
           </div>
 
           <!-- Detail Pane (absolute overlay) -->
-          <div id="customerDetailPane" class="fixed top-0 right-0 h-screen w-[450px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
+          <div id="customerDetailPane" class="fixed top-0 right-0 h-screen w-[600px] bg-base-100 border-l border-base-300 shadow-xl z-50 flex flex-col transition-transform duration-200" style="transform: translateX(100%)">
             <div class="flex-shrink-0 bg-base-100 border-b border-base-300 p-3 flex justify-between items-center">
               <h3 class="font-semibold text-sm">Customer Details</h3>
               <button onclick="closeCustomerDetail()" class="btn btn-ghost btn-xs btn-square">
@@ -6315,7 +6315,8 @@
         { value: 'callback', label: 'Callback', icon: 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6' },
         { value: 'appointment_set', label: 'Appt Set', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', success: true },
         { value: 'not_interested', label: 'Not Interested', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' },
-        { value: 'wrong_number', label: 'Wrong #', icon: 'M6 18L18 6M6 6l12 12' }
+        { value: 'wrong_number', label: 'Wrong #', icon: 'M6 18L18 6M6 6l12 12' },
+        { value: 'do_not_call', label: 'Do Not Call', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636M15.536 8.464l-7.072 7.072' }
       ];
 
       // Get address info

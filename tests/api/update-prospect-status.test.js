@@ -32,7 +32,8 @@ const VALID_STATUSES = [
   'no_need',
   'no_answer',
   'wants_quote_phone',
-  'follow_up_sms_sent'
+  'follow_up_sms_sent',
+  'do_not_call'
 ];
 
 describe('update-prospect-status API', () => {
