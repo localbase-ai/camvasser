@@ -8385,11 +8385,12 @@
     let mapInitialized = false;
     let mapLayers = {};       // Layer groups for filtering
     let mapLayerControl = null;
-    let mapClusteringEnabled = true;
+    const _savedMapState = (() => { try { const r = localStorage.getItem('mapState'); return r ? JSON.parse(r) : null; } catch { return null; } })();
+    let mapClusteringEnabled = _savedMapState?.clustering ?? true;
     let mapDataCache = { addresses: [], leads: [] }; // Cache for toggling
     let mapAddressFilterTimeout = null;
     let mapAvailableTags = []; // Available tags for filter dropdown
-    let mapLayerVisibility = { contacts: true, leads: true, other: true }; // Track layer visibility
+    let mapLayerVisibility = _savedMapState?.layerVisibility || { contacts: true, leads: true, other: true };
     let mapUpdating = false; // Flag to prevent event handler interference during updates
 
     async function initializeMap() {
@@ -8402,8 +8403,11 @@
       const container = document.getElementById('mapContainer');
       if (!container) return;
 
-      // Create map centered on Kansas City metro area (~200 mile radius at zoom 7)
-      map = L.map('mapContainer').setView([39.1, -94.6], 7);
+      // Restore saved state or default to Kansas City metro area
+      const savedState = restoreMapState();
+      const defaultCenter = savedState?.center || [39.1, -94.6];
+      const defaultZoom = savedState?.zoom || 7;
+      map = L.map('mapContainer').setView(defaultCenter, defaultZoom);
 
       // Base layers
       const streetLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
@@ -8443,6 +8447,9 @@
       // Disable default double-click zoom
       map.doubleClickZoom.disable();
 
+      // Save map position on move/zoom
+      map.on('moveend', saveMapState);
+
       // Track layer visibility changes (only set up once)
       // Only update visibility when user toggles, not during programmatic updates
       map.on('overlayadd', (e) => {
@@ -8450,16 +8457,39 @@
         if (e.name.includes('With Contacts')) mapLayerVisibility.contacts = true;
         if (e.name.includes('Leads')) mapLayerVisibility.leads = true;
         if (e.name.includes('Address Targets')) mapLayerVisibility.other = true;
+        saveMapState();
       });
       map.on('overlayremove', (e) => {
         if (mapUpdating) return;
         if (e.name.includes('With Contacts')) mapLayerVisibility.contacts = false;
         if (e.name.includes('Leads')) mapLayerVisibility.leads = false;
         if (e.name.includes('Address Targets')) mapLayerVisibility.other = false;
+        saveMapState();
       });
 
       // Load map data
       await loadMapData();
+
+      // Restore saved filter state after dropdowns are populated
+      if (savedState) {
+        const addrInput = document.getElementById('mapAddressFilter');
+        const tagSelect = document.getElementById('mapTagFilter');
+        const statusSelect = document.getElementById('mapLeadStatusFilter');
+        const callListSelect = document.getElementById('mapCallListFilter');
+        const hasTagsToggle = document.getElementById('mapHasTagsToggle');
+        const clusterToggle = document.getElementById('clusterToggle');
+
+        if (addrInput && savedState.addressFilter) addrInput.value = savedState.addressFilter;
+        if (tagSelect && savedState.tagFilter) tagSelect.value = savedState.tagFilter;
+        if (statusSelect && savedState.leadStatusFilter) statusSelect.value = savedState.leadStatusFilter;
+        if (callListSelect && savedState.callListFilter) callListSelect.value = savedState.callListFilter;
+        if (hasTagsToggle) hasTagsToggle.checked = savedState.hasTagsOnly || false;
+        if (clusterToggle) clusterToggle.checked = mapClusteringEnabled;
+
+        // Re-apply filters with restored values
+        const hasFilters = savedState.addressFilter || savedState.tagFilter || savedState.leadStatusFilter || savedState.callListFilter || savedState.hasTagsOnly;
+        if (hasFilters) loadMapData(true);
+      }
     }
 
     async function loadMapData(useCache = false) {
@@ -8736,12 +8766,39 @@
       }
     }
 
+    function saveMapState() {
+      const state = {
+        addressFilter: document.getElementById('mapAddressFilter')?.value || '',
+        tagFilter: document.getElementById('mapTagFilter')?.value || '',
+        leadStatusFilter: document.getElementById('mapLeadStatusFilter')?.value || '',
+        callListFilter: document.getElementById('mapCallListFilter')?.value || '',
+        hasTagsOnly: document.getElementById('mapHasTagsToggle')?.checked || false,
+        clustering: mapClusteringEnabled,
+        layerVisibility: mapLayerVisibility
+      };
+      if (map) {
+        const center = map.getCenter();
+        state.center = [center.lat, center.lng];
+        state.zoom = map.getZoom();
+      }
+      localStorage.setItem('mapState', JSON.stringify(state));
+    }
+
+    function restoreMapState() {
+      try {
+        const raw = localStorage.getItem('mapState');
+        return raw ? JSON.parse(raw) : null;
+      } catch { return null; }
+    }
+
     function toggleClustering(enabled) {
       mapClusteringEnabled = enabled;
+      saveMapState();
       loadMapData(true); // Use cached data
     }
 
     function applyMapFilters() {
+      saveMapState();
       loadMapData(true); // Use cached data with new filters
     }
 
