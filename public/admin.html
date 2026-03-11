@@ -4536,7 +4536,26 @@
 
           <!-- Proposals -->
           <div class="space-y-2">
-            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Proposals</h5>
+            <div class="flex justify-between items-center">
+              <h5 class="text-xs font-semibold text-base-content/60 uppercase">Proposals</h5>
+              <button id="addProposalBtn" onclick="toggleAddProposalForm()" class="btn btn-ghost btn-xs text-primary">+ Add</button>
+            </div>
+            <div id="addProposalForm" class="hidden bg-base-200 p-3 space-y-2">
+              <select id="proposalJobType" class="select select-bordered select-sm w-full">
+                <option value="">Select service...</option>
+                <option value="roof_replacement">Roof Replacement</option>
+                <option value="roof_repair">Roof Repair</option>
+                <option value="gutter_replacement">Gutter Replacement</option>
+                <option value="roof_tuneup">Roof Tune-Up</option>
+                <option value="roof_cleaning">Roof Cleaning</option>
+                <option value="roofmaxx_treatment">RoofMaxx Treatment</option>
+              </select>
+              <input id="proposalAmount" type="number" step="0.01" placeholder="Amount" class="input input-bordered input-sm w-full" />
+              <div class="flex gap-2">
+                <button onclick="submitCreateProposal()" class="btn btn-primary btn-sm flex-1">Create</button>
+                <button onclick="toggleAddProposalForm()" class="btn btn-ghost btn-sm">Cancel</button>
+              </div>
+            </div>
             <div id="leadProposalsList" class="space-y-2">
               <div class="text-sm text-base-content/40 italic">Loading proposals...</div>
             </div>
@@ -4895,6 +4914,65 @@
     }
 
     // Delete a proposal
+    function toggleAddProposalForm() {
+      const form = document.getElementById('addProposalForm');
+      form.classList.toggle('hidden');
+      if (!form.classList.contains('hidden')) {
+        document.getElementById('proposalJobType').value = '';
+        document.getElementById('proposalAmount').value = '';
+        document.getElementById('proposalAmount').focus();
+      }
+    }
+
+    async function submitCreateProposal() {
+      const jobType = document.getElementById('proposalJobType').value;
+      const amount = document.getElementById('proposalAmount').value;
+
+      if (!jobType || !amount) {
+        alert('Please select a service and enter an amount');
+        return;
+      }
+
+      const lead = allLeads.find(l => l.id === selectedLeadId);
+      if (!lead) return;
+
+      try {
+        const response = await fetch('/.netlify/functions/create-proposal', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId: lead.id, jobType, amount: parseFloat(amount) })
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'Failed to create proposal');
+        }
+
+        const data = await response.json();
+        const qbNote = data.proposal.qbEstimateId ? ` (QB estimate #${data.proposal.qbDocNumber} created)` : '';
+        console.log('Proposal created:', data.proposal.proposalId + qbNote);
+
+        // Hide form and refresh
+        document.getElementById('addProposalForm').classList.add('hidden');
+        loadLeadProposals(lead);
+
+        // Update lead's job value in local data
+        lead.flowData = lead.flowData || {};
+        lead.flowData.job_value = parseFloat(amount);
+
+        // Clear proposals cache and refresh view
+        proposalsLookup = { byEmail: {}, byName: {} };
+        if (leadsViewMode === 'kanban') {
+          searchLeadsForKanban();
+        } else {
+          searchLeads();
+        }
+      } catch (error) {
+        console.error('Error creating proposal:', error);
+        alert('Failed to create proposal: ' + error.message);
+      }
+    }
+
     async function deleteProposal(proposalId, hasQbEstimate) {
       const msg = hasQbEstimate
         ? `Delete proposal #${proposalId} and its QuickBooks estimate? This cannot be undone.`

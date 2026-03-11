@@ -363,6 +363,53 @@ export async function updateCustomerNotes(customerId, notes) {
 }
 
 /**
+ * Create a shell estimate in QuickBooks
+ */
+export async function createEstimate({ customerId, itemId, itemName, amount, description }) {
+  const accessToken = await getAccessToken();
+  const companyId = process.env.QUICKBOOKS_COMPANY_ID;
+
+  const payload = {
+    CustomerRef: { value: customerId },
+    Line: [
+      {
+        Amount: amount,
+        DetailType: 'SalesItemLineDetail',
+        SalesItemLineDetail: {
+          ItemRef: { value: itemId, name: itemName },
+          Qty: 1,
+          UnitPrice: amount
+        },
+        Description: description || itemName
+      }
+    ]
+  };
+
+  console.log('[QuickBooks] Creating estimate for customer:', customerId, 'amount:', amount);
+
+  const url = `${QB_API_BASE}/v3/company/${companyId}/estimate`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    const errorText = errorData?.Fault?.Error?.[0]?.Detail || response.statusText;
+    throw new Error(`Failed to create estimate: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log('[QuickBooks] Estimate created:', data.Estimate.Id, 'DocNumber:', data.Estimate.DocNumber);
+  return data.Estimate;
+}
+
+/**
  * Delete an estimate in QuickBooks
  */
 export async function deleteEstimate(estimateId) {
