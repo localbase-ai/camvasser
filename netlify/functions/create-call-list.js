@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { createId } from '@paralleldrive/cuid2';
 import { verifyToken } from './lib/auth.js';
 
 const prisma = new PrismaClient();
@@ -41,6 +42,7 @@ export async function handler(event) {
     // Create the call list with items and assignments
     const callList = await prisma.callList.create({
       data: {
+        id: createId(),
         name,
         tenantId: tenant,
         userId: user.userId,
@@ -49,17 +51,19 @@ export async function handler(event) {
         items: {
           create: [
             ...contactIds.map((contactId, index) => ({
+              id: createId(),
               contactId,
               position: index
             })),
             ...leadIds.map((leadId, index) => ({
+              id: createId(),
               leadId,
               position: contactIds.length + index
             }))
           ]
         },
         CallListAssignment: {
-          create: userIdsToAssign.map(userId => ({ userId }))
+          create: userIdsToAssign.map(userId => ({ id: createId(), userId }))
         }
       },
       include: {

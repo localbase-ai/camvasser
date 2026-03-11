@@ -179,9 +179,9 @@ describe('create-call-list API', () => {
           data: expect.objectContaining({
             items: {
               create: [
-                { contactId: 'contact_1', position: 0 },
-                { contactId: 'contact_2', position: 1 },
-                { leadId: 'lead_1', position: 2 }
+                expect.objectContaining({ contactId: 'contact_1', position: 0 }),
+                expect.objectContaining({ contactId: 'contact_2', position: 1 }),
+                expect.objectContaining({ leadId: 'lead_1', position: 2 })
               ]
             }
           })
