@@ -5683,25 +5683,10 @@
 
     async function onCallListDropdownChange(value) {
       if (value === '__create__') {
-        // Reset dropdown to previous selection
+        // Reset dropdown to previous selection and open modal
         const dropdown = document.getElementById('callListDropdown');
         dropdown.value = currentCallListId || '';
-        const name = prompt('New call list name:');
-        if (!name) return;
-        try {
-          const response = await fetch('/.netlify/functions/create-call-list', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, tenant: currentTenant })
-          });
-          const data = await response.json();
-          if (data.success || data.id) {
-            await loadCallLists();
-            loadCallList(data.id);
-          }
-        } catch (e) {
-          console.error('Error creating call list:', e);
-        }
+        openCreateCallListModal();
         return;
       }
       if (value) {
@@ -5715,6 +5700,75 @@
         document.getElementById('callListFilters').classList.add('hidden');
         document.getElementById('editCallListBtn').classList.add('hidden');
         document.getElementById('callListCount').textContent = '';
+      }
+    }
+
+    async function openCreateCallListModal() {
+      // Ensure we have tenant users loaded
+      if (!tenantUsers || tenantUsers.length === 0) {
+        try {
+          const res = await fetch(`/.netlify/functions/get-tenant-users?tenant=${currentTenant}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (res.status === 401) { logout(); return; }
+          const data = await res.json();
+          tenantUsers = data.users || [];
+        } catch (e) {
+          tenantUsers = [];
+        }
+      }
+
+      // Populate assignees checkboxes (pre-check current user)
+      const container = document.getElementById('createCallListAssignees');
+      container.innerHTML = tenantUsers.map(user => `
+        <label class="flex items-center gap-2 cursor-pointer bg-base-200 px-2 py-1 rounded">
+          <input type="checkbox" value="${user.id}" class="checkbox checkbox-sm" ${user.id === currentUser?.userId ? 'checked' : ''}>
+          <span class="text-sm">${escapeHtml(user.name || user.email)}</span>
+        </label>
+      `).join('');
+
+      // Populate scripts dropdown
+      await loadScriptsForDropdown();
+      const createScriptSelect = document.getElementById('createCallListScript');
+      const sourceSelect = document.getElementById('newCallListScript');
+      if (sourceSelect) createScriptSelect.innerHTML = sourceSelect.innerHTML;
+      createScriptSelect.value = '';
+
+      // Default name to today's date
+      document.getElementById('createCallListName').value = new Date().toLocaleDateString();
+      document.getElementById('createCallListModal').showModal();
+    }
+
+    window.submitCreateCallList = async function() {
+      const name = document.getElementById('createCallListName').value.trim();
+      if (!name) {
+        alert('Please enter a list name');
+        return;
+      }
+
+      const assigneeCheckboxes = document.querySelectorAll('#createCallListAssignees input[type="checkbox"]:checked');
+      const assignedUserIds = Array.from(assigneeCheckboxes).map(cb => cb.value);
+      const scriptId = document.getElementById('createCallListScript').value || null;
+
+      try {
+        const response = await fetch('/.netlify/functions/create-call-list', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, tenant: currentTenant, assignedUserIds, scriptId })
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+
+        if (data.success && data.callList) {
+          document.getElementById('createCallListModal').close();
+          await loadCallLists();
+          loadCallList(data.callList.id);
+        } else {
+          alert(data.error || 'Failed to create list');
+        }
+      } catch (e) {
+        console.error('Error creating call list:', e);
+        alert('Failed to create list');
       }
     }
 
@@ -10732,6 +10786,37 @@
     </div>
     <form method="dialog" class="modal-backdrop bg-black/50">
       <button onclick="closeCallListModal()">close</button>
+    </form>
+  </dialog>
+
+  <!-- Create Call List Modal (from dropdown) -->
+  <dialog id="createCallListModal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-base-100" style="padding: 24px; max-width: 400px;">
+      <h3 class="font-bold text-lg" style="margin-bottom: 16px;">Create Call List</h3>
+      <div class="space-y-3">
+        <div class="form-control">
+          <label class="label py-1"><span class="label-text text-xs">List Name</span></label>
+          <input type="text" id="createCallListName" placeholder="List name..." class="input input-bordered input-sm w-full">
+        </div>
+        <div class="form-control">
+          <label class="label py-1"><span class="label-text text-xs">Assign to</span></label>
+          <div id="createCallListAssignees" class="flex flex-wrap gap-1 p-2 border border-base-300 rounded-lg min-h-[40px]">
+          </div>
+        </div>
+        <div class="form-control">
+          <label class="label py-1"><span class="label-text text-xs">Call Script (optional)</span></label>
+          <select id="createCallListScript" class="select select-bordered select-sm w-full">
+            <option value="">No script</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-action" style="margin-top: 16px;">
+        <button class="btn btn-sm" onclick="document.getElementById('createCallListModal').close()">Cancel</button>
+        <button class="btn btn-primary btn-sm" onclick="submitCreateCallList()">Create List</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-black/50">
+      <button>close</button>
     </form>
   </dialog>
 
