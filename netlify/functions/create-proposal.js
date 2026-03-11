@@ -92,7 +92,7 @@ export async function handler(event) {
         customerEmail: lead.email,
         proposalAmount: parseFloat(amount),
         sentDate: new Date(),
-        status: 'sent',
+        status: 'pending',
         tenant: lead.tenant,
         qbEstimateId: qbEstimate?.Id || null,
         qbCustomerId: qbCustomerId || null,
