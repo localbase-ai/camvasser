@@ -8592,8 +8592,6 @@
         let leadCount = 0;
 
         // Add address markers (filtered)
-        const hasFilter = hasTagsOnly || selectedTag || selectedCallList || addressFilterText || selectedLeadStatus;
-        if (hasFilter) console.log('Filter results:', filteredAddresses.length, 'addrs. First 3 coords:', filteredAddresses.slice(0,3).map(a => ({id:a.id, coords:a.coordinates})));
         filteredAddresses.forEach(addr => {
           const coords = addr.coordinates;
           if (!coords || !coords.lat || !coords.lon) return;
