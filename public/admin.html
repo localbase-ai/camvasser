@@ -1526,21 +1526,27 @@
 
     // Get total job value for a lead
     function getLeadJobValue(lead) {
-      // First check flowData.job_value (backfilled from QB/localbase)
+      const proposals = getLeadProposals(lead);
+
+      if (proposals.length > 0) {
+        // Active proposals (pending/sent) take priority — this is the pipeline value
+        const active = proposals.filter(p => p.status === 'pending' || p.status === 'sent');
+        if (active.length > 0) {
+          return active.reduce((sum, p) => sum + (p.proposal_amount || 0), 0);
+        }
+        // No active proposals — show completed value (signed/closed) if any
+        const completed = proposals.filter(p => p.status === 'signed' || p.status === 'closed');
+        if (completed.length > 0) {
+          return completed.reduce((sum, p) => sum + (p.proposal_amount || 0), 0);
+        }
+      }
+
+      // Fall back to flowData.job_value (backfilled from QB/localbase)
       if (lead.flowData && (lead.flowData.job_value || lead.flowData.job_value === 0)) {
         return lead.flowData.job_value;
       }
-      // Fall back to proposal amounts from Roofr
-      const proposals = getLeadProposals(lead);
-      if (proposals.length === 0) return null;
-      // Sum all proposal amounts
-      const total = proposals.reduce((sum, p) => sum + (p.proposal_amount || 0), 0);
-      // Distribute evenly across sibling leads (same customer) to avoid double-counting
-      const email = (lead.email || '').toLowerCase();
-      const name = `${lead.firstName || ''} ${lead.lastName || ''}`.trim().toLowerCase();
-      const customerKey = email || name;
-      const siblingCount = leadCountByCustomer[customerKey] || 1;
-      return total / siblingCount;
+
+      return null;
     }
 
     // Rebuild lead sibling counts from current allLeads
