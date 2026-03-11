@@ -4390,6 +4390,7 @@
           <div class="space-y-2">
             <h5 class="text-xs font-semibold text-base-content/60 uppercase">QuickBooks</h5>
             ${qbId ? `
+              <div class="flex flex-wrap gap-2">
               <a href="https://app.qbo.intuit.com/app/customerdetail?nameId=${qbId}"
                  target="_blank"
                  class="btn btn-sm btn-success gap-2">
@@ -4407,6 +4408,7 @@
                 </svg>
                 Sync Estimates
               </button>
+              </div>
             ` : `
               <button id="createQBCustomerBtn" onclick="createQuickBooksCustomer('${lead.id}')" class="btn btn-sm btn-outline gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
