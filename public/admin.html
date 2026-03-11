@@ -751,41 +751,15 @@
 
       <!-- Calls View -->
       <div id="view-calls" class="view hidden flex flex-col h-full relative overflow-hidden">
-        <!-- Left Drawer backdrop -->
-        <div id="callListDrawerBackdrop" class="hidden absolute inset-0 bg-black/20 z-40" onclick="window.closeCallListDrawer()"></div>
-
-        <!-- Left Drawer panel (for selecting call lists) -->
-        <div id="callListDrawer" class="absolute left-0 top-0 h-full w-64 bg-base-100 shadow-xl z-50 transition-transform duration-200 flex flex-col" style="transform: translateX(-100%)">
-          <div class="p-3 border-b border-base-300 flex items-center justify-between">
-            <span class="font-semibold">Call Lists</span>
-            <button type="button" id="closeDrawerBtn" class="btn btn-ghost btn-sm btn-square">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-              </svg>
-            </button>
-          </div>
-          <div id="callListDrawerContent" class="flex-1 overflow-y-auto px-1 py-2"></div>
-          <div id="callListDrawerToggle" class="border-t border-base-300 p-3 hidden">
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" id="showAllListsToggle" class="checkbox checkbox-sm" onchange="renderCallListDrawer()">
-              Show all lists
-            </label>
-          </div>
-        </div>
-
         <!-- Call List Content -->
         <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
           <!-- Header row with controls -->
-          <div class="flex justify-between items-center py-2">
-            <div class="flex items-center gap-3 pl-4">
-              <h2 class="text-lg font-bold">Call Lists</h2>
-              <span class="text-base-content/30">•</span>
-              <button onclick="openCallListDrawer()" class="btn btn-ghost gap-2 px-2">
-                <span id="currentListName" class="font-medium">Select a list</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+          <div class="flex justify-between items-center py-2 border-b border-base-300">
+            <div class="flex items-center gap-2 pl-4">
+              <h2 class="text-lg font-bold">Calls</h2>
+              <select id="callListDropdown" class="select select-sm select-bordered w-56" onchange="onCallListDropdownChange(this.value)">
+                <option value="">Select a list...</option>
+              </select>
               <span id="callListCount" class="text-sm text-base-content/60"></span>
               <button id="editCallListBtn" onclick="openEditCallListModal()" class="btn btn-ghost btn-xs hidden" title="Edit list">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -843,8 +817,8 @@
               <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
-              <h3 class="text-lg font-semibold mb-1">No call lists yet</h3>
-              <p class="text-base-content/60 text-sm text-center">Select contacts or leads and click<br>"Add to Call List" to create one</p>
+              <h3 class="text-lg font-semibold mb-1">Select a call list</h3>
+              <p class="text-base-content/60 text-sm text-center">Choose a list from the dropdown above</p>
             </div>
 
             <!-- Call list table with virtual scrolling (hidden by default) -->
@@ -5653,8 +5627,7 @@
 
         if (data.success) {
           closeEditCallListModal();
-          await loadCallLists(); // Refresh the list
-          document.getElementById('currentListName').textContent = name;
+          await loadCallLists(); // Refresh the dropdown
           showInfoModal('success', 'List Updated', `"${name}" has been updated`);
         } else {
           showInfoModal('error', 'Error', data.error || 'Failed to update list');
@@ -5666,29 +5639,15 @@
     }
 
     // Drawer functions
-    window.openCallListDrawer = function() {
-      const drawer = document.getElementById('callListDrawer');
-      const backdrop = document.getElementById('callListDrawerBackdrop');
-      drawer.style.transform = 'translateX(0)';
-      backdrop.classList.remove('hidden');
-    }
+    // Legacy drawer stubs (no-ops, kept for any remaining references)
+    window.openCallListDrawer = function() {};
+    window.closeCallListDrawer = function() {};
 
-    window.closeCallListDrawer = function() {
-      const drawer = document.getElementById('callListDrawer');
-      const backdrop = document.getElementById('callListDrawerBackdrop');
-      drawer.style.transform = 'translateX(-100%)';
-      backdrop.classList.add('hidden');
-    }
+    function renderCallListDropdown() {
+      const dropdown = document.getElementById('callListDropdown');
+      if (!dropdown) return;
 
-    function renderCallListDrawer() {
-      const container = document.getElementById('callListDrawerContent');
-      const toggleContainer = document.getElementById('callListDrawerToggle');
       const isAdmin = isCurrentUserAdmin();
-
-      // Hide the old toggle - we now show sections
-      toggleContainer.classList.add('hidden');
-
-      // Split lists into "my lists" and "other lists"
       const myLists = allCallLists.filter(list =>
         list.assignedUsers?.some(u => u.id === currentUser?.userId)
       );
@@ -5696,53 +5655,67 @@
         !list.assignedUsers?.some(u => u.id === currentUser?.userId)
       );
 
-      // Helper to render a single list item
-      const renderListItem = (list) => {
-        const count = list._count?.CallListItem || list._count?.items || 0;
-        const isActive = currentCallListId === list.id;
-        const assigneeNames = list.assignedUsers?.map(u => u.name?.split(' ')[0] || 'Unknown') || [];
+      let html = '<option value="">Select a list...</option>';
 
-        // Show assignees as small badges
-        const assigneeBadges = assigneeNames.length > 0
-          ? `<div class="flex flex-wrap gap-1 mt-1">${assigneeNames.map(name =>
-              `<span class="badge badge-xs badge-ghost">${escapeHtml(name)}</span>`
-            ).join('')}</div>`
-          : '';
-
-        return `
-          <div onclick="loadCallList('${list.id}')" class="cursor-pointer px-3 py-2 hover:bg-base-200 ${isActive ? 'bg-base-200 border-l-2 border-base-content' : ''}">
-            <div class="font-medium text-sm truncate">${escapeHtml(list.name)}</div>
-            <div class="text-xs text-base-content/60">${count} items</div>
-            ${assigneeBadges}
-          </div>
-        `;
-      };
-
-      let html = '';
-
-      // My Lists section (always show if user has any)
       if (myLists.length > 0) {
-        html += `
-          <div class="px-3 py-1 text-xs font-semibold text-base-content/50 uppercase tracking-wide bg-base-200/50">My Lists</div>
-          ${myLists.map(renderListItem).join('')}
-        `;
+        html += '<optgroup label="My Lists">';
+        myLists.forEach(list => {
+          const count = list._count?.CallListItem || list._count?.items || 0;
+          const selected = currentCallListId === list.id ? 'selected' : '';
+          html += `<option value="${list.id}" ${selected}>${escapeHtml(list.name)} (${count})</option>`;
+        });
+        html += '</optgroup>';
       }
 
-      // Other Lists section (for admins, or if user has no lists)
       if (isAdmin && otherLists.length > 0) {
-        html += `
-          <div class="px-3 py-1 mt-2 text-xs font-semibold text-base-content/50 uppercase tracking-wide bg-base-200/50">Other Lists</div>
-          ${otherLists.map(renderListItem).join('')}
-        `;
-      } else if (!isAdmin && myLists.length === 0) {
-        html = '<p class="text-sm text-base-content/60 p-3">No lists assigned to you</p>';
+        html += '<optgroup label="Other Lists">';
+        otherLists.forEach(list => {
+          const count = list._count?.CallListItem || list._count?.items || 0;
+          const selected = currentCallListId === list.id ? 'selected' : '';
+          html += `<option value="${list.id}" ${selected}>${escapeHtml(list.name)} (${count})</option>`;
+        });
+        html += '</optgroup>';
       }
 
-      if (html === '') {
-        html = '<p class="text-sm text-base-content/60 p-3">No lists available</p>';
-      }
+      html += '<option value="__create__">+ Create new list</option>';
+      dropdown.innerHTML = html;
+    }
 
-      container.innerHTML = html;
+    async function onCallListDropdownChange(value) {
+      if (value === '__create__') {
+        // Reset dropdown to previous selection
+        const dropdown = document.getElementById('callListDropdown');
+        dropdown.value = currentCallListId || '';
+        const name = prompt('New call list name:');
+        if (!name) return;
+        try {
+          const response = await fetch('/.netlify/functions/create-call-list', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, tenant: currentTenant })
+          });
+          const data = await response.json();
+          if (data.success || data.id) {
+            await loadCallLists();
+            loadCallList(data.id);
+          }
+        } catch (e) {
+          console.error('Error creating call list:', e);
+        }
+        return;
+      }
+      if (value) {
+        loadCallList(value);
+      } else {
+        // Reset to empty state
+        currentCallListId = null;
+        currentCallListItems = [];
+        document.getElementById('callListTable').classList.add('hidden');
+        document.getElementById('callListEmpty').classList.remove('hidden');
+        document.getElementById('callListFilters').classList.add('hidden');
+        document.getElementById('editCallListBtn').classList.add('hidden');
+        document.getElementById('callListCount').textContent = '';
+      }
     }
 
     // Load call lists for the Calls view
@@ -5756,8 +5729,8 @@
         const data = await response.json();
         allCallLists = data.callLists || [];
 
-        // Render the drawer
-        renderCallListDrawer();
+        // Render the dropdown
+        renderCallListDropdown();
       } catch (e) {
         console.error('Error loading call lists:', e);
       }
@@ -6735,7 +6708,6 @@
       const detailPane = document.getElementById('callDetailPane');
       const loadingEl = document.getElementById('callListLoading');
       const filtersEl = document.getElementById('callListFilters');
-      const listNameEl = document.getElementById('currentListName');
 
       if (!listId) {
         document.getElementById('callListEmpty').classList.remove('hidden');
@@ -6744,13 +6716,13 @@
         document.getElementById('callListCount').textContent = '';
         filtersEl?.classList.add('hidden');
         detailPane.classList.add('hidden');
-        listNameEl.textContent = 'Select a list';
         document.getElementById('editCallListBtn')?.classList.add('hidden');
         currentCallListItems = [];
         currentCallListId = null;
         callListState.checkedItems.clear();
         callListState.sortedItems = [];
-        renderCallListDrawer();
+        const dropdown = document.getElementById('callListDropdown');
+        if (dropdown) dropdown.value = '';
         return;
       }
 
@@ -6760,10 +6732,9 @@
       const searchInput = document.getElementById('callListSearch');
       if (searchInput) searchInput.value = '';
 
-      // Close drawer and update header
-      closeCallListDrawer()
-      const list = allCallLists.find(l => l.id === listId);
-      listNameEl.textContent = list?.name || 'Call List';
+      // Update dropdown selection
+      const dropdown = document.getElementById('callListDropdown');
+      if (dropdown) dropdown.value = listId;
 
       // Show edit button for admins when list is selected
       const editBtn = document.getElementById('editCallListBtn');
@@ -6773,9 +6744,6 @@
 
       // Show filters when list is selected
       filtersEl?.classList.remove('hidden');
-
-      // Re-render drawer to show active state
-      renderCallListDrawer();
 
       // Show loading state
       loadingEl.classList.remove('hidden');
@@ -9135,11 +9103,6 @@
     }
 
     // =====================
-    // Set up drawer close button (after DOM ready)
-    const closeBtn = document.getElementById('closeDrawerBtn');
-    const backdrop = document.getElementById('callListDrawerBackdrop');
-    if (closeBtn) closeBtn.addEventListener('click', () => closeCallListDrawer());
-    if (backdrop) backdrop.addEventListener('click', () => closeCallListDrawer());
 
     // Keyboard Shortcuts
     // =====================
