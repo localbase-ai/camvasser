@@ -9023,9 +9023,11 @@
           ${tagBadges ? `<div class="flex flex-wrap gap-1">${tagBadges}</div>` : ''}
 
           <!-- Feature image -->
-          ${address.featureImage?.[0]?.thumbnail ? `
-            <img src="${address.featureImage[0].thumbnail}" class="w-full h-32 object-cover" alt="Property">
-          ` : ''}
+          ${(() => {
+            const fi = address.featureImage;
+            const imgUrl = Array.isArray(fi) ? (fi.find(u => u.type === 'web')?.url || fi.find(u => u.type === 'thumbnail')?.url || fi[0]?.url) : null;
+            return imgUrl ? `<img src="${imgUrl}" class="w-full h-32 object-cover rounded" alt="Property">` : '';
+          })()}
 
           <!-- Actions -->
           <div class="flex gap-2">
