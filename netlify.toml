@@ -32,6 +32,10 @@
   path = "/api/calendar/delete"
   function = "calendar-delete"
 
+[[edge_functions]]
+  path = "/api/calendar/update"
+  function = "calendar-update"
+
 # Dynamic tenant routing - handles all /:tenant and /:tenant/:page URLs
 [[redirects]]
   from = "/budroofing/*"
