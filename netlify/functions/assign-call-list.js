@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { createId } from '@paralleldrive/cuid2';
 import { verifyToken } from './lib/auth.js';
 
 const prisma = new PrismaClient();
@@ -68,6 +69,7 @@ export async function handler(event) {
     if (toAdd.length > 0) {
       await prisma.callListAssignment.createMany({
         data: toAdd.map(userId => ({
+          id: createId(),
           callListId,
           userId
         }))

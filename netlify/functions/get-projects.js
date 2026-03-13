@@ -233,12 +233,12 @@ export async function handler(event) {
 
       // Build parameterized query
       let paramIndex = 1;
-      const tagConditions = tagPatterns.map(() => `tags::text ILIKE $${paramIndex++}`);
+      const tagConditions = tagPatterns.map(() => `p.tags::text ILIKE $${paramIndex++}`);
       const params = [...tagPatterns];
 
       let tenantCondition = '';
       if (tenant) {
-        tenantCondition = ` AND tenant = $${paramIndex++}`;
+        tenantCondition = ` AND p.tenant = $${paramIndex++}`;
         params.push(tenant);
       }
 
