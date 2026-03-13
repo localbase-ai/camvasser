@@ -1904,6 +1904,12 @@
 
       // Reload all data for new tenant
       loadAllData();
+
+      // Reload map data if map is initialized
+      if (map) {
+        mapDataCache = { addresses: [], leads: [] };
+        loadMapData();
+      }
     }
 
     function toggleSidebar() {
