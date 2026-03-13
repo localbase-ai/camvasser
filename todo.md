@@ -1,7 +1,12 @@
 # Camvasser TODO
 
 ## BUGS
-- switch urls in the appointment object from camvasser.netlify.com to camvasser.com
+- [x] switch urls in the appointment object from camvasser.netlify.com to camvasser.com
+
+## Dashboard
+- [ ] Universal search across all tables (leads, projects, prospects, customers)
+- [ ] Expand to include organizations, appointments, proposals
+- [ ] Add dashboard widgets/stats (later)
 
 ## 🔥 DAILY NON-NEGOTIABLE: SEND EMAIL
 **If we're not sending 1,000 emails a day per rep, we shouldn't be doing anything else.**
