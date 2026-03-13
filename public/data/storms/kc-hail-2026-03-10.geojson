@@ -1,0 +1,487 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "name": "KC Metro Hail Storm — March 10, 2026",
+    "date": "2026-03-10",
+    "source": "NOAA SPC",
+    "totalHouseholds": 13688,
+    "areas": [
+      { "name": "De Soto, KS", "households": 2370 },
+      { "name": "Bonner Springs, KS", "households": 2851 },
+      { "name": "Piper / Maywood / west KCK proxy area", "households": 3740 },
+      { "name": "Parkville, MO", "households": 2953 },
+      { "name": "Platte Woods, MO", "households": 205 },
+      { "name": "Weatherby Lake, MO", "households": 974 },
+      { "name": "Houston Lake, MO", "households": 142 },
+      { "name": "Lake Waukomis, MO", "households": 453 }
+    ]
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-95.0, 38.9], [-94.99, 39.0], [-94.9, 39.1], [-94.84, 39.17],
+          [-94.74, 39.25], [-94.66, 39.28], [-94.57, 39.29], [-94.57, 39.23],
+          [-94.63, 39.21], [-94.69, 39.17], [-94.76, 39.1], [-94.83, 39.02],
+          [-94.9, 38.95], [-95.0, 38.9]
+        ]]
+      },
+      "properties": {
+        "type": "corridor",
+        "label": "Approximate hail corridor",
+        "description": "Inferred from NOAA SPC point reports"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-94.95, 38.95], [-94.95, 39.06], [-94.84, 39.14], [-94.81, 39.13],
+          [-94.71, 39.2], [-94.69, 39.25], [-94.59, 39.25]
+        ]
+      },
+      "properties": {
+        "type": "stormPath",
+        "label": "Approximate storm path"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.95, 38.95] },
+      "properties": {
+        "type": "hailReport",
+        "location": "2 SE De Soto, KS",
+        "time": "17:23 CDT",
+        "hailSize": 1.00,
+        "county": "Johnson, KS",
+        "note": "Quarter",
+        "affectedArea": "De Soto, KS",
+        "households": 2370,
+        "color": "#fee8c8"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.95, 39.06] },
+      "properties": {
+        "type": "hailReport",
+        "location": "3 W Bonner Springs, KS",
+        "time": "17:29 CDT",
+        "hailSize": 1.00,
+        "county": "Leavenworth, KS",
+        "note": "Quarter",
+        "affectedArea": "Bonner Springs, KS",
+        "households": 2851,
+        "color": "#fee8c8"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.81, 39.14] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 NW Maywood, KS",
+        "time": "17:31 CDT",
+        "hailSize": 1.25,
+        "county": "Wyandotte, KS",
+        "note": "1.25 inch",
+        "affectedArea": "Piper / Maywood / west KCK proxy area",
+        "households": 3740,
+        "color": "#fdcc8a"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.85, 39.04] },
+      "properties": {
+        "type": "hailReport",
+        "location": "2 SE Bonner Springs, KS",
+        "time": "17:34 CDT",
+        "hailSize": 1.00,
+        "county": "Johnson, KS",
+        "note": "Quarter",
+        "affectedArea": "Bonner Springs, KS",
+        "households": 2851,
+        "color": "#fee8c8"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.83, 39.13] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 W Maywood, KS",
+        "time": "17:34 CDT",
+        "hailSize": 1.75,
+        "county": "Wyandotte, KS",
+        "note": "Golf ball / vehicle damage",
+        "affectedArea": "Piper / Maywood / west KCK proxy area",
+        "households": 3740,
+        "color": "#fdcc8a"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.84, 39.14] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 E Piper, KS",
+        "time": "17:34 CDT",
+        "hailSize": 1.25,
+        "county": "Wyandotte, KS",
+        "note": "Half dollar",
+        "affectedArea": "Piper / Maywood / west KCK proxy area",
+        "households": 3740,
+        "color": "#fdcc8a"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.78, 39.11] },
+      "properties": {
+        "type": "hailReport",
+        "location": "2 SE Maywood, KS",
+        "time": "17:35 CDT",
+        "hailSize": 1.00,
+        "county": "Wyandotte, KS",
+        "note": "Quarter",
+        "affectedArea": "Piper / Maywood / west KCK proxy area",
+        "households": 3740,
+        "color": "#fee8c8"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.71, 39.2] },
+      "properties": {
+        "type": "hailReport",
+        "location": "2 W Parkville, MO",
+        "time": "17:25 CDT",
+        "hailSize": 2.50,
+        "county": "Platte, MO",
+        "note": "Broken windshields",
+        "affectedArea": "Parkville, MO",
+        "households": 2953,
+        "color": "#fc8d59"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.68, 39.2] },
+      "properties": {
+        "type": "hailReport",
+        "location": "Parkville, MO",
+        "time": "17:28 CDT",
+        "hailSize": 3.25,
+        "county": "Platte, MO",
+        "note": "NWS employee photo",
+        "affectedArea": "Parkville, MO",
+        "households": 2953,
+        "color": "#d7301f"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.65, 39.22] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 SW Platte Woods, MO",
+        "time": "17:29 CDT",
+        "hailSize": 2.00,
+        "county": "Platte, MO",
+        "note": "Hen egg",
+        "affectedArea": "Platte Woods, MO",
+        "households": 205,
+        "color": "#fc8d59"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.68, 39.22] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 SE Weatherby Lake, MO",
+        "time": "17:29 CDT",
+        "hailSize": 4.00,
+        "county": "Platte, MO",
+        "note": "Social media photo",
+        "affectedArea": "Weatherby Lake, MO",
+        "households": 974,
+        "color": "#7f0000"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.64, 39.23] },
+      "properties": {
+        "type": "hailReport",
+        "location": "Lake Waukomis, MO",
+        "time": "17:29 CDT",
+        "hailSize": 4.00,
+        "county": "Platte, MO",
+        "note": "Social media photo + measurement",
+        "affectedArea": "Lake Waukomis, MO",
+        "households": 453,
+        "color": "#7f0000"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.66, 39.24] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 NW Platte Woods, MO",
+        "time": "17:29 CDT",
+        "hailSize": 2.50,
+        "county": "Platte, MO",
+        "note": "Tennis ball estimate",
+        "affectedArea": "Platte Woods, MO",
+        "households": 205,
+        "color": "#fc8d59"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.69, 39.25] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 NE Weatherby Lake, MO",
+        "time": "17:29 CDT",
+        "hailSize": 4.50,
+        "county": "Platte, MO",
+        "note": "Largest verified KC metro report",
+        "affectedArea": "Weatherby Lake, MO",
+        "households": 974,
+        "color": "#7f0000"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.64, 39.2] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 WNW Houston Lake, MO",
+        "time": "17:30 CDT",
+        "hailSize": 2.25,
+        "county": "Platte, MO",
+        "note": ">2 inch estimate",
+        "affectedArea": "Houston Lake, MO",
+        "households": 142,
+        "color": "#fc8d59"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.63, 39.21] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 NW Houston Lake, MO",
+        "time": "17:30 CDT",
+        "hailSize": 2.75,
+        "county": "Platte, MO",
+        "note": "2.75 inch",
+        "affectedArea": "Houston Lake, MO",
+        "households": 142,
+        "color": "#fc8d59"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.71, 39.21] },
+      "properties": {
+        "type": "hailReport",
+        "location": "2 NW Parkville, MO",
+        "time": "17:30 CDT",
+        "hailSize": 2.75,
+        "county": "Platte, MO",
+        "note": "Golf ball to orange",
+        "affectedArea": "Parkville, MO",
+        "households": 2953,
+        "color": "#fc8d59"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.69, 39.22] },
+      "properties": {
+        "type": "hailReport",
+        "location": "2 SE Weatherby Lake, MO",
+        "time": "17:30 CDT",
+        "hailSize": 3.00,
+        "county": "Platte, MO",
+        "note": "3.00 inch",
+        "affectedArea": "Weatherby Lake, MO",
+        "households": 974,
+        "color": "#d7301f"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.64, 39.23] },
+      "properties": {
+        "type": "hailReport",
+        "location": "Lake Waukomis, MO",
+        "time": "17:30 CDT",
+        "hailSize": 1.00,
+        "county": "Platte, MO",
+        "note": "Quarter",
+        "affectedArea": "Lake Waukomis, MO",
+        "households": 453,
+        "color": "#fee8c8"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.66, 39.23] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 W Platte Woods, MO",
+        "time": "17:30 CDT",
+        "hailSize": 1.25,
+        "county": "Platte, MO",
+        "note": "Half dollar",
+        "affectedArea": "Platte Woods, MO",
+        "households": 205,
+        "color": "#fdcc8a"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.63, 39.25] },
+      "properties": {
+        "type": "hailReport",
+        "location": "2 NNE Lake Waukomis, MO",
+        "time": "17:30 CDT",
+        "hailSize": 2.75,
+        "county": "Platte, MO",
+        "note": "Very large hail",
+        "affectedArea": "Lake Waukomis, MO",
+        "households": 453,
+        "color": "#fc8d59"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.66, 39.23] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 W Platte Woods, MO",
+        "time": "17:31 CDT",
+        "hailSize": 1.75,
+        "county": "Platte, MO",
+        "note": "Golf ball",
+        "affectedArea": "Platte Woods, MO",
+        "households": 205,
+        "color": "#fdcc8a"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.66, 39.22] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 SW Platte Woods, MO",
+        "time": "17:32 CDT",
+        "hailSize": 2.75,
+        "county": "Platte, MO",
+        "note": "Just bigger than tennis balls",
+        "affectedArea": "Platte Woods, MO",
+        "households": 205,
+        "color": "#fc8d59"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.62, 39.23] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 E Lake Waukomis, MO",
+        "time": "17:34 CDT",
+        "hailSize": 2.75,
+        "county": "Platte, MO",
+        "note": "Baseball",
+        "affectedArea": "Lake Waukomis, MO",
+        "households": 453,
+        "color": "#fc8d59"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.61, 39.25] },
+      "properties": {
+        "type": "hailReport",
+        "location": "2 NE Lake Waukomis, MO",
+        "time": "17:34 CDT",
+        "hailSize": 1.50,
+        "county": "Platte, MO",
+        "note": "Ping pong ball",
+        "affectedArea": "Lake Waukomis, MO",
+        "households": 453,
+        "color": "#fdcc8a"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.67, 39.21] },
+      "properties": {
+        "type": "hailReport",
+        "location": "1 NE Parkville, MO",
+        "time": "17:35 CDT",
+        "hailSize": 2.00,
+        "county": "Platte, MO",
+        "note": "Hen egg",
+        "affectedArea": "Parkville, MO",
+        "households": 2953,
+        "color": "#fc8d59"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.61, 39.23] },
+      "properties": {
+        "type": "hailReport",
+        "location": "2 E Lake Waukomis, MO",
+        "time": "17:35 CDT",
+        "hailSize": 2.00,
+        "county": "Platte, MO",
+        "note": "Hen egg",
+        "affectedArea": "Lake Waukomis, MO",
+        "households": 453,
+        "color": "#fc8d59"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.59, 39.25] },
+      "properties": {
+        "type": "hailReport",
+        "location": "3 ENE Lake Waukomis, MO",
+        "time": "17:35 CDT",
+        "hailSize": 2.00,
+        "county": "Clay, MO",
+        "note": "Just larger than golf balls",
+        "affectedArea": "Lake Waukomis, MO",
+        "households": 453,
+        "color": "#fc8d59"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-94.7, 39.24] },
+      "properties": {
+        "type": "hailReport",
+        "location": "Weatherby Lake, MO",
+        "time": "17:59 CDT",
+        "hailSize": 1.00,
+        "county": "Platte, MO",
+        "note": "Quarter",
+        "affectedArea": "Weatherby Lake, MO",
+        "households": 974,
+        "color": "#fee8c8"
+      }
+    }
+  ]
+}

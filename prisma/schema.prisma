@@ -443,6 +443,23 @@ model Prospect {
   @@index([search_vector], map: "prospect_search_idx", type: Gin)
 }
 
+model StormReport {
+  id             String   @id @default(cuid())
+  name           String
+  date           DateTime
+  source         String?  @default("NOAA SPC")
+  totalHouseholds Int?
+  areas          Json?
+  corridor       Json?
+  data           Json
+  tenant         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([date])
+  @@index([tenant])
+}
+
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Tenant {
   id         String       @id
