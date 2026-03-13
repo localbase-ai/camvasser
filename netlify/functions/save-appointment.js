@@ -56,7 +56,8 @@ export async function handler(event) {
         status: 'scheduled',
         eventType: eventType || 'sales',
         createdById: createdById || null,
-        createdByName: createdByName || null
+        createdByName: createdByName || null,
+        updatedAt: new Date()
       }
     });
 

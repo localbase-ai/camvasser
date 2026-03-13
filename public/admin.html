@@ -225,6 +225,15 @@
             </a>
           </li>
           <li>
+            <a href="#contacts" class="nav-link" data-view="contacts">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <span class="nav-text">Contacts</span>
+              <span id="prospectCount" class="badge badge-sm badge-ghost">-</span>
+            </a>
+          </li>
+          <li>
             <a href="#addresses" class="nav-link" data-view="addresses">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -232,15 +241,6 @@
               </svg>
               <span class="nav-text">Addresses</span>
               <span id="addressCount" class="badge badge-sm badge-ghost">-</span>
-            </a>
-          </li>
-          <li>
-            <a href="#contacts" class="nav-link" data-view="contacts">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <span class="nav-text">Contacts</span>
-              <span id="prospectCount" class="badge badge-sm badge-ghost">-</span>
             </a>
           </li>
           <li>
@@ -2833,6 +2833,45 @@
 
         html += '</div></div>';
 
+        // Appointments section
+        html += `
+          <div class="divider"></div>
+          <div>
+            <label class="text-xs text-base-content/60">Appointments (${cust.appointments?.length || 0})</label>
+            <div class="mt-2 space-y-2">
+        `;
+
+        if (cust.appointments && cust.appointments.length > 0) {
+          cust.appointments.forEach(appt => {
+            const startDate = new Date(appt.startTime);
+            const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            const timeStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            const statusBadge = appt.status === 'scheduled'
+              ? '<span class="badge badge-info badge-xs">Scheduled</span>'
+              : appt.status === 'completed'
+              ? '<span class="badge badge-success badge-xs">Completed</span>'
+              : `<span class="badge badge-ghost badge-xs">${escapeHtml(appt.status)}</span>`;
+            const lead = cust.leads?.find(l => l.id === appt.leadId);
+            const leadLabel = lead ? escapeHtml(lead.address || [lead.firstName, lead.lastName].filter(Boolean).join(' ')) : '';
+            html += `
+              <div class="bg-base-200 p-2 rounded text-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="font-medium">${dateStr} at ${timeStr}</div>
+                    ${leadLabel ? `<div class="text-xs text-base-content/60">${leadLabel}</div>` : ''}
+                    ${appt.notes ? `<div class="text-xs text-base-content/60 mt-1 line-clamp-2">${escapeHtml(appt.notes)}</div>` : ''}
+                  </div>
+                  ${statusBadge}
+                </div>
+              </div>
+            `;
+          });
+        } else {
+          html += '<p class="text-sm text-base-content/60">No appointments</p>';
+        }
+
+        html += '</div></div>';
+
         // Proposals section
         html += `
           <div class="mt-4">
@@ -2914,6 +2953,13 @@
       closeCustomerDetail();
       switchView('leads');
       openLeadFromDeepLink(leadId);
+    }
+
+    function navigateToCustomer(customerId) {
+      if (!customerId) return;
+      closeLeadDetail();
+      switchView('customers');
+      showCustomerDetail(customerId);
     }
 
     async function viewLinkedContact(prospectId) {
@@ -4453,7 +4499,7 @@
           ${lead.customer ? `
           <div class="space-y-2">
             <h5 class="text-xs font-semibold text-base-content/60 uppercase">Customer</h5>
-            <div class="text-sm font-medium">${lead.customer.qbDisplayName || (lead.customer.firstName + ' ' + lead.customer.lastName).trim()}</div>
+            <div class="text-sm font-medium"><a href="#" onclick="event.preventDefault(); navigateToCustomer('${lead.customer.id}')" class="link link-hover link-primary">${lead.customer.qbDisplayName || (lead.customer.firstName + ' ' + lead.customer.lastName).trim()}</a></div>
             <div id="customerSiblingCount" class="text-xs text-base-content/50"></div>
           </div>
           ` : ''}
@@ -10953,6 +10999,9 @@
           document.getElementById('scheduleSuccessView').classList.remove('hidden');
           document.getElementById('scheduleSuccessMessage').textContent =
             `Scheduled for ${new Date(data.event.start.dateTime).toLocaleString()}`;
+          if (data.warning) {
+            showInfoModal('warning', 'Partial Success', data.warning);
+          }
           // Refresh appointments list
           if (selectedLeadId) {
             loadLeadAppointments(selectedLeadId);

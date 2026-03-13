@@ -1,5 +1,8 @@
 # Camvasser TODO
 
+## BUGS
+- switch urls in the appointment object from camvasser.netlify.com to camvasser.com
+
 ## 🔥 DAILY NON-NEGOTIABLE: SEND EMAIL
 **If we're not sending 1,000 emails a day per rep, we shouldn't be doing anything else.**
 
@@ -9,13 +12,12 @@
 ---
 
 ## Sales & Lead Gen (the only thing that matters right now)
+- [ ] build hail storm map gpt function
 - [ ] Set up virtual canvassing email test
 - [ ] Test Twilio integration for outbound calling
-- [ ] Ring Central
+- [ ] Ring Central data integration
 - [ ] Google Business Listings: figure out mapstacking
-- [ ] Set up a test account with white pages and source data for a test list
-- [ ] Redesign marketing homepage (use v0 for design)
-- [ ] Clean up marketing site and launch
+- [x] Set up a test account with white pages and source data for a test list
 
 ## QuickBooks
 - [ ] Consolidate QB OAuth token management — renu and camvasser both refresh tokens independently, which rotates the refresh token and breaks the other app. Need a single source of truth (shared DB row or one app owns the refresh).

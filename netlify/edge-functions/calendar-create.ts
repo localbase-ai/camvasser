@@ -172,7 +172,7 @@ export default async function handler(request: Request, context: Context) {
     if (leadAddress) descriptionParts.push(`Address: ${leadAddress}`);
     if (notes) descriptionParts.push(`\nNotes: ${notes}`);
     if (leadId) {
-      descriptionParts.push(`\nCamvasser: https://camvasser.netlify.app/admin.html?lead=${leadId}`);
+      descriptionParts.push(`\nCamvasser: https://camvasser.com/admin.html?lead=${leadId}`);
     }
 
     const start = new Date(startTime);
@@ -277,6 +277,7 @@ export default async function handler(request: Request, context: Context) {
       },
       appointmentSaved,
       appointmentId,
+      ...(!appointmentSaved && { warning: 'Calendar event created but failed to save to database. The appointment may not appear in lead details.' }),
     }), {
       status: 200, headers: jsonHeaders,
     });

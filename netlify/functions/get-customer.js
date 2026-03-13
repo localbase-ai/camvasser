@@ -85,6 +85,16 @@ export async function handler(event) {
       };
     }
 
+    // Fetch appointments for all of this customer's leads
+    const leadIds = customer.leads.map(l => l.id);
+    const appointments = leadIds.length > 0
+      ? await prisma.appointment.findMany({
+          where: { leadId: { in: leadIds } },
+          orderBy: { startTime: 'desc' }
+        })
+      : [];
+    customer.appointments = appointments;
+
     // Tenant check
     if (tenant && customer.tenant !== tenant) {
       return {
