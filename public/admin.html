@@ -8917,6 +8917,8 @@
     let mapAvailableTags = []; // Available tags for filter dropdown
     let mapLayerVisibility = _savedMapState?.layerVisibility || { contacts: true, leads: true, other: true };
     let mapUpdating = false; // Flag to prevent event handler interference during updates
+    let stormOverlays = {}; // Storm GeoJSON overlay layers
+    let stormPanelControl = null; // Separate Leaflet control for storm reports
 
     async function initializeMap() {
       if (mapInitialized && map) {
@@ -9270,6 +9272,11 @@
         };
         mapLayerControl = L.control.layers(null, overlays, { collapsed: false, position: 'topright' }).addTo(map);
 
+        // Load storm overlays into separate panel (first time only)
+        if (Object.keys(stormOverlays).length === 0 && !stormPanelControl) {
+          loadStormOverlays();
+        }
+
         // Reset flag after layers are set up
         mapUpdating = false;
 
@@ -9320,6 +9327,145 @@
       mapClusteringEnabled = enabled;
       saveMapState();
       loadMapData(true); // Use cached data
+    }
+
+    // Storm overlay management
+    const hailSizeColors = { 4: '#7f0000', 3: '#d7301f', 2: '#fc8d59', 1.25: '#fdcc8a', 1: '#fee8c8' };
+    function getHailColor(size) {
+      if (size >= 4) return hailSizeColors[4];
+      if (size >= 3) return hailSizeColors[3];
+      if (size >= 2) return hailSizeColors[2];
+      if (size >= 1.25) return hailSizeColors[1.25];
+      return hailSizeColors[1];
+    }
+
+    function buildStormPanel() {
+      const StormPanel = L.Control.extend({
+        options: { position: 'bottomleft' },
+        onAdd: function() {
+          const container = L.DomUtil.create('div', 'leaflet-bar');
+          container.id = 'stormPanel';
+          container.style.cssText = 'background:white;padding:8px 10px;font-family:sans-serif;font-size:12px;min-width:200px;max-height:300px;overflow-y:auto;border-radius:6px;';
+          container.innerHTML = `
+            <div style="font-weight:700;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:4px;">
+              <span style="font-size:14px;">⛈</span> Storm Reports
+            </div>
+            <div id="stormPanelList" style="display:flex;flex-direction:column;gap:4px;">
+              <div style="color:#999;font-size:11px;">Loading...</div>
+            </div>
+          `;
+          L.DomEvent.disableClickPropagation(container);
+          L.DomEvent.disableScrollPropagation(container);
+          return container;
+        }
+      });
+      stormPanelControl = new StormPanel();
+      stormPanelControl.addTo(map);
+    }
+
+    function renderStormPanelList(reports) {
+      const list = document.getElementById('stormPanelList');
+      if (!list) return;
+      if (!reports.length) {
+        list.innerHTML = '<div style="color:#999;font-size:11px;">No storm reports</div>';
+        return;
+      }
+      list.innerHTML = reports.map(r => {
+        const dateStr = new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const households = r.totalHouseholds ? `${r.totalHouseholds.toLocaleString()} households` : '';
+        const isLoaded = !!stormOverlays[r.id];
+        return `
+          <label style="display:flex;align-items:flex-start;gap:6px;cursor:pointer;padding:4px 0;border-bottom:1px solid #eee;">
+            <input type="checkbox" ${isLoaded ? 'checked' : ''}
+              onchange="toggleStormReport('${r.id}', '${r.name.replace(/'/g, "\\'")}', this.checked)"
+              style="margin-top:2px;">
+            <div style="line-height:1.3;">
+              <div style="font-weight:600;font-size:11px;">${r.name}</div>
+              <div style="color:#888;font-size:10px;">${dateStr}${households ? ' · ' + households : ''}</div>
+            </div>
+          </label>
+        `;
+      }).join('');
+    }
+
+    async function loadStormOverlays() {
+      if (!map) return;
+      try {
+        buildStormPanel();
+        const listRes = await fetch('/.netlify/functions/get-storm-reports', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!listRes.ok) return;
+        const reports = await listRes.json();
+        renderStormPanelList(reports);
+      } catch (err) {
+        console.error('Failed to load storm overlays:', err);
+      }
+    }
+
+    async function toggleStormReport(id, name, show) {
+      if (show) {
+        // Load and add layer
+        if (stormOverlays[id]) {
+          stormOverlays[id].addTo(map);
+          return;
+        }
+        const res = await fetch(`/.netlify/functions/get-storm-reports?id=${id}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!res.ok) return;
+        const full = await res.json();
+        const geojson = full.data;
+        if (!geojson?.features) return;
+
+        const stormLayer = L.geoJSON(geojson, {
+          style: function(feature) {
+            const t = feature.properties.type;
+            if (t === 'corridor') return { color: '#555', weight: 2, fillColor: '#555', fillOpacity: 0.15, dashArray: '6 4' };
+            if (t === 'stormPath') return { color: '#333', weight: 3, opacity: 0.8 };
+            return {};
+          },
+          pointToLayer: function(feature, latlng) {
+            const p = feature.properties;
+            return L.circleMarker(latlng, {
+              radius: Math.max(5, p.hailSize * 4.2),
+              fillColor: getHailColor(p.hailSize),
+              color: '#333',
+              weight: 1,
+              fillOpacity: 0.9
+            });
+          },
+          onEachFeature: function(feature, layer) {
+            const p = feature.properties;
+            if (p.type === 'corridor') {
+              layer.bindPopup(`<b>${p.label}</b><br>${p.description}`);
+            } else if (p.type === 'stormPath') {
+              layer.bindTooltip('Approximate storm path', { sticky: true });
+            } else if (p.type === 'hailReport') {
+              layer.bindPopup(`
+                <div style="font-family:sans-serif;font-size:13px;">
+                  <b>${p.location}</b><br>
+                  Time: ${p.time}<br>
+                  Hail size: ${p.hailSize}"<br>
+                  County: ${p.county}<br>
+                  Note: ${p.note}
+                  <hr style="margin:6px 0;">
+                  <b>Area:</b> ${p.affectedArea}<br>
+                  <b>Households:</b> ${p.households.toLocaleString()}
+                </div>
+              `);
+              layer.bindTooltip(`${p.location} — ${p.hailSize}" hail`, { sticky: true });
+            }
+          }
+        });
+        stormOverlays[id] = stormLayer;
+        stormLayer.addTo(map);
+      } else {
+        // Remove layer
+        if (stormOverlays[id]) {
+          map.removeLayer(stormOverlays[id]);
+        }
+      }
     }
 
     function applyMapFilters() {
