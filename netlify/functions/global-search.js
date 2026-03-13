@@ -74,18 +74,17 @@ export async function handler(event) {
         orderBy: { updatedAt: 'desc' }
       }),
 
-      // Prospects
+      // Prospects (has 'name' not firstName/lastName, and JSON array fields)
       prisma.prospect.findMany({
         where: {
           tenant,
           OR: [
-            ...nameMatch,
-            { email: { contains: search, mode: 'insensitive' } },
-            { phone: { contains: search, mode: 'insensitive' } },
-            { address: { contains: search, mode: 'insensitive' } }
+            { name: { contains: search, mode: 'insensitive' } },
+            { lookupAddress: { contains: search, mode: 'insensitive' } },
+            { companyName: { contains: search, mode: 'insensitive' } }
           ]
         },
-        select: { id: true, firstName: true, lastName: true, email: true, phone: true, address: true, status: true },
+        select: { id: true, name: true, lookupAddress: true, companyName: true, status: true },
         take: 10,
         orderBy: { updatedAt: 'desc' }
       }),
@@ -122,8 +121,8 @@ export async function handler(event) {
       ...prospects.map(p => ({
         type: 'contact',
         id: p.id,
-        title: [p.firstName, p.lastName].filter(Boolean).join(' ') || '—',
-        subtitle: p.address || p.email || p.phone || '',
+        title: p.name || '—',
+        subtitle: p.lookupAddress || p.companyName || '',
         status: p.status
       })),
       ...projects.map(p => ({

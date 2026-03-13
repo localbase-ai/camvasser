@@ -9775,16 +9775,12 @@
         e.preventDefault();
 
         // Find the search input for the current view
-        const searchInputs = {
-          'addresses': document.getElementById('addressSearch'),
-          'contacts': document.getElementById('prospectSearch'),
-          'leads': document.getElementById('leadSearch')
-        };
-
-        const input = searchInputs[currentView];
-        if (input) {
-          input.focus();
-          input.select();
+        // Switch to dashboard and focus global search
+        switchView('dashboard');
+        const globalInput = document.getElementById('globalSearchInput');
+        if (globalInput) {
+          globalInput.focus();
+          globalInput.select();
         }
       }
 
