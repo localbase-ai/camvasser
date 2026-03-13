@@ -1,3 +1,4 @@
+import { loadTenantConfig } from './lib/tenant-config.js';
 import { handler as tenantIndexHandler } from './tenant-index.js';
 import { handler as pageHandler } from './page.js';
 import { handler as flowRoofClaimDenialHandler } from './flow-roof-claim-denial.js';
@@ -59,8 +60,13 @@ export async function handler(event, context) {
     return tenantIndexHandler(event, context);
   }
 
+  // Check if this tenant has flows enabled
+  const config = loadTenantConfig();
+  const tenantConfig = config.tenants[tenant];
+  const allowedFlows = tenantConfig?.flows || [];
+
   const targetHandler = pageHandlers[page];
-  if (targetHandler) {
+  if (targetHandler && (allowedFlows.includes(page) || !tenantConfig)) {
     return targetHandler(event, context);
   }
 

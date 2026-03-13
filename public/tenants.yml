@@ -37,6 +37,7 @@ tenants:
 
     # Social media preview (Open Graph)
     og_image: "https://budroofing.com/bud-vector.png"
+    flows: true
 
   kcroofrestoration:
     name: "KC Roof Restoration"
@@ -55,3 +56,4 @@ tenants:
     heading: "View Your Photos"
     subheading: "Enter your address to view photos from your home."
     og_image: "/logos/kcrr-badge.png"
+    flows: false
