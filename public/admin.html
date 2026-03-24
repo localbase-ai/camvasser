@@ -1999,11 +1999,10 @@
       // Switch to addresses view
       switchView('addresses');
       if (projectId && projectId !== '') {
-        // Load the project directly and show its detail
+        // Load the project directly by ID and show its detail
         setTimeout(async () => {
           try {
-            const params = new URLSearchParams({ tenant: currentTenant, search: address.split(',')[0].trim() });
-            const resp = await fetch(`/.netlify/functions/get-projects?${params}`, {
+            const resp = await fetch(`/.netlify/functions/get-projects?id=${projectId}`, {
               headers: { 'Authorization': `Bearer ${authToken}` }
             });
             const data = await resp.json();
