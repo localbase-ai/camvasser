@@ -3685,17 +3685,72 @@
               <p class="text-sm text-base-content/60 text-center py-4">No contacts for this address</p>
             </div>
           `}
+
+          <!-- Linked Leads -->
+          <div id="addressLeadsList" class="border-t border-base-300 pt-4 space-y-2">
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Leads</h5>
+            <div class="text-sm text-base-content/40 italic">Loading...</div>
+          </div>
         </div>
       `;
 
       // Show pane (slide in from right)
       pane.style.transform = 'translateX(0)';
 
+      // Load leads linked to this project
+      loadAddressLeads(addressId);
+
       // Load notes for this project
       loadProjectNotes(addressId);
 
       // Re-render table to update selected state
       renderAddressResults(allAddresses, addressTotal, addressTotalPages);
+    }
+
+    // Load leads linked to a project/address
+    async function loadAddressLeads(projectId) {
+      const container = document.getElementById('addressLeadsList');
+      if (!container) return;
+      try {
+        const params = new URLSearchParams({ tenant: currentTenant, projectId });
+        const resp = await fetch(`/.netlify/functions/get-leads?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!resp.ok) throw new Error('Failed to fetch leads');
+        const data = await resp.json();
+        const leads = data.leads || [];
+        if (leads.length === 0) {
+          container.innerHTML = `
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Leads</h5>
+            <p class="text-sm text-base-content/40 italic">No leads linked to this address</p>
+          `;
+          return;
+        }
+        container.innerHTML = `
+          <h5 class="text-xs font-semibold text-base-content/60 uppercase">Leads (${leads.length})</h5>
+          <div class="space-y-2">
+            ${leads.map(l => `
+              <div class="p-3 bg-base-200 rounded space-y-1 cursor-pointer hover:bg-base-300" onclick="switchView('leads'); setTimeout(() => showLeadDetail('${l.id}'), 200)">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-sm">${l.firstName || ''} ${l.lastName || ''}</span>
+                  <span class="badge badge-xs">${l.status || ''}</span>
+                </div>
+                ${(l.phone || l.email) ? `
+                  <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-base-content/70">
+                    ${l.phone ? `<span>${l.phone}</span>` : ''}
+                    ${l.email ? `<span class="truncate max-w-[180px]">${l.email}</span>` : ''}
+                  </div>
+                ` : ''}
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } catch (e) {
+        container.innerHTML = `
+          <h5 class="text-xs font-semibold text-base-content/60 uppercase">Leads</h5>
+          <p class="text-sm text-base-content/40 italic">Failed to load leads</p>
+        `;
+      }
     }
 
     // Load notes for a project/address
