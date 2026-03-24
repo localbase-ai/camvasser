@@ -32,7 +32,10 @@
   "dependencies": {
     "@prisma/client": "^6.18.0",
     "@turf/boolean-point-in-polygon": "^7.3.4",
+    "@turf/buffer": "^7.3.4",
+    "@turf/convex": "^7.3.4",
     "@turf/helpers": "^7.3.4",
+    "@turf/point-to-line-distance": "^7.3.4",
     "axios": "^1.6.0",
     "bcryptjs": "^3.0.2",
     "js-yaml": "^4.1.0",
