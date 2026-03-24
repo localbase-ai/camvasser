@@ -1999,20 +1999,15 @@
       // Switch to addresses view
       switchView('addresses');
       if (projectId && projectId !== '') {
-        // Load the project directly by ID and show its detail
+        // Navigate to addresses view and search by project ID
+        document.getElementById('addressSearch').value = address.split(',')[0].trim();
         setTimeout(async () => {
-          try {
-            const resp = await fetch(`/.netlify/functions/get-projects?id=${projectId}`, {
-              headers: { 'Authorization': `Bearer ${authToken}` }
-            });
-            const data = await resp.json();
-            allAddresses = data.projects || [];
-            renderAddresses();
+          await searchAddresses();
+          const match = allAddresses.find(a => a.id === projectId);
+          if (match) {
             showAddressDetail(projectId);
-          } catch (e) {
-            console.error('Failed to load project:', e);
           }
-        }, 100);
+        }, 200);
       } else {
         // No projectId — fall back to address search
         const streetAddress = address.split(',')[0].trim();
@@ -4534,20 +4529,6 @@
           const data = await resp.json();
           if (data.lead) {
             lead = data.lead;
-            // Fetch project publicUrl if lead has a projectId
-            if (lead.projectId) {
-              try {
-                const projResp = await fetch(`/.netlify/functions/get-projects?id=${lead.projectId}`, {
-                  headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                if (projResp.ok) {
-                  const projData = await projResp.json();
-                  if (projData.projects?.[0]?.publicUrl) {
-                    lead._companycamUrl = projData.projects[0].publicUrl;
-                  }
-                }
-              } catch (e) { /* ignore project fetch failure */ }
-            }
             // Update in-memory cache so list stays in sync
             const idx = allLeads.findIndex(l => l.id === leadId);
             if (idx !== -1) allLeads[idx] = lead;
@@ -4766,8 +4747,8 @@
                 </div>
               </div>
             </div>
-            ${lead._companycamUrl ? `
-              <a href="${lead._companycamUrl}" target="_blank" class="flex items-center gap-2 mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm text-blue-600 dark:text-blue-400">
+            ${lead.projectId ? `
+              <a href="https://app.companycam.com/projects/${lead.projectId}/photos" target="_blank" class="flex items-center gap-2 mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm text-blue-600 dark:text-blue-400">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
