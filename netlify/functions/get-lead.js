@@ -56,6 +56,15 @@ export async function handler(event) {
       };
     }
 
+    // Attach project data if lead has a projectId
+    if (lead.projectId) {
+      const project = await prisma.project.findUnique({
+        where: { id: lead.projectId },
+        select: { id: true, publicUrl: true, slug: true, name: true, address: true, photoCount: true }
+      });
+      if (project) lead.project = project;
+    }
+
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
