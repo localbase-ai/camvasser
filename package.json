@@ -46,7 +46,7 @@
     "@playwright/test": "^1.57.0",
     "@tailwindcss/cli": "^4.1.18",
     "@vitest/ui": "^4.0.1",
-    "better-sqlite3": "^12.5.0",
+    "better-sqlite3": "^12.8.0",
     "csv-parse": "^6.1.0",
     "daisyui": "^5.5.14",
     "netlify-cli": "^23.13.3",
