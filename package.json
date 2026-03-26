@@ -48,7 +48,7 @@
     "@vitest/ui": "^4.0.1",
     "better-sqlite3": "^12.5.0",
     "csv-parse": "^6.1.0",
-    "daisyui": "^5.5.14",
+    "daisyui": "^5.5.19",
     "netlify-cli": "^23.13.3",
     "tailwindcss": "^4.1.18",
     "vitest": "^4.0.1"
