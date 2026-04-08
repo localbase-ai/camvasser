@@ -595,7 +595,7 @@
             </button>
             <div class="btn-group">
               <button class="btn btn-sm btn-active" id="leadsListBtn" onclick="setLeadsView('list')">List</button>
-              <button class="btn btn-sm" id="leadsKanbanBtn" onclick="setLeadsView('kanban')">Board</button>
+              <button class="btn btn-sm" id="leadsKanbanBtn" onclick="setLeadsView('kanban')">Pipeline</button>
             </div>
           </div>
         </div>
@@ -4768,50 +4768,81 @@
 
           <!-- Contact Info -->
           <div class="space-y-2">
-            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Contact</h5>
-            ${lead.email ? `
+            <div class="flex items-center justify-between">
+              <h5 class="text-xs font-semibold text-base-content/60 uppercase">Contact</h5>
+              <button onclick="editLeadContact('${lead.id}')" class="btn btn-ghost btn-xs gap-1" title="Edit contact info">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                Edit
+              </button>
+            </div>
+            <div id="leadContactDisplay">
               <div class="flex items-center gap-2 text-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <a href="mailto:${lead.email}" class="link link-primary">${lead.email}</a>
+                ${lead.email ? `<a href="mailto:${lead.email}" class="link link-primary">${lead.email}</a>` : `<span class="text-base-content/30 italic">No email</span>`}
               </div>
-            ` : ''}
-            ${lead.phone ? `
-              <div class="flex items-center gap-2 text-sm">
+              <div class="flex items-center gap-2 text-sm mt-1">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
-                <a href="tel:${lead.phone}" class="link link-primary">${lead.phone}</a>
+                ${lead.phone ? `<a href="tel:${lead.phone}" class="link link-primary">${lead.phone}</a>` : `<span class="text-base-content/30 italic">No phone</span>`}
               </div>
-            ` : ''}
-            ${lead.address ? `
-              <div class="flex items-start gap-2 text-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span>${lead.address}${lead.city || lead.state || lead.postalCode ? ', ' + [lead.city, lead.state, lead.postalCode].filter(Boolean).join(', ') : ''}</span>
-              </div>
-            ` : ''}
+            </div>
+            <div id="leadContactEdit" class="hidden">
+              <form onsubmit="saveLeadContact('${lead.id}', event)" class="space-y-2">
+                <input type="email" id="editLeadEmail" class="input input-bordered input-sm w-full" value="${lead.email || ''}" placeholder="Email">
+                <input type="tel" id="editLeadPhone" class="input input-bordered input-sm w-full" value="${lead.phone || ''}" placeholder="Phone">
+                <div class="flex gap-1">
+                  <button type="submit" class="btn btn-xs btn-primary">Save</button>
+                  <button type="button" class="btn btn-xs btn-ghost" onclick="cancelLeadContactEdit()">Cancel</button>
+                </div>
+              </form>
+            </div>
           </div>
 
           <!-- Address -->
-          ${lead.address ? `
-            <div class="space-y-2">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
               <h5 class="text-xs font-semibold text-base-content/60 uppercase">Address</h5>
-              <div class="-mx-4" id="leadMapContainer"></div>
-              <div class="p-3 bg-base-200 rounded cursor-pointer hover:bg-base-300 transition-colors" onclick="navigateToAddress('${lead.address.replace(/'/g, "\\'")}', '${lead.projectId || ''}')">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="font-medium text-sm">${lead.address}</p>
-                    ${lead.city || lead.state || lead.postalCode ? `<p class="text-xs text-base-content/60">${[lead.city, lead.state, lead.postalCode].filter(Boolean).join(', ')}</p>` : ''}
+              <button onclick="editLeadAddress('${lead.id}')" class="btn btn-ghost btn-xs gap-1" title="Edit address">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                Edit
+              </button>
+            </div>
+            <div id="leadAddressDisplay">
+              ${lead.address ? `
+                <div class="-mx-4" id="leadMapContainer"></div>
+                <div class="p-3 bg-base-200 rounded cursor-pointer hover:bg-base-300 transition-colors" onclick="navigateToAddress('${lead.address.replace(/'/g, "\\'")}', '${lead.projectId || ''}')">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="font-medium text-sm">${lead.address}</p>
+                      ${lead.city || lead.state || lead.postalCode ? `<p class="text-xs text-base-content/60">${[lead.city, lead.state, lead.postalCode].filter(Boolean).join(', ')}</p>` : ''}
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
                   </div>
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
                 </div>
-              </div>
+              ` : `<p class="text-sm text-base-content/30 italic">No address</p>`}
+            </div>
+            <div id="leadAddressEdit" class="hidden">
+              <form onsubmit="saveLeadAddress('${lead.id}', event)" class="space-y-2">
+                <input type="text" id="editLeadAddress" class="input input-bordered input-sm w-full" value="${(lead.address || '').replace(/"/g, '&quot;')}" placeholder="Street address">
+                <div class="flex gap-2">
+                  <input type="text" id="editLeadCity" class="input input-bordered input-sm flex-1" value="${(lead.city || '').replace(/"/g, '&quot;')}" placeholder="City">
+                  <input type="text" id="editLeadState" class="input input-bordered input-sm w-16" value="${(lead.state || '').replace(/"/g, '&quot;')}" placeholder="State">
+                  <input type="text" id="editLeadPostalCode" class="input input-bordered input-sm w-24" value="${(lead.postalCode || '').replace(/"/g, '&quot;')}" placeholder="Zip">
+                </div>
+                <div class="flex gap-1">
+                  <button type="submit" class="btn btn-xs btn-primary">Save</button>
+                  <button type="button" class="btn btn-xs btn-ghost" onclick="cancelLeadAddressEdit()">Cancel</button>
+                </div>
+              </form>
             </div>
             ${lead.project?.publicUrl || lead.projectId ? `
               <a href="${lead.project?.publicUrl || ('https://app.companycam.com/projects/' + lead.projectId + '/photos')}" target="_blank" class="flex items-center gap-2 mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm text-blue-600 dark:text-blue-400">
@@ -4822,7 +4853,7 @@
                 View in CompanyCam
               </a>
             ` : ''}
-          ` : ''}
+          </div>
 
           <!-- Details -->
           <div class="space-y-2">
@@ -7867,6 +7898,88 @@
       document.getElementById('editFirstName').focus();
     }
 
+    // Edit lead contact info (email, phone)
+    function editLeadContact(leadId) {
+      document.getElementById('leadContactDisplay').classList.add('hidden');
+      document.getElementById('leadContactEdit').classList.remove('hidden');
+      document.getElementById('editLeadEmail').focus();
+    }
+
+    function cancelLeadContactEdit() {
+      document.getElementById('leadContactDisplay').classList.remove('hidden');
+      document.getElementById('leadContactEdit').classList.add('hidden');
+    }
+
+    async function saveLeadContact(leadId, event) {
+      event.preventDefault();
+      const email = document.getElementById('editLeadEmail').value.trim();
+      const phone = document.getElementById('editLeadPhone').value.trim();
+      try {
+        const response = await fetch('/.netlify/functions/update-lead-status', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId, email: email || null, phone: phone || null })
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+        if (data.success) {
+          const lead = allLeads.find(l => l.id === leadId);
+          if (lead) { lead.email = email || null; lead.phone = phone || null; }
+          showLeadDetail(leadId);
+        } else {
+          alert('Failed to update contact: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error('Error updating contact:', err);
+        alert('Failed to update contact info');
+      }
+    }
+
+    // Edit lead address
+    function editLeadAddress(leadId) {
+      document.getElementById('leadAddressDisplay').classList.add('hidden');
+      document.getElementById('leadAddressEdit').classList.remove('hidden');
+      document.getElementById('editLeadAddress').focus();
+    }
+
+    function cancelLeadAddressEdit() {
+      document.getElementById('leadAddressDisplay').classList.remove('hidden');
+      document.getElementById('leadAddressEdit').classList.add('hidden');
+    }
+
+    async function saveLeadAddress(leadId, event) {
+      event.preventDefault();
+      const address = document.getElementById('editLeadAddress').value.trim();
+      const city = document.getElementById('editLeadCity').value.trim();
+      const state = document.getElementById('editLeadState').value.trim();
+      const postalCode = document.getElementById('editLeadPostalCode').value.trim();
+      try {
+        const response = await fetch('/.netlify/functions/update-lead-status', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId, address: address || null, city: city || null, state: state || null, postalCode: postalCode || null })
+        });
+        if (response.status === 401) { logout(); return; }
+        const data = await response.json();
+        if (data.success) {
+          const lead = allLeads.find(l => l.id === leadId);
+          if (lead) {
+            lead.address = address || null;
+            lead.city = city || null;
+            lead.state = state || null;
+            lead.postalCode = postalCode || null;
+          }
+          showLeadDetail(leadId);
+          renderLeads();
+        } else {
+          alert('Failed to update address: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error('Error updating address:', err);
+        alert('Failed to update address');
+      }
+    }
+
     // Create QuickBooks customer from lead
     async function createQuickBooksCustomer(leadId) {
       const btn = document.getElementById('createQBCustomerBtn');
@@ -8925,65 +9038,136 @@
     }
 
     async function searchLeadsForKanban() {
-      const params = new URLSearchParams({
-        limit: '10000' // Fetch all for kanban
-      });
-
-      if (currentTenant) params.set('tenant', currentTenant);
-
       try {
-        // Fetch leads and proposals in parallel
-        const [leadsResponse, proposalsResponse] = await Promise.all([
-          fetch(`/.netlify/functions/get-leads?${params}`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
-          }),
-          fetch('/.netlify/functions/get-proposals?all=true', {
-            headers: { 'Authorization': `Bearer ${authToken}` }
-          })
-        ]);
+        // Pipeline view: fetch proposals grouped by status
+        const params = new URLSearchParams({ all: 'true' });
+        if (currentTenant) params.set('tenant', currentTenant);
 
-        if (leadsResponse.status === 401) { logout(); return; }
+        const response = await fetch(`/.netlify/functions/get-proposals?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
 
-        const leadsData = await leadsResponse.json();
-        allLeads = leadsData.leads || [];
+        if (response.status === 401) { logout(); return; }
 
-        // Apply owner status filter client-side
-        const ownerFilter = document.getElementById('leadOwnerFilter').value;
-        if (ownerFilter === '__has') {
-          allLeads = allLeads.filter(lead => lead.ownerName);
-        } else if (ownerFilter === '__no') {
-          allLeads = allLeads.filter(lead => !lead.ownerName);
-        }
+        const data = await response.json();
+        const proposals = data.proposals || [];
 
-        // Build proposals lookup maps
+        // Also keep the proposals lookup for lead detail views
         proposalsLookup = { byEmail: {}, byName: {} };
-        if (proposalsResponse.ok) {
-          const proposalsData = await proposalsResponse.json();
-          for (const p of proposalsData.proposals || []) {
-            // Index by email (lowercase)
-            if (p.customer_email) {
-              const email = p.customer_email.toLowerCase();
-              if (!proposalsLookup.byEmail[email]) {
-                proposalsLookup.byEmail[email] = [];
-              }
-              proposalsLookup.byEmail[email].push(p);
-            }
-            // Index by name (lowercase)
-            if (p.customer_name) {
-              const name = p.customer_name.toLowerCase();
-              if (!proposalsLookup.byName[name]) {
-                proposalsLookup.byName[name] = [];
-              }
-              proposalsLookup.byName[name].push(p);
-            }
+        for (const p of proposals) {
+          if (p.customer_email) {
+            const email = p.customer_email.toLowerCase();
+            if (!proposalsLookup.byEmail[email]) proposalsLookup.byEmail[email] = [];
+            proposalsLookup.byEmail[email].push(p);
+          }
+          if (p.customer_name) {
+            const name = p.customer_name.toLowerCase();
+            if (!proposalsLookup.byName[name]) proposalsLookup.byName[name] = [];
+            proposalsLookup.byName[name].push(p);
           }
         }
-        buildLeadCountByCustomer();
 
-        renderLeadsKanban(allLeads);
+        renderPipelineKanban(proposals);
       } catch (error) {
-        console.error('Error fetching leads for kanban:', error);
+        console.error('Error fetching proposals for pipeline:', error);
       }
+    }
+
+    function renderPipelineKanban(proposals) {
+      const pipelineOrder = ['pending', 'sent', 'signed', 'won', 'lost'];
+      const allStatuses = [...new Set(proposals.map(p => p.status).filter(Boolean))];
+      const statuses = allStatuses.sort((a, b) => {
+        const aIdx = pipelineOrder.indexOf(a);
+        const bIdx = pipelineOrder.indexOf(b);
+        if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+        if (aIdx !== -1) return -1;
+        if (bIdx !== -1) return 1;
+        return a.localeCompare(b);
+      });
+
+      const grouped = {};
+      statuses.forEach(s => grouped[s] = []);
+      proposals.forEach(p => {
+        if (p.status && grouped[p.status]) grouped[p.status].push(p);
+      });
+
+      const board = document.getElementById('kanbanBoard');
+
+      if (statuses.length === 0) {
+        board.innerHTML = '<p class="text-center text-base-content/60 py-8">No proposals found</p>';
+        return;
+      }
+
+      const pipelineColors = {
+        pending: { bg: '#1e3a5f', text: '#60a5fa' },
+        sent: { bg: '#1e3a5f', text: '#93c5fd' },
+        signed: { bg: '#1a3d2e', text: '#6ee7b7' },
+        won: { bg: '#14532d', text: '#4ade80' },
+        lost: { bg: '#3b1c1c', text: '#fca5a5' }
+      };
+      const defaultColor = { bg: '#1e293b', text: '#94a3b8' };
+
+      board.innerHTML = statuses.map(status => {
+        const isCollapsed = collapsedColumns.includes(status);
+        const count = grouped[status].length;
+        const columnTotal = grouped[status].reduce((sum, p) => sum + (p.proposal_amount || 0), 0);
+        const columnTotalDisplay = columnTotal > 0 ? `$${columnTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
+        const color = pipelineColors[status] || defaultColor;
+
+        if (isCollapsed) {
+          return `
+            <div class="w-10 flex flex-col h-full cursor-pointer flex-shrink-0" style="background-color: ${color.bg};" onclick="toggleColumnCollapse('${status}')">
+              <div class="flex flex-col items-center pt-2 pb-4">
+                <span class="badge badge-xs mb-2" style="background-color: rgba(255,255,255,0.2); color: ${color.text};">${count}</span>
+                <span class="text-xs font-semibold" style="writing-mode: vertical-rl; transform: rotate(180deg); color: ${color.text};">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+              </div>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="bg-base-100 flex-1 min-w-[200px] flex flex-col h-full">
+            <div class="p-2 flex-shrink-0" style="background-color: ${color.bg};">
+              <h3 class="font-semibold text-xs flex items-center justify-between whitespace-nowrap" style="color: ${color.text};">
+                <span class="flex items-center gap-1">
+                  <button onclick="event.stopPropagation(); toggleColumnCollapse('${status}')" class="btn btn-ghost btn-xs p-0 h-4 min-h-0 w-4" style="color: ${color.text};">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  ${status.charAt(0).toUpperCase() + status.slice(1)}
+                </span>
+                <span class="flex items-center gap-1">
+                  ${columnTotalDisplay ? `<span class="text-[9px] font-normal opacity-70 ml-1">${columnTotalDisplay}</span>` : ''}
+                  <span class="badge badge-xs ml-1" style="background-color: rgba(255,255,255,0.2); color: ${color.text};">${count}</span>
+                </span>
+              </h3>
+            </div>
+            <div class="space-y-1 overflow-y-auto flex-1 pt-1 kanban-column" data-status="${status}">
+              ${grouped[status].map(p => {
+                const amount = p.proposal_amount ? `$${p.proposal_amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
+                const sentDate = p.sent_date ? new Date(p.sent_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+                const hasQB = p.qb_estimate_id ? '📋' : '';
+                return `
+                <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300">
+                  <div class="flex justify-between items-start gap-1">
+                    <div class="font-medium truncate flex-1 min-w-0">${p.customer_name || 'Unknown'}</div>
+                    <div class="flex gap-1 flex-shrink-0">
+                      ${hasQB ? `<span class="badge badge-xs bg-blue-50 text-blue-600 border-blue-200">${hasQB}</span>` : ''}
+                      ${amount ? `<span class="badge badge-xs bg-green-50 text-green-600 border-green-200">${amount}</span>` : ''}
+                    </div>
+                  </div>
+                  <div class="text-base-content/60 truncate">${sentDate}${p.customer_email ? ` · ${p.customer_email}` : ''}</div>
+                </div>
+              `}).join('')}
+              ${count === 0 ? '<p class="text-center text-xs text-base-content/40 py-2">Empty</p>' : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Hide pagination in pipeline view
+      document.getElementById('leadPagination').innerHTML = '';
     }
 
     // =====================
