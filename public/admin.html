@@ -4393,10 +4393,11 @@
 
     function renderLeads() {
       if (leadsViewMode === 'kanban') {
-        renderLeadsKanban(allLeads);
-      } else {
-        renderLeadResults(allLeads, leadTotal, leadTotalPages);
+        // Pipeline mode — re-fetch and render combined board
+        searchLeadsForKanban();
+        return;
       }
+      renderLeadResults(allLeads, leadTotal, leadTotalPages);
     }
 
     let selectedLeadId = null;
