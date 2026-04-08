@@ -9091,6 +9091,25 @@
         }
         buildLeadCountByCustomer();
 
+        // Build owner lookup from leads so proposal cards can show owner
+        const ownerByEmail = {};
+        const ownerByName = {};
+        for (const lead of allLeads) {
+          if (lead.ownerName) {
+            if (lead.email) ownerByEmail[lead.email.toLowerCase()] = lead.ownerName;
+            const name = `${lead.firstName || ''} ${lead.lastName || ''}`.toLowerCase().trim();
+            if (name) ownerByName[name] = lead.ownerName;
+          }
+        }
+        // Attach owner to proposals
+        for (const p of allProposals) {
+          if (!p._ownerName) {
+            const byEmail = p.customer_email ? ownerByEmail[p.customer_email.toLowerCase()] : null;
+            const byName = p.customer_name ? ownerByName[p.customer_name.toLowerCase().trim()] : null;
+            p._ownerName = byEmail || byName || null;
+          }
+        }
+
         renderPipelineKanban(allLeads, allProposals);
       } catch (error) {
         console.error('Error fetching pipeline data:', error);
@@ -9200,12 +9219,15 @@
             const amount = p.proposal_amount ? `$${p.proposal_amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
             const sentDate = p.sent_date ? new Date(p.sent_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
             const hasQB = p.qb_estimate_id ? '📋' : '';
+            const ownerName = p._ownerName || '';
+            const ownerInitials = ownerName ? getOwnerInitials(ownerName) : '';
             const clickHandler = p._leadId ? `onclick="showLeadDetail('${p._leadId}')"` : '';
             return `
             <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300" ${clickHandler}>
               <div class="flex justify-between items-start gap-1">
                 <div class="font-medium truncate flex-1 min-w-0">${p.customer_name || 'Unknown'}</div>
                 <div class="flex gap-1 flex-shrink-0">
+                  ${ownerInitials ? `<span class="badge badge-xs bg-base-300 text-base-content/70">${ownerInitials}</span>` : ''}
                   ${hasQB ? `<span class="badge badge-xs bg-blue-50 text-blue-600 border-blue-200">${hasQB}</span>` : ''}
                   ${amount ? `<span class="badge badge-xs bg-green-50 text-green-600 border-green-200">${amount}</span>` : ''}
                 </div>
