@@ -9104,7 +9104,7 @@
       // Proposal stages: pending, sent, signed, won, lost
 
       const leadStages = ['new', 'contacted', 'appointment_scheduled'];
-      const proposalStages = ['pending', 'sent', 'won', 'lost'];
+      const proposalStages = ['pending', 'sent', 'job_scheduled', 'won', 'lost'];
 
       // Group leads by status (only early-funnel stages)
       const leadGroups = {};
@@ -9154,13 +9154,14 @@
         // Proposal stages
         pending: { bg: '#1e3a5f', text: '#60a5fa' },
         sent: { bg: '#1e3a5f', text: '#93c5fd' },
+        job_scheduled: { bg: '#1a3345', text: '#67e8f9' },
         won: { bg: '#14532d', text: '#4ade80' },
         lost: { bg: '#3b1c1c', text: '#fca5a5' }
       };
 
       const stageLabels = {
         new: 'New', contacted: 'Contacted', appointment_scheduled: 'Appt Scheduled',
-        pending: 'Pending', sent: 'Sent', won: 'Won', lost: 'Lost'
+        pending: 'Pending', sent: 'Sent', job_scheduled: 'Job Scheduled', won: 'Won', lost: 'Lost'
       };
 
       const board = document.getElementById('kanbanBoard');
@@ -10344,7 +10345,7 @@
         } else if (e.key === 'c') {
           // Include both lead stages and proposal stages
           const leadStatuses = [...new Set(allLeads.map(l => l.status).filter(Boolean))];
-          const proposalStatuses = ['pending', 'sent', 'won', 'lost'];
+          const proposalStatuses = ['pending', 'sent', 'job_scheduled', 'won', 'lost'];
           collapsedColumns = [...new Set([...leadStatuses, ...proposalStatuses])];
           localStorage.setItem('collapsedColumns', JSON.stringify(collapsedColumns));
           renderLeads();
