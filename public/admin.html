@@ -9104,7 +9104,7 @@
       // Proposal stages: pending, sent, signed, won, lost
 
       const leadStages = ['new', 'contacted', 'appointment_scheduled'];
-      const proposalStages = ['pending', 'sent', 'signed', 'won', 'lost'];
+      const proposalStages = ['pending', 'sent', 'won', 'lost'];
 
       // Group leads by status (only early-funnel stages)
       const leadGroups = {};
@@ -9124,6 +9124,28 @@
         }
       });
 
+      // Merge completed leads into Won column (historical deals without proposals)
+      // Build a set of won proposal customer names to avoid duplicates
+      const wonNames = new Set(proposalGroups['won'].map(p => (p.customer_name || '').toLowerCase().trim()));
+      const completedLeads = leads.filter(l => l.status === 'completed');
+      for (const lead of completedLeads) {
+        const name = `${lead.firstName || ''} ${lead.lastName || ''}`.toLowerCase().trim();
+        if (!wonNames.has(name)) {
+          // Add as a proposal-shaped card so it renders consistently
+          const jobValue = getLeadJobValue(lead);
+          proposalGroups['won'].push({
+            customer_name: `${lead.firstName || ''} ${lead.lastName || ''}`,
+            customer_email: lead.email,
+            proposal_amount: jobValue,
+            sent_date: lead.createdAt,
+            status: 'won',
+            _fromLead: true,
+            _leadId: lead.id
+          });
+          wonNames.add(name);
+        }
+      }
+
       const stageColors = {
         // Lead stages
         new: { bg: '#1e293b', text: '#94a3b8' },
@@ -9132,14 +9154,13 @@
         // Proposal stages
         pending: { bg: '#1e3a5f', text: '#60a5fa' },
         sent: { bg: '#1e3a5f', text: '#93c5fd' },
-        signed: { bg: '#1a3d2e', text: '#6ee7b7' },
         won: { bg: '#14532d', text: '#4ade80' },
         lost: { bg: '#3b1c1c', text: '#fca5a5' }
       };
 
       const stageLabels = {
         new: 'New', contacted: 'Contacted', appointment_scheduled: 'Appt Scheduled',
-        pending: 'Pending', sent: 'Sent', signed: 'Signed', won: 'Won', lost: 'Lost'
+        pending: 'Pending', sent: 'Sent', won: 'Won', lost: 'Lost'
       };
 
       const board = document.getElementById('kanbanBoard');
@@ -9178,8 +9199,9 @@
             const amount = p.proposal_amount ? `$${p.proposal_amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
             const sentDate = p.sent_date ? new Date(p.sent_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
             const hasQB = p.qb_estimate_id ? '📋' : '';
+            const clickHandler = p._leadId ? `onclick="showLeadDetail('${p._leadId}')"` : '';
             return `
-            <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300">
+            <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300" ${clickHandler}>
               <div class="flex justify-between items-start gap-1">
                 <div class="font-medium truncate flex-1 min-w-0">${p.customer_name || 'Unknown'}</div>
                 <div class="flex gap-1 flex-shrink-0">
@@ -10322,7 +10344,7 @@
         } else if (e.key === 'c') {
           // Include both lead stages and proposal stages
           const leadStatuses = [...new Set(allLeads.map(l => l.status).filter(Boolean))];
-          const proposalStatuses = ['pending', 'sent', 'signed', 'won', 'lost'];
+          const proposalStatuses = ['pending', 'sent', 'won', 'lost'];
           collapsedColumns = [...new Set([...leadStatuses, ...proposalStatuses])];
           localStorage.setItem('collapsedColumns', JSON.stringify(collapsedColumns));
           renderLeads();
