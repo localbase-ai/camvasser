@@ -10320,7 +10320,10 @@
           localStorage.setItem('collapsedColumns', JSON.stringify(collapsedColumns));
           renderLeads();
         } else if (e.key === 'c') {
-          collapsedColumns = [...new Set(allLeads.map(l => l.status).filter(Boolean))];
+          // Include both lead stages and proposal stages
+          const leadStatuses = [...new Set(allLeads.map(l => l.status).filter(Boolean))];
+          const proposalStatuses = ['pending', 'sent', 'signed', 'won', 'lost'];
+          collapsedColumns = [...new Set([...leadStatuses, ...proposalStatuses])];
           localStorage.setItem('collapsedColumns', JSON.stringify(collapsedColumns));
           renderLeads();
         }
