@@ -4391,13 +4391,42 @@
       }, 50);
     }
 
+    // Cache for pipeline data so search doesn't re-fetch
+    let _pipelineProposals = null;
+    let _pipelineLeads = null;
+
     function renderLeads() {
       if (leadsViewMode === 'kanban') {
-        // Pipeline mode — re-fetch and render combined board
-        searchLeadsForKanban();
+        if (_pipelineProposals) {
+          // Re-render with cached data (for search/filter/collapse)
+          renderPipelineFromCache();
+        } else {
+          searchLeadsForKanban();
+        }
         return;
       }
       renderLeadResults(allLeads, leadTotal, leadTotalPages);
+    }
+
+    function renderPipelineFromCache() {
+      const searchTerm = (document.getElementById('leadSearch')?.value || '').toLowerCase().trim();
+      let filteredLeads = _pipelineLeads || allLeads;
+      let filteredProposals = _pipelineProposals || [];
+      if (searchTerm) {
+        filteredLeads = filteredLeads.filter(l => {
+          const name = `${l.firstName || ''} ${l.lastName || ''}`.toLowerCase();
+          return name.includes(searchTerm) ||
+            (l.email || '').toLowerCase().includes(searchTerm) ||
+            (l.phone || '').includes(searchTerm) ||
+            (l.address || '').toLowerCase().includes(searchTerm);
+        });
+        filteredProposals = filteredProposals.filter(p => {
+          return (p.customer_name || '').toLowerCase().includes(searchTerm) ||
+            (p.customer_email || '').toLowerCase().includes(searchTerm) ||
+            (p._ownerName || '').toLowerCase().includes(searchTerm);
+        });
+      }
+      renderPipelineKanban(filteredLeads, filteredProposals);
     }
 
     let selectedLeadId = null;
@@ -9110,7 +9139,11 @@
           }
         }
 
-        renderPipelineKanban(allLeads, allProposals);
+        // Cache for re-renders (search, collapse, filter)
+        _pipelineLeads = allLeads;
+        _pipelineProposals = allProposals;
+
+        renderPipelineFromCache();
       } catch (error) {
         console.error('Error fetching pipeline data:', error);
       }
