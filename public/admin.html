@@ -1792,7 +1792,11 @@
         collapsedColumns.push(status);
       }
       localStorage.setItem('collapsedColumns', JSON.stringify(collapsedColumns));
-      renderLeads();
+      if (leadsViewMode === 'kanban') {
+        searchLeadsForKanban();
+      } else {
+        renderLeads();
+      }
     }
 
     function toggleGroupByCustomer() {
