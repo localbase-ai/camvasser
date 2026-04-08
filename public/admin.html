@@ -9038,104 +9038,182 @@
     }
 
     async function searchLeadsForKanban() {
+      const params = new URLSearchParams({ limit: '10000' });
+      if (currentTenant) params.set('tenant', currentTenant);
+
       try {
-        // Pipeline view: fetch proposals grouped by status
-        const params = new URLSearchParams({ all: 'true' });
-        if (currentTenant) params.set('tenant', currentTenant);
+        // Fetch leads and proposals in parallel
+        const [leadsResponse, proposalsResponse] = await Promise.all([
+          fetch(`/.netlify/functions/get-leads?${params}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          }),
+          fetch('/.netlify/functions/get-proposals?all=true', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          })
+        ]);
 
-        const response = await fetch(`/.netlify/functions/get-proposals?${params}`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
+        if (leadsResponse.status === 401) { logout(); return; }
 
-        if (response.status === 401) { logout(); return; }
+        const leadsData = await leadsResponse.json();
+        allLeads = leadsData.leads || [];
 
-        const data = await response.json();
-        const proposals = data.proposals || [];
-
-        // Also keep the proposals lookup for lead detail views
-        proposalsLookup = { byEmail: {}, byName: {} };
-        for (const p of proposals) {
-          if (p.customer_email) {
-            const email = p.customer_email.toLowerCase();
-            if (!proposalsLookup.byEmail[email]) proposalsLookup.byEmail[email] = [];
-            proposalsLookup.byEmail[email].push(p);
-          }
-          if (p.customer_name) {
-            const name = p.customer_name.toLowerCase();
-            if (!proposalsLookup.byName[name]) proposalsLookup.byName[name] = [];
-            proposalsLookup.byName[name].push(p);
-          }
+        // Apply owner filter client-side
+        const ownerFilter = document.getElementById('leadOwnerFilter').value;
+        if (ownerFilter === '__has') {
+          allLeads = allLeads.filter(lead => lead.ownerName);
+        } else if (ownerFilter === '__no') {
+          allLeads = allLeads.filter(lead => !lead.ownerName);
         }
 
-        renderPipelineKanban(proposals);
+        // Build proposals lookup
+        proposalsLookup = { byEmail: {}, byName: {} };
+        let allProposals = [];
+        if (proposalsResponse.ok) {
+          const proposalsData = await proposalsResponse.json();
+          allProposals = proposalsData.proposals || [];
+          for (const p of allProposals) {
+            if (p.customer_email) {
+              const email = p.customer_email.toLowerCase();
+              if (!proposalsLookup.byEmail[email]) proposalsLookup.byEmail[email] = [];
+              proposalsLookup.byEmail[email].push(p);
+            }
+            if (p.customer_name) {
+              const name = p.customer_name.toLowerCase();
+              if (!proposalsLookup.byName[name]) proposalsLookup.byName[name] = [];
+              proposalsLookup.byName[name].push(p);
+            }
+          }
+        }
+        buildLeadCountByCustomer();
+
+        renderPipelineKanban(allLeads, allProposals);
       } catch (error) {
-        console.error('Error fetching proposals for pipeline:', error);
+        console.error('Error fetching pipeline data:', error);
       }
     }
 
-    function renderPipelineKanban(proposals) {
-      const pipelineOrder = ['pending', 'sent', 'signed', 'won', 'lost'];
-      const allStatuses = [...new Set(proposals.map(p => p.status).filter(Boolean))];
-      const statuses = allStatuses.sort((a, b) => {
-        const aIdx = pipelineOrder.indexOf(a);
-        const bIdx = pipelineOrder.indexOf(b);
-        if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
-        if (aIdx !== -1) return -1;
-        if (bIdx !== -1) return 1;
-        return a.localeCompare(b);
+    function renderPipelineKanban(leads, proposals) {
+      // Combined pipeline: lead stages on left, proposal stages on right
+      // Lead stages: new, contacted, appointment_scheduled
+      // Divider
+      // Proposal stages: pending, sent, signed, won, lost
+
+      const leadStages = ['new', 'contacted', 'appointment_scheduled'];
+      const proposalStages = ['pending', 'sent', 'signed', 'won', 'lost'];
+
+      // Group leads by status (only early-funnel stages)
+      const leadGroups = {};
+      leadStages.forEach(s => leadGroups[s] = []);
+      leads.forEach(lead => {
+        if (lead.status && leadGroups[lead.status] !== undefined) {
+          leadGroups[lead.status].push(lead);
+        }
       });
 
-      const grouped = {};
-      statuses.forEach(s => grouped[s] = []);
+      // Group proposals by status
+      const proposalGroups = {};
+      proposalStages.forEach(s => proposalGroups[s] = []);
       proposals.forEach(p => {
-        if (p.status && grouped[p.status]) grouped[p.status].push(p);
+        if (p.status && proposalGroups[p.status] !== undefined) {
+          proposalGroups[p.status].push(p);
+        }
       });
 
-      const board = document.getElementById('kanbanBoard');
-
-      if (statuses.length === 0) {
-        board.innerHTML = '<p class="text-center text-base-content/60 py-8">No proposals found</p>';
-        return;
-      }
-
-      const pipelineColors = {
+      const stageColors = {
+        // Lead stages
+        new: { bg: '#1e293b', text: '#94a3b8' },
+        contacted: { bg: '#1e2d3d', text: '#7dd3fc' },
+        appointment_scheduled: { bg: '#1e2d3d', text: '#38bdf8' },
+        // Proposal stages
         pending: { bg: '#1e3a5f', text: '#60a5fa' },
         sent: { bg: '#1e3a5f', text: '#93c5fd' },
         signed: { bg: '#1a3d2e', text: '#6ee7b7' },
         won: { bg: '#14532d', text: '#4ade80' },
         lost: { bg: '#3b1c1c', text: '#fca5a5' }
       };
-      const defaultColor = { bg: '#1e293b', text: '#94a3b8' };
 
-      board.innerHTML = statuses.map(status => {
-        const isCollapsed = collapsedColumns.includes(status);
-        const count = grouped[status].length;
-        const columnTotal = grouped[status].reduce((sum, p) => sum + (p.proposal_amount || 0), 0);
+      const stageLabels = {
+        new: 'New', contacted: 'Contacted', appointment_scheduled: 'Appt Scheduled',
+        pending: 'Pending', sent: 'Sent', signed: 'Signed', won: 'Won', lost: 'Lost'
+      };
+
+      const board = document.getElementById('kanbanBoard');
+
+      function renderColumn(stage, items, isProposal) {
+        const isCollapsed = collapsedColumns.includes(stage);
+        const count = items.length;
+        const color = stageColors[stage];
+        const label = stageLabels[stage] || stage;
+
+        let columnTotal = 0;
+        if (isProposal) {
+          columnTotal = items.reduce((sum, p) => sum + (p.proposal_amount || 0), 0);
+        } else {
+          columnTotal = items.reduce((sum, lead) => {
+            const val = getLeadJobValue(lead);
+            return sum + (val || 0);
+          }, 0);
+        }
         const columnTotalDisplay = columnTotal > 0 ? `$${columnTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
-        const color = pipelineColors[status] || defaultColor;
 
         if (isCollapsed) {
           return `
-            <div class="w-10 flex flex-col h-full cursor-pointer flex-shrink-0" style="background-color: ${color.bg};" onclick="toggleColumnCollapse('${status}')">
+            <div class="w-10 flex flex-col h-full cursor-pointer flex-shrink-0" style="background-color: ${color.bg};" onclick="toggleColumnCollapse('${stage}')">
               <div class="flex flex-col items-center pt-2 pb-4">
                 <span class="badge badge-xs mb-2" style="background-color: rgba(255,255,255,0.2); color: ${color.text};">${count}</span>
-                <span class="text-xs font-semibold" style="writing-mode: vertical-rl; transform: rotate(180deg); color: ${color.text};">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                <span class="text-xs font-semibold" style="writing-mode: vertical-rl; transform: rotate(180deg); color: ${color.text};">${label}</span>
               </div>
             </div>
           `;
         }
 
+        let cardsHtml;
+        if (isProposal) {
+          cardsHtml = items.map(p => {
+            const amount = p.proposal_amount ? `$${p.proposal_amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
+            const sentDate = p.sent_date ? new Date(p.sent_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+            const hasQB = p.qb_estimate_id ? '📋' : '';
+            return `
+            <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300">
+              <div class="flex justify-between items-start gap-1">
+                <div class="font-medium truncate flex-1 min-w-0">${p.customer_name || 'Unknown'}</div>
+                <div class="flex gap-1 flex-shrink-0">
+                  ${hasQB ? `<span class="badge badge-xs bg-blue-50 text-blue-600 border-blue-200">${hasQB}</span>` : ''}
+                  ${amount ? `<span class="badge badge-xs bg-green-50 text-green-600 border-green-200">${amount}</span>` : ''}
+                </div>
+              </div>
+              <div class="text-base-content/60 truncate">${sentDate}${p.customer_email ? ` · ${p.customer_email}` : ''}</div>
+            </div>`;
+          }).join('');
+        } else {
+          cardsHtml = items.map(lead => {
+            const jobValue = getLeadJobValue(lead);
+            const jobValueDisplay = jobValue ? `$${jobValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
+            return `
+            <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300 lead-card" data-lead-id="${lead.id}" onclick="showLeadDetail('${lead.id}')">
+              <div class="flex justify-between items-start gap-1">
+                <div class="font-medium truncate flex-1 min-w-0">${lead.firstName || ''} ${lead.lastName || ''}</div>
+                <div class="flex gap-1 flex-shrink-0">
+                  ${lead.ownerName ? `<span class="badge badge-xs bg-base-300 text-base-content/70">${getOwnerInitials(lead.ownerName)}</span>` : ''}
+                  ${jobValueDisplay ? `<span class="badge badge-xs bg-green-50 text-green-600 border-green-200">${jobValueDisplay}</span>` : ''}
+                </div>
+              </div>
+              <div class="text-base-content/60 truncate">${lead.phone || lead.email || '-'}</div>
+            </div>`;
+          }).join('');
+        }
+
         return `
-          <div class="bg-base-100 flex-1 min-w-[200px] flex flex-col h-full">
+          <div class="bg-base-100 flex-1 min-w-[180px] flex flex-col h-full">
             <div class="p-2 flex-shrink-0" style="background-color: ${color.bg};">
               <h3 class="font-semibold text-xs flex items-center justify-between whitespace-nowrap" style="color: ${color.text};">
                 <span class="flex items-center gap-1">
-                  <button onclick="event.stopPropagation(); toggleColumnCollapse('${status}')" class="btn btn-ghost btn-xs p-0 h-4 min-h-0 w-4" style="color: ${color.text};">
+                  <button onclick="event.stopPropagation(); toggleColumnCollapse('${stage}')" class="btn btn-ghost btn-xs p-0 h-4 min-h-0 w-4" style="color: ${color.text};">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                     </svg>
                   </button>
-                  ${status.charAt(0).toUpperCase() + status.slice(1)}
+                  ${label}
                 </span>
                 <span class="flex items-center gap-1">
                   ${columnTotalDisplay ? `<span class="text-[9px] font-normal opacity-70 ml-1">${columnTotalDisplay}</span>` : ''}
@@ -9143,31 +9221,27 @@
                 </span>
               </h3>
             </div>
-            <div class="space-y-1 overflow-y-auto flex-1 pt-1 kanban-column" data-status="${status}">
-              ${grouped[status].map(p => {
-                const amount = p.proposal_amount ? `$${p.proposal_amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
-                const sentDate = p.sent_date ? new Date(p.sent_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-                const hasQB = p.qb_estimate_id ? '📋' : '';
-                return `
-                <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300">
-                  <div class="flex justify-between items-start gap-1">
-                    <div class="font-medium truncate flex-1 min-w-0">${p.customer_name || 'Unknown'}</div>
-                    <div class="flex gap-1 flex-shrink-0">
-                      ${hasQB ? `<span class="badge badge-xs bg-blue-50 text-blue-600 border-blue-200">${hasQB}</span>` : ''}
-                      ${amount ? `<span class="badge badge-xs bg-green-50 text-green-600 border-green-200">${amount}</span>` : ''}
-                    </div>
-                  </div>
-                  <div class="text-base-content/60 truncate">${sentDate}${p.customer_email ? ` · ${p.customer_email}` : ''}</div>
-                </div>
-              `}).join('')}
+            <div class="space-y-1 overflow-y-auto flex-1 pt-1 kanban-column" data-status="${stage}">
+              ${cardsHtml}
               ${count === 0 ? '<p class="text-center text-xs text-base-content/40 py-2">Empty</p>' : ''}
             </div>
           </div>
         `;
-      }).join('');
+      }
+
+      // Build the combined board: lead stages | divider | proposal stages
+      const leadColumns = leadStages.map(s => renderColumn(s, leadGroups[s], false)).join('');
+      const proposalColumns = proposalStages.map(s => renderColumn(s, proposalGroups[s], true)).join('');
+
+      board.innerHTML = leadColumns +
+        '<div class="w-1 bg-warning/30 flex-shrink-0 self-stretch" title="Lead → Proposal handoff"></div>' +
+        proposalColumns;
 
       // Hide pagination in pipeline view
       document.getElementById('leadPagination').innerHTML = '';
+
+      // Initialize drag-and-drop for lead columns only
+      initKanbanDragDrop();
     }
 
     // =====================
