@@ -87,17 +87,21 @@ model Lead {
   utmCampaign    String?
   tags           Json?
   measurementUrl String?
+  externalId     String?
+  externalSource String?
   search_vector  Unsupported("tsvector")?
   customerId     String?
   customer       Customer? @relation(fields: [customerId], references: [id])
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  @@unique([tenant, externalSource, externalId])
   @@index([tenant])
   @@index([status])
   @@index([flowType])
   @@index([createdAt])
   @@index([customerId])
+  @@index([externalSource])
 }
 
 model Invoice {

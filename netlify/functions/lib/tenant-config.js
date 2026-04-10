@@ -17,7 +17,12 @@ const TENANT_CONFIG = {
       page_subtitle: "Enter your address to view photos from your roofing project",
       heading: "View Your Project Photos",
       subheading: "Enter your address to see before, during, and after photos",
-      flows: ['roof-claim-denial', 'roof-spray-vs-sealant-options', 'dirty-roof-costs', 'clogged-gutters-damage', 'ice-dam-prevention', 'roof-leak-emergency', 'roof-ventilation-issues', 'photos']
+      flows: ['roof-claim-denial', 'roof-spray-vs-sealant-options', 'dirty-roof-costs', 'clogged-gutters-damage', 'ice-dam-prevention', 'roof-leak-emergency', 'roof-ventilation-issues', 'photos'],
+      // Pull-based lead connector: camvasser reads from the site's own Postgres.
+      site_leads_connector: {
+        adapter: "budroofing-v1",
+        connection_string_env: "BUDROOFING_POSTGRES_URL"
+      }
     },
     kcroofrestoration: {
       name: "KC Roof Restoration",
@@ -35,7 +40,12 @@ const TENANT_CONFIG = {
       page_subtitle: "Enter your address to view photos from your roofing project",
       heading: "View Your Project Photos",
       subheading: "Enter your address to see before, during, and after photos",
-      flows: ['roof-claim-denial', 'roof-spray-vs-sealant-options', 'dirty-roof-costs', 'clogged-gutters-damage', 'ice-dam-prevention', 'roof-leak-emergency', 'roof-ventilation-issues', 'photos']
+      flows: ['roof-claim-denial', 'roof-spray-vs-sealant-options', 'dirty-roof-costs', 'clogged-gutters-damage', 'ice-dam-prevention', 'roof-leak-emergency', 'roof-ventilation-issues', 'photos'],
+      // Pull-based lead connector: camvasser reads from the site's own Postgres.
+      site_leads_connector: {
+        adapter: "kcroof-v1",
+        connection_string_env: "KCROOFRESTORATION_POSTGRES_URL"
+      }
     }
   }
 };
