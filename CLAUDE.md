@@ -60,6 +60,26 @@ Camvasser is a multi-tenant lead generation platform built on Netlify serverless
 - **Smartlead:** Email automation layer. **"Camvasser Master" (id: 2987823)** holds ALL leads with `camvasser_status` custom field — never activate. **"Welcome" (id: 2987833)** is the new lead onboarding sequence. Use `onNewLead()` from `lib/smartlead.js` to push to both on lead creation. See `docs/integrations/smartlead.md` for full details.
 - **Google Calendar:** Edge functions create/list/delete events. Service account with domain-wide delegation.
 - **Whitepages:** Person/address enrichment for prospects.
+- **Site Leads (pull-based):** Camvasser pulls lead rows directly from each tenant's own Postgres (their marketing website's authoritative store) via `netlify/functions/sync-site-leads.js`. Credentials are stored per-tenant in `Tenant.siteLeadsConfig` as `{ adapter, enabled, credentials }` where `credentials` is an AES-256-GCM ciphertext of `{ connectionString }` encrypted with `CONNECTOR_ENC_KEY`. Per-schema adapters (`kcroof-v1`, `budroofing-v1`, etc.) live as code in the same file — each knows the SQL to run against that site's `leads` table and how to map a row into camvasser's Lead shape. Dedup via unique `(tenant, externalSource, externalId)` on Lead. Manual sync only (no scheduler yet). See "Onboarding a new site" below.
+
+### Onboarding a new tenant site to the site_leads pattern
+
+1. Site owner stands up their own marketing site on Netlify with its own Postgres (typically a new database inside the shared Neon project). Schema just needs a `leads` table with the usual contact columns and a `created_at`.
+2. In `netlify/functions/sync-site-leads.js`, add a new entry to `SITE_LEAD_ADAPTERS` if the site's `leads` table shape differs from existing adapters. An adapter is `{ query, map }` — the query filters by the incremental cursor `$1::timestamptz`, and `map(row, tenantSlug)` returns a camvasser Lead-shaped object including `externalId` and `externalSource`. Do NOT map credentials or tenant-specific constants into the adapter; it should be pure schema translation.
+3. Create the tenant row in camvasser's Prisma Tenant table if it doesn't exist. Slug must match what admin.html and all clients send as `?tenant=`.
+4. Seed the encrypted connector config:
+   ```
+   DATABASE_URL=<prod> CONNECTOR_ENC_KEY=<base64-32> \
+     node scripts/seed-site-leads-connector.js <slug> <adapter-key> <site-postgres-url>
+   ```
+5. Trigger a sync: authenticated POST to `/.netlify/functions/sync-site-leads` as the tenant user, or run `scripts/test-sync-site-leads.js` locally pointing at prod. Verify leads land in the Lead table with `externalSource=<slug>`, and that re-running produces `newInCamvasser: 0`.
+6. Renu's existing camvasser connector will mirror the new leads on its next sync — nothing to configure on the renu side.
+
+### Known multi-tenancy warts (as of 2026-04-10)
+- **`user.tenant` does not exist on JWTs.** The login payload is `{ userId, email, slug, companyName }` where `slug` is the user's own slug, NOT a tenant slug. Functions that reference `user.tenant` as a tenant filter silently fall through to cross-tenant reads because Prisma treats `where: { tenant: undefined }` as no filter. `get-proposals.js` was fixed (requires `?tenant=`); `sync-calendar.js`, `link-appointment.js`, `update-appointment.js`, `save-storm-report.js` still have this bug (not in the pitch demo path). Source of truth for tenant scoping is the `?tenant=` query parameter, not the JWT.
+- **No authorization check on `?tenant=`.** Any authenticated user can pass `?tenant=X` and read that tenant's data, regardless of `UserTenant` membership. Should be fixed alongside building the "all tenants" admin view for `isAdmin` users.
+- **`create-test-users.js` and `seed-tenants.js` previously created a `kcroof` tenant slug** distinct from the canonical `kcroofrestoration`. The two rows drifted apart — data landed on `kcroofrestoration`, access mappings landed on `kcroof`, users saw zero leads. Resolved via a one-off UserTenant migration and by pointing the scripts at `kcroofrestoration`.
+- **`JWT_SECRET` in production is the literal default placeholder** (`your-super-secret-jwt-key-change-this-in-production-make-it-long-and-random`). Anyone who reads this file can sign valid admin tokens. Rotate before any external demo.
 
 ## Testing Patterns
 
