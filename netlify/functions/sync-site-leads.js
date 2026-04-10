@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import pg from 'pg';
 import { verifyToken } from './lib/auth.js';
-import { loadTenantConfig } from './lib/tenant-config.js';
+import { decryptJson } from './lib/crypto.js';
 
 const { Client } = pg;
 const prisma = new PrismaClient();
@@ -116,20 +116,58 @@ const SITE_LEAD_ADAPTERS = {
  * Sync a single tenant's site_leads_connector.
  * Pulls incremental rows from the site's Postgres and upserts into camvasser Lead.
  */
-export async function syncConnector(tenantSlug, connectorConfig) {
-  const { adapter: adapterKey, connection_string_env } = connectorConfig || {};
+/**
+ * Load and decrypt a tenant's site_leads connector config from the Tenant row.
+ * Stored shape in Tenant.siteLeadsConfig (JSONB):
+ *   {
+ *     "adapter":     "kcroof-v1",          // which SITE_LEAD_ADAPTERS entry to use
+ *     "enabled":     true,                 // soft toggle
+ *     "credentials": "<base64-ciphertext>" // encrypts { connectionString }
+ *   }
+ * The plaintext credentials object is decrypted on-demand here and never
+ * logged, cached, or returned to callers.
+ */
+async function loadTenantConnector(tenantSlug) {
+  const tenant = await prisma.tenant.findUnique({
+    where: { slug: tenantSlug },
+    select: { slug: true, siteLeadsConfig: true }
+  });
+  if (!tenant) {
+    throw new Error(`Tenant "${tenantSlug}" not found`);
+  }
+  const config = tenant.siteLeadsConfig;
+  if (!config || typeof config !== 'object') {
+    throw new Error(`Tenant "${tenantSlug}" has no site_leads connector configured`);
+  }
+  if (config.enabled === false) {
+    throw new Error(`Tenant "${tenantSlug}" site_leads connector is disabled`);
+  }
+  if (!config.adapter) {
+    throw new Error(`Tenant "${tenantSlug}" site_leads connector has no adapter set`);
+  }
+  if (!config.credentials) {
+    throw new Error(`Tenant "${tenantSlug}" site_leads connector has no credentials`);
+  }
 
-  if (!adapterKey) {
-    throw new Error('site_leads_connector.adapter is not configured');
-  }
-  if (!connection_string_env) {
-    throw new Error('site_leads_connector.connection_string_env is not configured');
+  let credentials;
+  try {
+    credentials = decryptJson(config.credentials);
+  } catch (err) {
+    throw new Error(`Failed to decrypt credentials for tenant "${tenantSlug}": ${err.message}`);
   }
 
-  const connectionString = process.env[connection_string_env];
-  if (!connectionString) {
-    throw new Error(`Env var ${connection_string_env} is not set on this deploy`);
+  if (!credentials.connectionString) {
+    throw new Error(`Decrypted credentials for tenant "${tenantSlug}" are missing connectionString`);
   }
+
+  return {
+    adapter: config.adapter,
+    connectionString: credentials.connectionString
+  };
+}
+
+export async function syncConnector(tenantSlug) {
+  const { adapter: adapterKey, connectionString } = await loadTenantConnector(tenantSlug);
 
   const adapter = SITE_LEAD_ADAPTERS[adapterKey];
   if (!adapter) {
@@ -245,31 +283,8 @@ export async function handler(event) {
   }
 
   try {
-    const config = loadTenantConfig();
-    const tenantConfig = config.tenants[user.slug];
-
-    if (!tenantConfig) {
-      return {
-        statusCode: 404,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Tenant not found' })
-      };
-    }
-
-    const connectorConfig = tenantConfig.site_leads_connector;
-    if (!connectorConfig) {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          error: 'No site_leads_connector configured for this tenant',
-          tenant: user.slug
-        })
-      };
-    }
-
     console.log(`[sync-site-leads] Starting sync for tenant ${user.slug}`);
-    const result = await syncConnector(user.slug, connectorConfig);
+    const result = await syncConnector(user.slug);
     console.log(`[sync-site-leads] Finished:`, result);
 
     return {

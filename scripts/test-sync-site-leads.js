@@ -4,10 +4,11 @@
  *
  * Usage:
  *   DATABASE_URL=<prod-camvasser-url> \
- *   KCROOFRESTORATION_POSTGRES_URL=<kcroof-neon-url> \
- *   node scripts/test-sync-site-leads.js
+ *   CONNECTOR_ENC_KEY=<base64-32-bytes> \
+ *   node scripts/test-sync-site-leads.js [<tenant-slug>]
  *
- * Runs one sync for the kcroofrestoration tenant and prints the result.
+ * Defaults tenant to kcroofrestoration. Reads connector config from
+ * Tenant.siteLeadsConfig (encrypted) so no per-site env vars are needed.
  * Safe to run multiple times — the unique (tenant, externalSource, externalId)
  * constraint makes this idempotent.
  */
@@ -20,27 +21,22 @@ if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.includes('supabase'))
   process.exit(1);
 }
 
-if (!process.env.KCROOFRESTORATION_POSTGRES_URL) {
-  console.error('[test-sync] KCROOFRESTORATION_POSTGRES_URL env var is required.');
+if (!process.env.CONNECTOR_ENC_KEY) {
+  console.error('[test-sync] CONNECTOR_ENC_KEY env var is required to decrypt the connector credentials.');
   process.exit(1);
 }
 
 // Dynamic import so the PrismaClient inside sync-site-leads picks up DATABASE_URL.
 const { syncConnector } = await import('../netlify/functions/sync-site-leads.js');
 
-const tenantSlug = 'kcroofrestoration';
-const connectorConfig = {
-  adapter: 'kcroof-v1',
-  connection_string_env: 'KCROOFRESTORATION_POSTGRES_URL'
-};
+const tenantSlug = process.argv[2] || 'kcroofrestoration';
 
-console.log(`[test-sync] Syncing tenant="${tenantSlug}" adapter="${connectorConfig.adapter}"`);
+console.log(`[test-sync] Syncing tenant="${tenantSlug}"`);
 console.log(`[test-sync] Camvasser DB:`, process.env.DATABASE_URL.replace(/:[^:@]+@/, ':<pw>@'));
-console.log(`[test-sync] Site DB     :`, process.env.KCROOFRESTORATION_POSTGRES_URL.replace(/:[^:@]+@/, ':<pw>@'));
 console.log('');
 
 try {
-  const result = await syncConnector(tenantSlug, connectorConfig);
+  const result = await syncConnector(tenantSlug);
   console.log('[test-sync] Result:');
   console.log(JSON.stringify(result, null, 2));
 } catch (err) {

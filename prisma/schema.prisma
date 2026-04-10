@@ -474,14 +474,15 @@ model StormReport {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Tenant {
-  id         String       @id
-  slug       String       @unique
-  name       String
-  domain     String?
-  logoUrl    String?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime
-  UserTenant UserTenant[]
+  id              String       @id
+  slug            String       @unique
+  name            String
+  domain          String?
+  logoUrl         String?
+  siteLeadsConfig Json?        /// Pull-based site leads connector config. See lib/crypto.js. Never return in user-facing API responses.
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime
+  UserTenant      UserTenant[]
 
   @@index([slug])
 }
