@@ -3424,7 +3424,7 @@
           fetch(`/.netlify/functions/get-leads?${params}`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
           }),
-          fetch('/.netlify/functions/get-proposals?all=true', {
+          fetch(`/.netlify/functions/get-proposals?all=true&tenant=${encodeURIComponent(currentTenant || '')}`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
           })
         ]);
@@ -5203,6 +5203,7 @@
 
       try {
         const params = new URLSearchParams();
+        params.set('tenant', currentTenant || '');
         if (lead.customerId) {
           // Best path: fetch by Customer FK
           params.set('customerId', lead.customerId);
@@ -9081,7 +9082,7 @@
           fetch(`/.netlify/functions/get-leads?${params}`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
           }),
-          fetch('/.netlify/functions/get-proposals?all=true', {
+          fetch(`/.netlify/functions/get-proposals?all=true&tenant=${encodeURIComponent(currentTenant || '')}`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
           })
         ]);

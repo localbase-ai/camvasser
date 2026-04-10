@@ -27,7 +27,20 @@ export async function handler(event) {
 
   try {
     const { email, name, all, tenant, customerId } = event.queryStringParameters || {};
-    const tenantFilter = tenant || user.tenant;
+
+    // Tenant is required. Prior versions fell back to user.tenant, which does
+    // not exist on the JWT payload ({ userId, email, slug, companyName }), so
+    // Prisma would receive `tenant: undefined` and silently return rows from
+    // every tenant — the "I see budroofing proposals in kcroofrestoration"
+    // pipeline leak.
+    const tenantFilter = tenant;
+    if (!tenantFilter) {
+      return {
+        statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'tenant query parameter is required' })
+      };
+    }
 
     const proposalSelect = {
       proposalId: true,
