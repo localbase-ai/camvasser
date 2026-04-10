@@ -9121,22 +9121,39 @@
         }
         buildLeadCountByCustomer();
 
-        // Build owner lookup from leads so proposal cards can show owner
+        // Build owner + leadId lookups from leads so proposal cards can show
+        // owner initials AND deep-link to the matching lead detail on click.
         const ownerByEmail = {};
         const ownerByName = {};
+        const leadIdByEmail = {};
+        const leadIdByName = {};
         for (const lead of allLeads) {
-          if (lead.ownerName) {
-            if (lead.email) ownerByEmail[lead.email.toLowerCase()] = lead.ownerName;
-            const name = `${lead.firstName || ''} ${lead.lastName || ''}`.toLowerCase().trim();
-            if (name) ownerByName[name] = lead.ownerName;
+          if (lead.email) {
+            const email = lead.email.toLowerCase();
+            if (lead.ownerName) ownerByEmail[email] = lead.ownerName;
+            // Keep the first matching leadId per email; multiple leads with the
+            // same email will only deep-link to one of them, which is fine for
+            // the pipeline card jump-to behavior.
+            if (!leadIdByEmail[email]) leadIdByEmail[email] = lead.id;
+          }
+          const name = `${lead.firstName || ''} ${lead.lastName || ''}`.toLowerCase().trim();
+          if (name) {
+            if (lead.ownerName) ownerByName[name] = lead.ownerName;
+            if (!leadIdByName[name]) leadIdByName[name] = lead.id;
           }
         }
-        // Attach owner to proposals
+        // Attach owner + leadId to proposals. Do not overwrite _leadId when it
+        // was already set by the completed-leads-as-proposals merge below.
         for (const p of allProposals) {
           if (!p._ownerName) {
             const byEmail = p.customer_email ? ownerByEmail[p.customer_email.toLowerCase()] : null;
             const byName = p.customer_name ? ownerByName[p.customer_name.toLowerCase().trim()] : null;
             p._ownerName = byEmail || byName || null;
+          }
+          if (!p._leadId) {
+            const byEmail = p.customer_email ? leadIdByEmail[p.customer_email.toLowerCase()] : null;
+            const byName = p.customer_name ? leadIdByName[p.customer_name.toLowerCase().trim()] : null;
+            p._leadId = byEmail || byName || null;
           }
         }
 
