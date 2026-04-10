@@ -18,16 +18,17 @@ async function main() {
   });
   console.log('Created tenant:', budRoofing);
 
-  const kcRoof = await prisma.tenant.upsert({
-    where: { slug: 'kcroof' },
+  const kcRoofRestoration = await prisma.tenant.upsert({
+    where: { slug: 'kcroofrestoration' },
     update: {},
     create: {
-      slug: 'kcroof',
+      id: 'kcroofrestoration',
+      slug: 'kcroofrestoration',
       name: 'KC Roof Restoration',
-      domain: null
+      domain: 'kcroofrestoration.com'
     }
   });
-  console.log('Created tenant:', kcRoof);
+  console.log('Created tenant:', kcRoofRestoration);
 
   // Find existing business user(s)
   const users = await prisma.businessUser.findMany({
@@ -54,18 +55,18 @@ async function main() {
       }
     });
 
-    // Link to kcroof
+    // Link to kcroofrestoration
     await prisma.userTenant.upsert({
       where: {
         userId_tenantId: {
           userId: user.id,
-          tenantId: kcRoof.id
+          tenantId: kcRoofRestoration.id
         }
       },
       update: {},
       create: {
         userId: user.id,
-        tenantId: kcRoof.id,
+        tenantId: kcRoofRestoration.id,
         role: 'admin'
       }
     });

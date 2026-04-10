@@ -38,10 +38,10 @@ async function main() {
 
   // Get tenants
   const budroofing = await prisma.tenant.findUnique({ where: { slug: 'budroofing' } });
-  const kcroof = await prisma.tenant.findUnique({ where: { slug: 'kcroof' } });
+  const kcroofrestoration = await prisma.tenant.findUnique({ where: { slug: 'kcroofrestoration' } });
 
-  if (!budroofing || !kcroof) {
-    throw new Error('Tenants not found. Make sure budroofing and kcroof tenants exist.');
+  if (!budroofing || !kcroofrestoration) {
+    throw new Error('Tenants not found. Make sure budroofing and kcroofrestoration tenants exist.');
   }
 
   // Link both users to both tenants with "member" role
@@ -56,11 +56,11 @@ async function main() {
     await prisma.userTenant.create({
       data: {
         userId: user.id,
-        tenantId: kcroof.id,
+        tenantId: kcroofrestoration.id,
         role: 'member'
       }
     });
-    console.log(`Linked ${user.name} to budroofing and kcroof as member`);
+    console.log(`Linked ${user.name} to budroofing and kcroofrestoration as member`);
   }
 
   console.log('\nDone! Both users can now log in.');
