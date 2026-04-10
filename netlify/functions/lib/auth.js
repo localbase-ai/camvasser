@@ -9,6 +9,27 @@ if (!JWT_SECRET && process.env.NODE_ENV !== 'test') {
   console.error('CRITICAL: JWT_SECRET environment variable is not set');
 }
 
+// Refuse to run with obvious placeholder values. Historical context: production
+// shipped for a while with the literal .env.example default as the live secret,
+// which gitleaks cannot catch (placeholder strings have low entropy by design).
+// This guard makes that failure mode impossible going forward.
+if (JWT_SECRET && process.env.NODE_ENV !== 'test') {
+  const looksLikePlaceholder =
+    /your[-_]?(super[-_]?)?(secret|jwt)/i.test(JWT_SECRET) ||
+    /change[-_]?(this|me)/i.test(JWT_SECRET) ||
+    /placeholder|example|default|replace[-_]?me/i.test(JWT_SECRET) ||
+    JWT_SECRET.length < 32;
+  if (looksLikePlaceholder) {
+    console.error(
+      'CRITICAL: JWT_SECRET looks like a placeholder or is too short (<32 chars). ' +
+      'Generate a fresh random value: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'base64url\'))"'
+    );
+    // Throw so the function cold-start fails loudly instead of silently accepting
+    // tokens signed with a known-bad secret.
+    throw new Error('JWT_SECRET is a placeholder or too short; refusing to start.');
+  }
+}
+
 /**
  * Verify a JWT token from the Authorization header
  * @param {string} authHeader - The Authorization header value
