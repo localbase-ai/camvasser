@@ -77,17 +77,25 @@ model Lead {
   ownerName     String?
   notes         String?
   coordinates   Json?
-  flowData      Json?
-  tags          Json?
+  flowData       Json?
+  flowType       String?
+  flowSlug       String?
+  urgencyLevel   String?
+  qualifyScore   String?
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  tags           Json?
   measurementUrl String?
-  search_vector Unsupported("tsvector")?
-  customerId    String?
-  customer      Customer? @relation(fields: [customerId], references: [id])
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  search_vector  Unsupported("tsvector")?
+  customerId     String?
+  customer       Customer? @relation(fields: [customerId], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([tenant])
   @@index([status])
+  @@index([flowType])
   @@index([createdAt])
   @@index([customerId])
 }

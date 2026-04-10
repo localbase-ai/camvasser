@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import crypto from 'crypto';
 import { verifyToken } from './lib/auth.js';
 
 const prisma = new PrismaClient();
@@ -41,7 +42,7 @@ export async function handler(event) {
   }
 
   try {
-    const { leadId, status, ownerName, firstName, lastName, tags, measurementUrl } = JSON.parse(event.body);
+    const { leadId, status, ownerName, firstName, lastName, tags, measurementUrl, email, phone, address, city, state, postalCode, projectId } = JSON.parse(event.body);
 
     if (!leadId) {
       return {
@@ -66,7 +67,7 @@ export async function handler(event) {
     // Verify the lead exists
     const lead = await prisma.lead.findUnique({
       where: { id: leadId },
-      select: { tenant: true }
+      select: { tenant: true, projectId: true }
     });
 
     if (!lead) {
@@ -113,12 +114,77 @@ export async function handler(event) {
     if (measurementUrl !== undefined) {
       updateData.measurementUrl = measurementUrl || null;
     }
+    if (email !== undefined) {
+      updateData.email = email || null;
+    }
+    if (phone !== undefined) {
+      updateData.phone = phone || null;
+    }
+    if (address !== undefined) {
+      updateData.address = address || null;
+    }
+    if (city !== undefined) {
+      updateData.city = city || null;
+    }
+    if (state !== undefined) {
+      updateData.state = state || null;
+    }
+    if (postalCode !== undefined) {
+      updateData.postalCode = postalCode || null;
+    }
+    if (projectId !== undefined) {
+      updateData.projectId = projectId || null;
+    }
 
     // Update the lead
     const updated = await prisma.lead.update({
       where: { id: leadId },
       data: updateData
     });
+
+    // Sync address fields to linked Project, or create one if none exists
+    const addressChanged = address !== undefined || city !== undefined || state !== undefined || postalCode !== undefined;
+    const linkedProjectId = updated.projectId || lead.projectId;
+    if (addressChanged && updated.address) {
+      if (linkedProjectId) {
+        // Update existing project
+        const projectUpdate = {};
+        if (address !== undefined) projectUpdate.address = address || null;
+        if (city !== undefined) projectUpdate.city = city || null;
+        if (state !== undefined) projectUpdate.state = state || null;
+        if (postalCode !== undefined) projectUpdate.postalCode = postalCode || null;
+        await prisma.project.update({
+          where: { id: linkedProjectId },
+          data: projectUpdate
+        });
+        console.log(`Synced address to project ${linkedProjectId}:`, projectUpdate);
+      } else {
+        // No linked project — create a local one and link it
+        const newProjectId = `local_${crypto.randomBytes(6).toString('hex')}`;
+        await prisma.project.create({
+          data: {
+            id: newProjectId,
+            tenant: lead.tenant,
+            address: updated.address,
+            city: updated.city,
+            state: updated.state,
+            postalCode: updated.postalCode,
+            status: 'active',
+            name: 'Manual Address',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastSyncedAt: new Date()
+          }
+        });
+        // Link project to the lead
+        await prisma.lead.update({
+          where: { id: leadId },
+          data: { projectId: newProjectId }
+        });
+        updated.projectId = newProjectId;
+        console.log(`Created local project ${newProjectId} for lead ${leadId}`);
+      }
+    }
 
     console.log(`Updated lead ${leadId}:`, updateData);
 
@@ -131,7 +197,14 @@ export async function handler(event) {
           id: updated.id,
           status: updated.status,
           ownerName: updated.ownerName,
-          tags: updated.tags
+          tags: updated.tags,
+          email: updated.email,
+          phone: updated.phone,
+          address: updated.address,
+          city: updated.city,
+          state: updated.state,
+          postalCode: updated.postalCode,
+          projectId: updated.projectId
         }
       })
     };

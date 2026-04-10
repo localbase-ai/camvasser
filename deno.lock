@@ -15,6 +15,8 @@
         "npm:@playwright/test@^1.57.0",
         "npm:@prisma/client@^6.18.0",
         "npm:@tailwindcss/cli@^4.1.18",
+        "npm:@turf/boolean-point-in-polygon@^7.3.4",
+        "npm:@turf/helpers@^7.3.4",
         "npm:@vitest/ui@^4.0.1",
         "npm:axios@^1.6.0",
         "npm:bcryptjs@^3.0.2",

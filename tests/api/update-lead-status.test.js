@@ -230,6 +230,112 @@ describe('update-lead-status API', () => {
     });
   });
 
+  describe('contact info updates', () => {
+    it('should update email', async () => {
+      const updated = factories.lead({ email: 'new@example.com' });
+      mockPrisma.lead.update.mockResolvedValue(updated);
+
+      const event = createAuthenticatedEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({ leadId: 'lead_123', email: 'new@example.com' })
+      });
+      const response = await handler(event);
+      expect(response.statusCode).toBe(200);
+      expect(mockPrisma.lead.update).toHaveBeenCalledWith({
+        where: { id: 'lead_123' },
+        data: { email: 'new@example.com' }
+      });
+      expect(JSON.parse(response.body).lead.email).toBe('new@example.com');
+    });
+
+    it('should clear email when empty string passed', async () => {
+      const updated = factories.lead({ email: null });
+      mockPrisma.lead.update.mockResolvedValue(updated);
+
+      const event = createAuthenticatedEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({ leadId: 'lead_123', email: '' })
+      });
+      const response = await handler(event);
+      expect(response.statusCode).toBe(200);
+      expect(mockPrisma.lead.update).toHaveBeenCalledWith({
+        where: { id: 'lead_123' },
+        data: { email: null }
+      });
+    });
+
+    it('should update phone', async () => {
+      const updated = factories.lead({ phone: '555-1234' });
+      mockPrisma.lead.update.mockResolvedValue(updated);
+
+      const event = createAuthenticatedEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({ leadId: 'lead_123', phone: '555-1234' })
+      });
+      const response = await handler(event);
+      expect(response.statusCode).toBe(200);
+      expect(mockPrisma.lead.update).toHaveBeenCalledWith({
+        where: { id: 'lead_123' },
+        data: { phone: '555-1234' }
+      });
+      expect(JSON.parse(response.body).lead.phone).toBe('555-1234');
+    });
+  });
+
+  describe('address updates', () => {
+    it('should update all address fields', async () => {
+      const updated = factories.lead({ address: '123 Main St', city: 'Overland Park', state: 'KS', postalCode: '66210' });
+      mockPrisma.lead.update.mockResolvedValue(updated);
+
+      const event = createAuthenticatedEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({ leadId: 'lead_123', address: '123 Main St', city: 'Overland Park', state: 'KS', postalCode: '66210' })
+      });
+      const response = await handler(event);
+      expect(response.statusCode).toBe(200);
+      expect(mockPrisma.lead.update).toHaveBeenCalledWith({
+        where: { id: 'lead_123' },
+        data: { address: '123 Main St', city: 'Overland Park', state: 'KS', postalCode: '66210' }
+      });
+      const body = JSON.parse(response.body);
+      expect(body.lead.address).toBe('123 Main St');
+      expect(body.lead.city).toBe('Overland Park');
+    });
+
+    it('should clear address fields when empty strings passed', async () => {
+      const updated = factories.lead({ address: null, city: null, state: null, postalCode: null });
+      mockPrisma.lead.update.mockResolvedValue(updated);
+
+      const event = createAuthenticatedEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({ leadId: 'lead_123', address: '', city: '', state: '', postalCode: '' })
+      });
+      const response = await handler(event);
+      expect(response.statusCode).toBe(200);
+      expect(mockPrisma.lead.update).toHaveBeenCalledWith({
+        where: { id: 'lead_123' },
+        data: { address: null, city: null, state: null, postalCode: null }
+      });
+    });
+
+    it('should update projectId', async () => {
+      const updated = factories.lead({ projectId: 'proj_456' });
+      mockPrisma.lead.update.mockResolvedValue(updated);
+
+      const event = createAuthenticatedEvent({
+        httpMethod: 'POST',
+        body: JSON.stringify({ leadId: 'lead_123', projectId: 'proj_456' })
+      });
+      const response = await handler(event);
+      expect(response.statusCode).toBe(200);
+      expect(mockPrisma.lead.update).toHaveBeenCalledWith({
+        where: { id: 'lead_123' },
+        data: { projectId: 'proj_456' }
+      });
+      expect(JSON.parse(response.body).lead.projectId).toBe('proj_456');
+    });
+  });
+
   describe('access control', () => {
     it('should return 403 when user has no access to tenant', async () => {
       mockPrisma.lead.findUnique.mockResolvedValue({ tenant: 'other-company' });
