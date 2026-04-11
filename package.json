@@ -37,7 +37,7 @@
     "bcryptjs": "^3.0.2",
     "js-yaml": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.16.3",
+    "pg": "^8.20.0",
     "prisma": "^6.18.0",
     "sortablejs": "^1.15.6"
   },
