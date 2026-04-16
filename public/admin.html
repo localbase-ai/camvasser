@@ -9174,7 +9174,7 @@
       // Proposal stages: pending, sent, signed, won, lost
 
       const leadStages = ['new', 'contacted', 'appointment_scheduled'];
-      const proposalStages = ['pending', 'sent', 'job_scheduled', 'won', 'lost'];
+      const proposalStages = ['sent', 'job_scheduled', 'won', 'lost'];
 
       // Group leads by status (only early-funnel stages)
       const leadGroups = {};
@@ -9189,8 +9189,9 @@
       const proposalGroups = {};
       proposalStages.forEach(s => proposalGroups[s] = []);
       proposals.forEach(p => {
-        if (p.status && proposalGroups[p.status] !== undefined) {
-          proposalGroups[p.status].push(p);
+        const stage = p.status === 'pending' ? 'sent' : p.status;
+        if (stage && proposalGroups[stage] !== undefined) {
+          proposalGroups[stage].push(p);
         }
       });
 
@@ -9222,7 +9223,6 @@
         contacted: { bg: '#1e2d3d', text: '#7dd3fc' },
         appointment_scheduled: { bg: '#1e2d3d', text: '#38bdf8' },
         // Proposal stages
-        pending: { bg: '#1e3a5f', text: '#60a5fa' },
         sent: { bg: '#1e3a5f', text: '#93c5fd' },
         job_scheduled: { bg: '#1a3345', text: '#67e8f9' },
         won: { bg: '#14532d', text: '#4ade80' },
@@ -9231,7 +9231,7 @@
 
       const stageLabels = {
         new: 'New', contacted: 'Contacted', appointment_scheduled: 'Appt Scheduled',
-        pending: 'Pending', sent: 'Sent', job_scheduled: 'Job Scheduled', won: 'Closed Won', lost: 'Closed Lost'
+        sent: 'Sent', job_scheduled: 'Job Scheduled', won: 'Closed Won', lost: 'Closed Lost'
       };
 
       const board = document.getElementById('kanbanBoard');
