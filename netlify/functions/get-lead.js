@@ -38,7 +38,16 @@ export async function handler(event) {
       where: { id },
       include: {
         customer: true,
-        organization: { select: { id: true, name: true, type: true } }
+        organization: {
+          select: {
+            id: true, name: true, type: true,
+            OrganizationContact: {
+              where: { isPrimary: true },
+              select: { name: true, phone: true, email: true, title: true },
+              take: 1
+            }
+          }
+        }
       }
     });
 

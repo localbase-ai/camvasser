@@ -4796,6 +4796,13 @@
                 <a href="#" onclick="event.preventDefault(); navigateToOrg('${lead.organization.id}')" class="link link-hover link-primary">${escapeHtml(lead.organization.name)}</a>
                 <span class="badge badge-xs ml-1">${lead.organization.type || ''}</span>
               </div>
+              ${lead.organization.OrganizationContact?.[0] ? `
+                <div class="text-xs text-base-content/70">
+                  ${escapeHtml(lead.organization.OrganizationContact[0].name)}${lead.organization.OrganizationContact[0].title ? ` · ${escapeHtml(lead.organization.OrganizationContact[0].title)}` : ''}
+                  ${lead.organization.OrganizationContact[0].phone ? `<br><a href="tel:${lead.organization.OrganizationContact[0].phone}" class="link link-hover">${lead.organization.OrganizationContact[0].phone}</a>` : ''}
+                  ${lead.organization.OrganizationContact[0].email ? `<br><a href="mailto:${lead.organization.OrganizationContact[0].email}" class="link link-hover">${lead.organization.OrganizationContact[0].email}</a>` : ''}
+                </div>
+              ` : ''}
             ` : ''}
             <select id="leadOrgSelect" class="select select-bordered select-xs w-full max-w-xs" onchange="updateLeadOrg('${lead.id}', this.value)">
               <option value="">No organization</option>
