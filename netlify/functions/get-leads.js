@@ -92,7 +92,17 @@ export async function handler(event) {
         take: limitNum,
         skip,
         include: {
-          customer: { select: { id: true, firstName: true, lastName: true, qbCustomerId: true, qbDisplayName: true } }
+          customer: { select: { id: true, firstName: true, lastName: true, qbCustomerId: true, qbDisplayName: true } },
+          organization: {
+            select: {
+              id: true, name: true, type: true,
+              OrganizationContact: {
+                where: { isPrimary: true },
+                select: { name: true, phone: true, email: true, title: true },
+                take: 1
+              }
+            }
+          }
         }
       }),
       prisma.lead.count({ where })

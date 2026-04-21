@@ -1629,6 +1629,18 @@
       }
     }
 
+    // Get display name for a lead — org primary contact if org-linked, otherwise lead name
+    function getLeadDisplayName(lead) {
+      const contact = lead.organization?.OrganizationContact?.[0];
+      if (contact) return contact.name;
+      return `${lead.firstName || ''} ${lead.lastName || ''}`.trim();
+    }
+
+    // Check if a lead is org-linked
+    function isOrgLead(lead) {
+      return !!(lead.organization || lead.organizationId);
+    }
+
     // Get owner initials (e.g., "Ryan Riggin" -> "RR")
     function getOwnerInitials(ownerName) {
       if (!ownerName) return '';
@@ -4498,7 +4510,7 @@
             <input type="checkbox" class="checkbox checkbox-sm lead-checkbox" data-id="${lead.id}" onchange="updateLeadSelectionUI()">
           </td>
           <td class="text-sm text-base-content/60" onclick="showLeadDetail('${lead.id}')">${created}</td>
-          <td class="font-medium" onclick="showLeadDetail('${lead.id}')">${lead.firstName || ''} ${lead.lastName || ''}${(lead.tags && lead.tags.length) ? ' ' + lead.tags.map(t => `<span class="badge badge-xs">${t}</span>`).join(' ') : ''}</td>
+          <td class="font-medium" onclick="showLeadDetail('${lead.id}')">${escapeHtml(getLeadDisplayName(lead))}${isOrgLead(lead) ? ` <span class="badge badge-xs badge-primary">ORG</span>` : ''}${(lead.tags && lead.tags.length) ? ' ' + lead.tags.map(t => `<span class="badge badge-xs">${t}</span>`).join(' ') : ''}</td>
           <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.email || '-'}</td>
           <td class="text-sm" onclick="showLeadDetail('${lead.id}')">${lead.phone || '-'}</td>
           <td class="text-sm max-w-[200px] truncate" onclick="showLeadDetail('${lead.id}')">${lead.address || '-'}</td>
@@ -4745,7 +4757,7 @@
           <!-- Name & Status -->
           <div>
             <div class="flex items-center justify-between gap-2">
-              <h4 class="text-lg font-semibold cursor-pointer hover:text-primary" onclick="editLeadName('${lead.id}', this)" title="Click to edit name">${lead.firstName || ''} ${lead.lastName || ''}</h4>
+              <h4 class="text-lg font-semibold cursor-pointer hover:text-primary" onclick="editLeadName('${lead.id}', this)" title="Click to edit name">${escapeHtml(getLeadDisplayName(lead))}${isOrgLead(lead) ? ` <span class="badge badge-sm badge-primary">${escapeHtml(lead.organization?.name || 'ORG')}</span>` : ''}</h4>
               <button id="copyLinkBtn" onclick="copyLeadShareLink('${lead.id}')" class="btn btn-xs btn-ghost gap-1" title="Copy shareable link">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -9001,10 +9013,11 @@
                 const jobValue = getLeadJobValue(lead);
                 const jobValueDisplay = jobValue ? `$${jobValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
                 return `
-                <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300 lead-card" data-lead-id="${lead.id}" onclick="showLeadDetail('${lead.id}')">
+                <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300 lead-card${isOrgLead(lead) ? ' border-l-2 border-primary' : ''}" data-lead-id="${lead.id}" onclick="showLeadDetail('${lead.id}')">
                   <div class="flex justify-between items-start gap-1">
-                    <div class="font-medium truncate flex-1 min-w-0">${lead.firstName || ''} ${lead.lastName || ''}</div>
+                    <div class="font-medium truncate flex-1 min-w-0">${escapeHtml(getLeadDisplayName(lead))}</div>
                     <div class="flex gap-1 flex-shrink-0">
+                      ${isOrgLead(lead) ? `<span class="badge badge-xs badge-primary">ORG</span>` : ''}
                       ${lead.ownerName ? `<span class="badge badge-xs bg-base-300 text-base-content/70">${getOwnerInitials(lead.ownerName)}</span>` : ''}
                       ${jobValueDisplay ? `<span class="badge badge-xs bg-green-50 text-green-600 border-green-200">💰 ${jobValueDisplay}</span>` : ''}
                     </div>
@@ -9431,10 +9444,11 @@
             const jobValue = getLeadJobValue(lead);
             const jobValueDisplay = jobValue ? `$${jobValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '';
             return `
-            <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300 lead-card" data-lead-id="${lead.id}" onclick="showLeadDetail('${lead.id}')">
+            <div class="bg-base-200 mx-2 p-2 text-xs cursor-pointer hover:bg-base-300 lead-card${isOrgLead(lead) ? ' border-l-2 border-primary' : ''}" data-lead-id="${lead.id}" onclick="showLeadDetail('${lead.id}')">
               <div class="flex justify-between items-start gap-1">
-                <div class="font-medium truncate flex-1 min-w-0">${lead.firstName || ''} ${lead.lastName || ''}</div>
+                <div class="font-medium truncate flex-1 min-w-0">${escapeHtml(getLeadDisplayName(lead))}</div>
                 <div class="flex gap-1 flex-shrink-0">
+                  ${isOrgLead(lead) ? `<span class="badge badge-xs badge-primary">ORG</span>` : ''}
                   ${lead.ownerName ? `<span class="badge badge-xs bg-base-300 text-base-content/70">${getOwnerInitials(lead.ownerName)}</span>` : ''}
                   ${jobValueDisplay ? `<span class="badge badge-xs bg-green-50 text-green-600 border-green-200">${jobValueDisplay}</span>` : ''}
                 </div>
