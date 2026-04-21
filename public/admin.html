@@ -1565,12 +1565,16 @@
     let allCustomers = [];
 
     // Proposals lookup map (keyed by email and name)
-    let proposalsLookup = { byEmail: {}, byName: {} };
+    let proposalsLookup = { byEmail: {}, byName: {}, byLeadId: {} };
     // Count of leads per customer (by email/name) for deduplicating proposal values
     let leadCountByCustomer = {};
 
     // Get proposals for a lead from the lookup
     function getLeadProposals(lead) {
+      // Direct link via leadId is most reliable
+      if (proposalsLookup.byLeadId && proposalsLookup.byLeadId[lead.id]) {
+        return proposalsLookup.byLeadId[lead.id];
+      }
       const email = (lead.email || '').toLowerCase();
       const name = `${lead.firstName || ''} ${lead.lastName || ''}`.trim().toLowerCase();
 
@@ -3502,8 +3506,12 @@
         // Build proposals lookup if not already populated
         if (proposalsResponse.ok) {
           const proposalsData = await proposalsResponse.json();
-          proposalsLookup = { byEmail: {}, byName: {} };
+          proposalsLookup = { byEmail: {}, byName: {}, byLeadId: {} };
           for (const p of proposalsData.proposals || []) {
+            if (p.lead_id) {
+              if (!proposalsLookup.byLeadId[p.lead_id]) proposalsLookup.byLeadId[p.lead_id] = [];
+              proposalsLookup.byLeadId[p.lead_id].push(p);
+            }
             if (p.customer_email) {
               const email = p.customer_email.toLowerCase();
               if (!proposalsLookup.byEmail[email]) proposalsLookup.byEmail[email] = [];
@@ -9185,12 +9193,16 @@
         }
 
         // Build proposals lookup
-        proposalsLookup = { byEmail: {}, byName: {} };
+        proposalsLookup = { byEmail: {}, byName: {}, byLeadId: {} };
         let allProposals = [];
         if (proposalsResponse.ok) {
           const proposalsData = await proposalsResponse.json();
           allProposals = proposalsData.proposals || [];
           for (const p of allProposals) {
+            if (p.lead_id) {
+              if (!proposalsLookup.byLeadId[p.lead_id]) proposalsLookup.byLeadId[p.lead_id] = [];
+              proposalsLookup.byLeadId[p.lead_id].push(p);
+            }
             if (p.customer_email) {
               const email = p.customer_email.toLowerCase();
               if (!proposalsLookup.byEmail[email]) proposalsLookup.byEmail[email] = [];
