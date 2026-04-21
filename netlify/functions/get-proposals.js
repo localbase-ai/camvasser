@@ -51,7 +51,8 @@ export async function handler(event) {
       signedDate: true,
       status: true,
       pdfUrl: true,
-      qbEstimateId: true
+      qbEstimateId: true,
+      leadId: true
     };
 
     let proposals = [];
@@ -112,7 +113,8 @@ export async function handler(event) {
       signed_date: p.signedDate,
       status: p.status,
       pdf_url: p.pdfUrl,
-      qb_estimate_id: p.qbEstimateId || null
+      qb_estimate_id: p.qbEstimateId || null,
+      lead_id: p.leadId || null
     }));
 
     return {

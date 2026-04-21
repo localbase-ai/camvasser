@@ -9142,8 +9142,8 @@
             if (!leadIdByName[name]) leadIdByName[name] = lead.id;
           }
         }
-        // Attach owner + leadId to proposals. Do not overwrite _leadId when it
-        // was already set by the completed-leads-as-proposals merge below.
+        // Attach owner + leadId to proposals. Use lead_id from DB when available,
+        // fall back to email/name matching for legacy proposals without a link.
         for (const p of allProposals) {
           if (!p._ownerName) {
             const byEmail = p.customer_email ? ownerByEmail[p.customer_email.toLowerCase()] : null;
@@ -9151,9 +9151,13 @@
             p._ownerName = byEmail || byName || null;
           }
           if (!p._leadId) {
-            const byEmail = p.customer_email ? leadIdByEmail[p.customer_email.toLowerCase()] : null;
-            const byName = p.customer_name ? leadIdByName[p.customer_name.toLowerCase().trim()] : null;
-            p._leadId = byEmail || byName || null;
+            if (p.lead_id) {
+              p._leadId = p.lead_id;
+            } else {
+              const byEmail = p.customer_email ? leadIdByEmail[p.customer_email.toLowerCase()] : null;
+              const byName = p.customer_name ? leadIdByName[p.customer_name.toLowerCase().trim()] : null;
+              p._leadId = byEmail || byName || null;
+            }
           }
         }
 

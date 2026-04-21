@@ -83,7 +83,7 @@ export async function handler(event) {
       }
     }
 
-    // Create the proposal
+    // Create the proposal linked to the lead
     const proposal = await prisma.proposal.create({
       data: {
         id: createId(),
@@ -99,14 +99,16 @@ export async function handler(event) {
         qbDocNumber: qbEstimate?.DocNumber || null,
         qbSyncedAt: qbEstimate ? new Date() : null,
         customerId: lead.customerId || null,
+        leadId: leadId,
         updatedAt: new Date()
       }
     });
 
-    // Update lead job_value
+    // Update lead status to proposal_sent and set job_value
     await prisma.lead.update({
       where: { id: leadId },
       data: {
+        status: 'proposal_sent',
         flowData: {
           ...lead.flowData,
           job_value: parseFloat(amount),
