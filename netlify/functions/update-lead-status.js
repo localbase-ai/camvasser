@@ -42,7 +42,7 @@ export async function handler(event) {
   }
 
   try {
-    const { leadId, status, ownerName, firstName, lastName, tags, measurementUrl, email, phone, address, city, state, postalCode, projectId } = JSON.parse(event.body);
+    const { leadId, status, ownerName, firstName, lastName, tags, measurementUrl, email, phone, address, city, state, postalCode, projectId, organizationId } = JSON.parse(event.body);
 
     if (!leadId) {
       return {
@@ -134,6 +134,9 @@ export async function handler(event) {
     }
     if (projectId !== undefined) {
       updateData.projectId = projectId || null;
+    }
+    if (organizationId !== undefined) {
+      updateData.organizationId = organizationId || null;
     }
 
     // Update the lead

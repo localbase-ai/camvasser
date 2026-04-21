@@ -92,6 +92,8 @@ model Lead {
   search_vector  Unsupported("tsvector")?
   customerId     String?
   customer       Customer? @relation(fields: [customerId], references: [id])
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
   proposals      Proposal[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -103,6 +105,7 @@ model Lead {
   @@index([createdAt])
   @@index([customerId])
   @@index([externalSource])
+  @@index([organizationId])
 }
 
 model Invoice {
@@ -277,6 +280,8 @@ model Organization {
   updatedAt            DateTime
   OrganizationContact  OrganizationContact[]
   OrganizationProperty OrganizationProperty[]
+  Lead                 Lead[]
+  Proposal             Proposal[]
 
   @@index([name])
   @@index([tenant])
@@ -406,8 +411,10 @@ model Proposal {
   qbSyncedAt     DateTime?
   customerId     String?
   leadId         String?
+  organizationId String?
   customer       Customer? @relation(fields: [customerId], references: [id])
   lead           Lead?     @relation(fields: [leadId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   @@index([customerEmail])
   @@index([customerName])
@@ -416,6 +423,7 @@ model Proposal {
   @@index([tenant])
   @@index([customerId])
   @@index([leadId])
+  @@index([organizationId])
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.

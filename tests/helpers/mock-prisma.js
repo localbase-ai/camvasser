@@ -126,6 +126,15 @@ export function createMockPrisma() {
       delete: vi.fn(),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 })
     },
+    organization: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
+      count: vi.fn().mockResolvedValue(0),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn()
+    },
     organizationContact: {
       findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn().mockResolvedValue(null),

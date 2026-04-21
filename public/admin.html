@@ -2511,6 +2511,13 @@
             <span class="loading loading-spinner loading-sm"></span>
           </div>
         </div>
+
+        <div class="mt-4">
+          <label class="text-xs text-base-content/60">Leads (${org._count?.leads || 0})</label>
+          <div id="orgLeadsList" class="mt-2">
+            <span class="loading loading-spinner loading-sm"></span>
+          </div>
+        </div>
       `;
 
       // Add form submit handler
@@ -2519,9 +2526,10 @@
       // Show pane (slide in from right)
       pane.style.transform = 'translateX(0)';
 
-      // Load contacts and properties
+      // Load contacts, properties, and leads
       loadOrgContacts(orgId);
       loadOrgProperties(orgId);
+      loadOrgLeads(orgId);
     }
 
     async function handleOrgFormSubmit(e) {
@@ -2668,6 +2676,49 @@
       } catch (error) {
         console.error('Error loading org properties:', error);
         document.getElementById('orgPropertiesList').innerHTML = '<p class="text-sm text-error">Error loading properties</p>';
+      }
+    }
+
+    async function loadOrgLeads(orgId) {
+      try {
+        const params = new URLSearchParams({ organizationId: orgId, tenant: currentTenant, limit: '50' });
+        const response = await fetch(`/.netlify/functions/get-leads?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        const container = document.getElementById('orgLeadsList');
+
+        if (!response.ok) {
+          container.innerHTML = '<p class="text-sm text-base-content/60">Unable to load leads</p>';
+          return;
+        }
+
+        const data = await response.json();
+        const leads = data.leads || [];
+
+        if (leads.length === 0) {
+          container.innerHTML = '<p class="text-sm text-base-content/60">No leads linked</p>';
+          return;
+        }
+
+        const statusColors = {
+          new: 'badge-info', contacted: 'badge-warning', appointment_scheduled: 'badge-primary',
+          proposal_sent: 'badge-secondary', job_scheduled: 'badge-accent', completed: 'badge-success',
+          lost: 'badge-error', follow_up: 'badge-warning'
+        };
+
+        container.innerHTML = leads.map(l => `
+          <div class="bg-base-200 rounded p-2 mb-2 cursor-pointer hover:bg-base-300" onclick="showLeadDetail('${l.id}')">
+            <div class="flex justify-between items-start">
+              <div class="text-sm font-medium">${escapeHtml((l.firstName || '') + ' ' + (l.lastName || ''))}</div>
+              <span class="badge badge-xs ${statusColors[l.status] || 'badge-ghost'}">${(l.status || '').replace(/_/g, ' ')}</span>
+            </div>
+            ${l.address ? `<div class="text-xs text-base-content/60">${escapeHtml(l.address)}</div>` : ''}
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading org leads:', error);
+        document.getElementById('orgLeadsList').innerHTML = '<p class="text-sm text-error">Error loading leads</p>';
       }
     }
 
@@ -4663,6 +4714,9 @@
       // Load proposals for this lead (by email or name)
       loadLeadProposals(lead);
 
+      // Populate organization dropdown
+      loadOrgDropdown(lead.organizationId);
+
       // Show sibling property count if customer is linked
       if (lead.customer?.id) {
         const siblingCount = allLeads.filter(l => l.customerId === lead.customer.id && l.id !== lead.id).length;
@@ -4733,6 +4787,20 @@
             <div id="customerSiblingCount" class="text-xs text-base-content/50"></div>
           </div>
           ` : ''}
+
+          <!-- Organization Link -->
+          <div class="space-y-2">
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Organization</h5>
+            ${lead.organization ? `
+              <div class="text-sm font-medium">
+                <a href="#" onclick="event.preventDefault(); navigateToOrg('${lead.organization.id}')" class="link link-hover link-primary">${escapeHtml(lead.organization.name)}</a>
+                <span class="badge badge-xs ml-1">${lead.organization.type || ''}</span>
+              </div>
+            ` : ''}
+            <select id="leadOrgSelect" class="select select-bordered select-xs w-full max-w-xs" onchange="updateLeadOrg('${lead.id}', this.value)">
+              <option value="">No organization</option>
+            </select>
+          </div>
 
           <!-- QuickBooks Integration -->
           ${(() => { const qbId = lead.customer?.qbCustomerId || lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id; const qbName = lead.customer?.qbDisplayName || lead.flowData?.quickbooks_display_name || lead.flowData?.qb_customer_name; return `
@@ -5193,6 +5261,61 @@
       } catch (error) {
         console.error('Error deleting appointment:', error);
         alert('Failed to delete appointment: ' + error.message);
+      }
+    }
+
+    // Organization dropdown for lead detail
+    let _cachedOrgs = null;
+    async function loadOrgDropdown(selectedOrgId) {
+      const select = document.getElementById('leadOrgSelect');
+      if (!select) return;
+
+      try {
+        if (!_cachedOrgs) {
+          const params = new URLSearchParams({ tenant: currentTenant, limit: '200', sortBy: 'name', sortDir: 'asc' });
+          const res = await fetch(`/.netlify/functions/get-organizations?${params}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            _cachedOrgs = data.organizations || [];
+          } else {
+            _cachedOrgs = [];
+          }
+        }
+
+        select.innerHTML = '<option value="">No organization</option>' +
+          _cachedOrgs.map(org =>
+            `<option value="${org.id}" ${org.id === selectedOrgId ? 'selected' : ''}>${escapeHtml(org.name)}</option>`
+          ).join('');
+      } catch (err) {
+        console.error('Error loading org dropdown:', err);
+      }
+    }
+
+    async function updateLeadOrg(leadId, orgId) {
+      try {
+        const res = await fetch('/.netlify/functions/update-lead-status', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId, organizationId: orgId || null })
+        });
+        if (!res.ok) throw new Error('Failed to update organization');
+
+        // Update local data
+        const lead = allLeads.find(l => l.id === leadId);
+        if (lead) {
+          lead.organizationId = orgId || null;
+          if (orgId && _cachedOrgs) {
+            const org = _cachedOrgs.find(o => o.id === orgId);
+            lead.organization = org ? { id: org.id, name: org.name, type: org.type } : null;
+          } else {
+            lead.organization = null;
+          }
+        }
+      } catch (err) {
+        console.error('Error updating lead org:', err);
+        alert('Failed to update organization');
       }
     }
 
@@ -6954,6 +7077,7 @@
         loadLeadNotes(lead.id);
         loadLeadAppointments(lead.id);
         loadLeadProposals(lead);
+        loadOrgDropdown(lead.organizationId);
         if (lead.customer?.qbCustomerId || lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id) {
           loadQBCustomerActivity(lead);
         }

@@ -75,13 +75,23 @@ export async function handler(event) {
           _count: {
             select: {
               OrganizationContact: true,
-              OrganizationProperty: true
+              OrganizationProperty: true,
+              Lead: true
             }
           }
         }
       }),
       prisma.organization.count({ where })
     ]);
+
+    // Normalize _count keys for frontend
+    for (const org of organizations) {
+      if (org._count) {
+        org._count.contacts = org._count.OrganizationContact || 0;
+        org._count.properties = org._count.OrganizationProperty || 0;
+        org._count.leads = org._count.Lead || 0;
+      }
+    }
 
     // Get distinct types for filter dropdown
     const typesResult = await prisma.organization.findMany({

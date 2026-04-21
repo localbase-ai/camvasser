@@ -27,7 +27,7 @@ export async function handler(event) {
   try {
     const data = JSON.parse(event.body);
 
-    const { firstName, lastName, email, phone, address, projectId, tenant, status, ownerName, notes, leadSource } = data;
+    const { firstName, lastName, email, phone, address, projectId, tenant, status, ownerName, notes, leadSource, organizationId } = data;
 
     // Validate required fields - only firstName and tenant required for manual entry
     if (!firstName || !tenant) {
@@ -55,7 +55,8 @@ export async function handler(event) {
         ownerName: ownerName || null,
         notes: notes || null,
         leadSource: leadSource || 'manual',
-        dataSource: 'manual'
+        dataSource: 'manual',
+        organizationId: organizationId || null
       }
     });
 

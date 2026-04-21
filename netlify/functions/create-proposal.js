@@ -100,6 +100,7 @@ export async function handler(event) {
         qbSyncedAt: qbEstimate ? new Date() : null,
         customerId: lead.customerId || null,
         leadId: leadId,
+        organizationId: lead.organizationId || null,
         updatedAt: new Date()
       }
     });

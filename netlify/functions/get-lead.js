@@ -36,7 +36,10 @@ export async function handler(event) {
 
     const lead = await prisma.lead.findUnique({
       where: { id },
-      include: { customer: true }
+      include: {
+        customer: true,
+        organization: { select: { id: true, name: true, type: true } }
+      }
     });
 
     if (!lead) {
