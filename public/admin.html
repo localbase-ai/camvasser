@@ -9273,10 +9273,12 @@
         }
       });
 
-      // Group proposals by status
+      // Group proposals by status, excluding proposals that have a linked lead
+      // (those are represented by the lead card on the left side)
       const proposalGroups = {};
       proposalStages.forEach(s => proposalGroups[s] = []);
       proposals.forEach(p => {
+        if (p._leadId || p.lead_id) return;
         const stage = p.status === 'pending' ? 'sent' : p.status;
         if (stage && proposalGroups[stage] !== undefined) {
           proposalGroups[stage].push(p);
