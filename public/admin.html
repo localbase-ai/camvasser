@@ -1635,6 +1635,18 @@
       return `${lead.firstName || ''} ${lead.lastName || ''}`.trim();
     }
 
+    // Get service type label for a lead
+    const SERVICE_LABELS = {
+      roof_replacement: 'Roof', roof_repair: 'Repair', gutter_replacement: 'Gutters',
+      roof_tuneup: 'Tune-Up', roof_cleaning: 'Cleaning', roofmaxx_treatment: 'RoofMaxx',
+      siding: 'Siding', exterior_painting: 'Painting'
+    };
+    function getLeadServiceLabel(lead) {
+      const jobType = lead.flowData?.job_type;
+      if (!jobType) return null;
+      return SERVICE_LABELS[jobType] || jobType.replace(/_/g, ' ');
+    }
+
     // Check if a lead is org-linked
     function isOrgLead(lead) {
       return !!(lead.organization || lead.organizationId);
@@ -8964,6 +8976,7 @@
                     <div class="font-medium truncate flex-1 min-w-0">${escapeHtml(getLeadDisplayName(lead))}</div>
                     <div class="flex gap-1 flex-shrink-0">
                       ${isOrgLead(lead) ? `<span class="badge badge-xs badge-primary">ORG</span>` : ''}
+                      ${getLeadServiceLabel(lead) ? `<span class="badge badge-xs bg-purple-50 text-purple-600 border-purple-200">${getLeadServiceLabel(lead)}</span>` : ''}
                       ${lead.ownerName ? `<span class="badge badge-xs bg-base-300 text-base-content/70">${getOwnerInitials(lead.ownerName)}</span>` : ''}
                       ${jobValueDisplay ? `<span class="badge badge-xs bg-green-50 text-green-600 border-green-200">💰 ${jobValueDisplay}</span>` : ''}
                     </div>
