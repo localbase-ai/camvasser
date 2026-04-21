@@ -12,7 +12,9 @@ const JOB_TYPES = {
   'gutter_replacement': { qbItemId: '5', qbItemName: 'Gutter Replacement', label: 'Gutter Replacement' },
   'roof_tuneup': { qbItemId: '8', qbItemName: 'Roof Tune-Up', label: 'Roof Tune-Up' },
   'roof_cleaning': { qbItemId: '23', qbItemName: 'Roof Cleaning', label: 'Roof Cleaning' },
-  'roofmaxx_treatment': { qbItemId: '22', qbItemName: 'Roof Maxx Treatment', label: 'RoofMaxx Treatment' }
+  'roofmaxx_treatment': { qbItemId: '22', qbItemName: 'Roof Maxx Treatment', label: 'RoofMaxx Treatment' },
+  'siding': { qbItemId: null, qbItemName: 'Siding', label: 'Siding' },
+  'exterior_painting': { qbItemId: null, qbItemName: 'Exterior Painting', label: 'Exterior Painting' }
 };
 
 export async function handler(event) {
