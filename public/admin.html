@@ -9180,11 +9180,16 @@
       const leadStages = ['new', 'contacted', 'appointment_scheduled'];
       const proposalStages = ['sent', 'job_scheduled', 'won', 'lost'];
 
-      // Group leads by status (only early-funnel stages)
+      // Build set of lead IDs that have a linked proposal — these belong
+      // on the proposal side of the board, not the lead side.
+      const leadsWithProposals = new Set(proposals.map(p => p._leadId || p.lead_id).filter(Boolean));
+
+      // Group leads by status (only early-funnel stages), excluding leads that
+      // already have a proposal card on the right side of the board.
       const leadGroups = {};
       leadStages.forEach(s => leadGroups[s] = []);
       leads.forEach(lead => {
-        if (lead.status && leadGroups[lead.status] !== undefined) {
+        if (lead.status && leadGroups[lead.status] !== undefined && !leadsWithProposals.has(lead.id)) {
           leadGroups[lead.status].push(lead);
         }
       });
