@@ -4715,7 +4715,7 @@
       loadLeadProposals(lead);
 
       // Populate organization dropdown
-      loadOrgDropdown(lead.organizationId);
+      loadOrgDropdown(lead.organizationId || lead.organization?.id);
 
       // Show sibling property count if customer is linked
       if (lead.customer?.id) {
@@ -7084,7 +7084,7 @@
         loadLeadNotes(lead.id);
         loadLeadAppointments(lead.id);
         loadLeadProposals(lead);
-        loadOrgDropdown(lead.organizationId);
+        loadOrgDropdown(lead.organizationId || lead.organization?.id);
         if (lead.customer?.qbCustomerId || lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id) {
           loadQBCustomerActivity(lead);
         }
