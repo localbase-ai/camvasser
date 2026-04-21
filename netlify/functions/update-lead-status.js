@@ -9,6 +9,7 @@ const VALID_STATUSES = [
   'new',
   'contacted',
   'appointment_scheduled',
+  'pending',
   'insurance_claim',
   'proposal_sent',
   'follow_up',

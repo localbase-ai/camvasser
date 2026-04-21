@@ -9270,7 +9270,7 @@
       // Divider
       // Proposal stages: pending, sent, signed, won, lost
 
-      const leadStages = ['new', 'contacted', 'appointment_scheduled', 'proposal_sent', 'job_scheduled'];
+      const leadStages = ['new', 'contacted', 'appointment_scheduled', 'pending', 'proposal_sent', 'job_scheduled'];
       const proposalStages = ['won', 'lost'];
 
       // Group leads by status (only early-funnel stages)
@@ -9320,6 +9320,7 @@
         new: { bg: '#1e293b', text: '#94a3b8' },
         contacted: { bg: '#1e2d3d', text: '#7dd3fc' },
         appointment_scheduled: { bg: '#1e2d3d', text: '#38bdf8' },
+        pending: { bg: '#2d2b1e', text: '#fbbf24' },
         proposal_sent: { bg: '#1e3a5f', text: '#93c5fd' },
         sent: { bg: '#1e3a5f', text: '#93c5fd' },
         job_scheduled: { bg: '#1a3345', text: '#67e8f9' },
@@ -9329,7 +9330,7 @@
 
       const stageLabels = {
         new: 'New', contacted: 'Contacted', appointment_scheduled: 'Appt Scheduled',
-        proposal_sent: 'Proposal Sent', sent: 'Sent', job_scheduled: 'Job Scheduled',
+        pending: 'Pending', proposal_sent: 'Proposal Sent', sent: 'Sent', job_scheduled: 'Job Scheduled',
         won: 'Closed Won', lost: 'Closed Lost'
       };
 
