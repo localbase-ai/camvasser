@@ -79,6 +79,7 @@ export async function handler(event) {
     let created = 0;
     let updated = 0;
     let skipped = 0;
+    let linked = 0;
 
     for (const estimate of estimates) {
       // Skip if no total amount
@@ -102,8 +103,47 @@ export async function handler(event) {
         where: { qbEstimateId: estimate.id }
       });
 
+      // Try to find a matching lead by name or email
+      const customerName = estimate.customer_name || null;
+      let matchedLeadId = null;
+      if (customerName) {
+        const nameParts = customerName.trim().split(/\s+/);
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        if (firstName && lastName) {
+          const matchedLead = await prisma.lead.findFirst({
+            where: {
+              tenant,
+              firstName: { equals: firstName, mode: 'insensitive' },
+              lastName: { equals: lastName, mode: 'insensitive' }
+            },
+            orderBy: { createdAt: 'desc' },
+            select: { id: true }
+          });
+          if (matchedLead) {
+            matchedLeadId = matchedLead.id;
+            linked++;
+          }
+        }
+      }
+      // Fall back to email match if name didn't work
+      if (!matchedLeadId && estimate.customer_email) {
+        const matchedLead = await prisma.lead.findFirst({
+          where: {
+            tenant,
+            email: { equals: estimate.customer_email, mode: 'insensitive' }
+          },
+          orderBy: { createdAt: 'desc' },
+          select: { id: true }
+        });
+        if (matchedLead) {
+          matchedLeadId = matchedLead.id;
+          linked++;
+        }
+      }
+
       const proposalData = {
-        customerName: estimate.customer_name || null,
+        customerName,
         customerEmail: estimate.customer_email || null,
         proposalAmount: estimate.total_amt,
         sentDate: estimate.txn_date ? new Date(estimate.txn_date) : null,
@@ -114,7 +154,8 @@ export async function handler(event) {
         qbCustomerId: estimate.customer_id || null,
         qbDocNumber: estimate.doc_number || null,
         qbSyncedAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        leadId: matchedLeadId
       };
 
       // Look up Customer by qbCustomerId — create stub if missing
@@ -123,7 +164,7 @@ export async function handler(event) {
           where: { tenant, qbCustomerId: estimate.customer_id }
         });
         if (!customer) {
-          const nameParts = (estimate.customer_name || '').trim().split(/\s+/);
+          const nameParts = (customerName || '').trim().split(/\s+/);
           const firstName = nameParts[0] || '';
           const lastName = nameParts.slice(1).join(' ') || '';
           customer = await prisma.customer.create({
@@ -132,7 +173,7 @@ export async function handler(event) {
               lastName,
               tenant,
               qbCustomerId: estimate.customer_id,
-              qbDisplayName: estimate.customer_name || null
+              qbDisplayName: customerName || null
             }
           });
         }
@@ -140,14 +181,16 @@ export async function handler(event) {
       }
 
       if (existingProposal) {
-        // Update existing
+        // Preserve existing leadId if already set and we didn't find a new match
+        if (!matchedLeadId && existingProposal.leadId) {
+          delete proposalData.leadId;
+        }
         await prisma.proposal.update({
           where: { id: existingProposal.id },
           data: proposalData
         });
         updated++;
       } else {
-        // Create new - need a unique proposalId
         await prisma.proposal.create({
           data: {
             id: createId(),
@@ -161,7 +204,7 @@ export async function handler(event) {
 
     qbDb.close();
 
-    console.log(`[sync-qb-estimates] Sync complete: ${created} created, ${updated} updated, ${skipped} skipped`);
+    console.log(`[sync-qb-estimates] Sync complete: ${created} created, ${updated} updated, ${skipped} skipped, ${linked} linked to leads`);
 
     return {
       statusCode: 200,
@@ -172,8 +215,9 @@ export async function handler(event) {
         created,
         updated,
         skipped,
+        linked,
         total: estimates.length,
-        message: `Synced ${created + updated} estimates from QuickBooks`
+        message: `Synced ${created + updated} estimates from QuickBooks (${linked} linked to leads)`
       })
     };
 

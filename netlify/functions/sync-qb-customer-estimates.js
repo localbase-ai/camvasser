@@ -70,6 +70,7 @@ export async function handler(event) {
     let created = 0;
     let updated = 0;
     let skipped = 0;
+    let linked = 0;
 
     for (const est of estimates) {
       if (!est.TotalAmt || est.TotalAmt <= 0) {
@@ -83,8 +84,32 @@ export async function handler(event) {
       else if (est.TxnStatus === 'Closed') status = 'closed';
       else if (est.TxnStatus === 'Rejected') status = 'rejected';
 
+      // Try to find a matching lead by name or email
+      const customerName = est.CustomerRef?.name || null;
+      let matchedLeadId = null;
+      if (customerName) {
+        const nameParts = customerName.trim().split(/\s+/);
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        if (firstName && lastName) {
+          const matchedLead = await prisma.lead.findFirst({
+            where: {
+              tenant,
+              firstName: { equals: firstName, mode: 'insensitive' },
+              lastName: { equals: lastName, mode: 'insensitive' }
+            },
+            orderBy: { createdAt: 'desc' },
+            select: { id: true }
+          });
+          if (matchedLead) {
+            matchedLeadId = matchedLead.id;
+            linked++;
+          }
+        }
+      }
+
       const proposalData = {
-        customerName: est.CustomerRef?.name || null,
+        customerName,
         customerEmail: null, // QB estimate doesn't carry email
         proposalAmount: est.TotalAmt,
         sentDate: est.TxnDate ? new Date(est.TxnDate) : null,
@@ -97,7 +122,8 @@ export async function handler(event) {
         qbDocNumber: est.DocNumber || null,
         qbSyncedAt: new Date(),
         updatedAt: new Date(),
-        customerId: customer?.id || null
+        customerId: customer?.id || null,
+        leadId: matchedLeadId
       };
 
       const existing = await prisma.proposal.findFirst({
@@ -105,6 +131,10 @@ export async function handler(event) {
       });
 
       if (existing) {
+        // Preserve existing leadId if already set and we didn't find a new match
+        if (!matchedLeadId && existing.leadId) {
+          delete proposalData.leadId;
+        }
         await prisma.proposal.update({
           where: { id: existing.id },
           data: proposalData
@@ -122,7 +152,7 @@ export async function handler(event) {
       }
     }
 
-    console.log(`[sync-qb-customer-estimates] Done: ${created} created, ${updated} updated, ${skipped} skipped`);
+    console.log(`[sync-qb-customer-estimates] Done: ${created} created, ${updated} updated, ${skipped} skipped, ${linked} linked to leads`);
 
     return {
       statusCode: 200,
@@ -132,6 +162,7 @@ export async function handler(event) {
         created,
         updated,
         skipped,
+        linked,
         total: estimates.length
       })
     };

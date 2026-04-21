@@ -26,6 +26,7 @@ export function createMockPrisma() {
     lead: {
       findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
       count: vi.fn().mockResolvedValue(0),
       create: vi.fn(),
       update: vi.fn(),
