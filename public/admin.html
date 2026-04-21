@@ -8967,7 +8967,7 @@
                       ${jobValueDisplay ? `<span class="badge badge-xs bg-green-50 text-green-600 border-green-200">💰 ${jobValueDisplay}</span>` : ''}
                     </div>
                   </div>
-                  <div class="text-base-content/60 truncate">${lead.phone || lead.email || '-'}</div>
+                  <div class="text-base-content/60 truncate">${lead.address || lead.phone || lead.email || '-'}</div>
                 </div>
               `}).join('')}
               ${count === 0 ? '<p class="text-center text-xs text-base-content/40 py-2">Empty</p>' : ''}
@@ -9400,7 +9400,7 @@
                   ${jobValueDisplay ? `<span class="badge badge-xs bg-green-50 text-green-600 border-green-200">${jobValueDisplay}</span>` : ''}
                 </div>
               </div>
-              <div class="text-base-content/60 truncate">${lead.phone || lead.email || '-'}</div>
+              <div class="text-base-content/60 truncate">${lead.address || lead.phone || lead.email || '-'}</div>
             </div>`;
           }).join('');
         }
