@@ -4727,7 +4727,6 @@
       loadLeadProposals(lead);
 
       // Populate organization dropdown
-      loadOrgDropdown(lead.organizationId || lead.organization?.id);
 
       // Show sibling property count if customer is linked
       if (lead.customer?.id) {
@@ -4816,9 +4815,6 @@
                 </div>
               ` : ''}
             ` : ''}
-            <select id="leadOrgSelect" class="select select-bordered select-xs w-full max-w-xs" onchange="updateLeadOrg('${lead.id}', this.value)">
-              <option value="">No organization</option>
-            </select>
           </div>
 
           <!-- QuickBooks Integration -->
@@ -5280,61 +5276,6 @@
       } catch (error) {
         console.error('Error deleting appointment:', error);
         alert('Failed to delete appointment: ' + error.message);
-      }
-    }
-
-    // Organization dropdown for lead detail
-    let _cachedOrgs = null;
-    async function loadOrgDropdown(selectedOrgId) {
-      const select = document.getElementById('leadOrgSelect');
-      if (!select) return;
-
-      try {
-        if (!_cachedOrgs) {
-          const params = new URLSearchParams({ tenant: currentTenant, limit: '200', sortBy: 'name', sortDir: 'asc' });
-          const res = await fetch(`/.netlify/functions/get-organizations?${params}`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            _cachedOrgs = data.organizations || [];
-          } else {
-            _cachedOrgs = [];
-          }
-        }
-
-        select.innerHTML = '<option value="">No organization</option>' +
-          _cachedOrgs.map(org =>
-            `<option value="${org.id}" ${org.id === selectedOrgId ? 'selected' : ''}>${escapeHtml(org.name)}</option>`
-          ).join('');
-      } catch (err) {
-        console.error('Error loading org dropdown:', err);
-      }
-    }
-
-    async function updateLeadOrg(leadId, orgId) {
-      try {
-        const res = await fetch('/.netlify/functions/update-lead-status', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ leadId, organizationId: orgId || null })
-        });
-        if (!res.ok) throw new Error('Failed to update organization');
-
-        // Update local data
-        const lead = allLeads.find(l => l.id === leadId);
-        if (lead) {
-          lead.organizationId = orgId || null;
-          if (orgId && _cachedOrgs) {
-            const org = _cachedOrgs.find(o => o.id === orgId);
-            lead.organization = org ? { id: org.id, name: org.name, type: org.type } : null;
-          } else {
-            lead.organization = null;
-          }
-        }
-      } catch (err) {
-        console.error('Error updating lead org:', err);
-        alert('Failed to update organization');
       }
     }
 
@@ -7096,8 +7037,7 @@
         loadLeadNotes(lead.id);
         loadLeadAppointments(lead.id);
         loadLeadProposals(lead);
-        loadOrgDropdown(lead.organizationId || lead.organization?.id);
-        if (lead.customer?.qbCustomerId || lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id) {
+          if (lead.customer?.qbCustomerId || lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id) {
           loadQBCustomerActivity(lead);
         }
         return;
