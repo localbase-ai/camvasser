@@ -1597,15 +1597,10 @@
       const proposals = getLeadProposals(lead);
 
       if (proposals.length > 0) {
-        // Active proposals (pending/sent) take priority — this is the pipeline value
-        const active = proposals.filter(p => p.status === 'pending' || p.status === 'sent');
-        if (active.length > 0) {
-          return active.reduce((sum, p) => sum + (p.proposal_amount || 0), 0);
-        }
-        // No active proposals — show completed value (signed/closed) if any
-        const completed = proposals.filter(p => p.status === 'signed' || p.status === 'closed');
-        if (completed.length > 0) {
-          return completed.reduce((sum, p) => sum + (p.proposal_amount || 0), 0);
+        // Sum all proposals with an amount — regardless of proposal status
+        const withAmount = proposals.filter(p => p.proposal_amount > 0);
+        if (withAmount.length > 0) {
+          return withAmount.reduce((sum, p) => sum + p.proposal_amount, 0);
         }
       }
 
