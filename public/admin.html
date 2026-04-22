@@ -9287,51 +9287,22 @@
       // Divider
       // Proposal stages: pending, sent, signed, won, lost
 
-      const leadStages = ['new', 'contacted', 'appointment_scheduled', 'pending', 'proposal_sent', 'job_scheduled'];
-      const proposalStages = ['won', 'lost'];
+      const leadStages = ['new', 'contacted', 'appointment_scheduled', 'pending', 'proposal_sent', 'job_scheduled', 'won', 'lost'];
+      const proposalStages = [];
 
-      // Group leads by status (only early-funnel stages)
+      // Group leads by status
       const leadGroups = {};
       leadStages.forEach(s => leadGroups[s] = []);
       leads.forEach(lead => {
-        if (lead.status && leadGroups[lead.status] !== undefined) {
-          leadGroups[lead.status].push(lead);
+        // Map completed → won, killed → lost
+        let status = lead.status;
+        if (status === 'completed') status = 'won';
+        if (status === 'killed') status = 'lost';
+        if (status && leadGroups[status] !== undefined) {
+          leadGroups[status].push(lead);
         }
       });
 
-      // Group proposals by status, excluding proposals that have a linked lead
-      // (those are represented by the lead card on the left side)
-      const proposalGroups = {};
-      proposalStages.forEach(s => proposalGroups[s] = []);
-      proposals.forEach(p => {
-        if (p._leadId || p.lead_id) return;
-        const stage = p.status === 'pending' ? 'sent' : p.status;
-        if (stage && proposalGroups[stage] !== undefined) {
-          proposalGroups[stage].push(p);
-        }
-      });
-
-      // Merge completed leads into Won column (historical deals without proposals)
-      // Build a set of won proposal customer names to avoid duplicates
-      const wonNames = new Set(proposalGroups['won'].map(p => (p.customer_name || '').toLowerCase().trim()));
-      const completedLeads = leads.filter(l => l.status === 'completed');
-      for (const lead of completedLeads) {
-        const name = `${lead.firstName || ''} ${lead.lastName || ''}`.toLowerCase().trim();
-        if (!wonNames.has(name)) {
-          // Add as a proposal-shaped card so it renders consistently
-          const jobValue = getLeadJobValue(lead);
-          proposalGroups['won'].push({
-            customer_name: `${lead.firstName || ''} ${lead.lastName || ''}`,
-            customer_email: lead.email,
-            proposal_amount: jobValue,
-            sent_date: lead.createdAt,
-            status: 'won',
-            _fromLead: true,
-            _leadId: lead.id
-          });
-          wonNames.add(name);
-        }
-      }
 
       const stageColors = {
         new: { bg: '#1e293b', text: '#94a3b8' },
@@ -9450,11 +9421,7 @@
 
       // Build the combined board: lead stages | divider | proposal stages
       const leadColumns = leadStages.map(s => renderColumn(s, leadGroups[s], false)).join('');
-      const proposalColumns = proposalStages.map(s => renderColumn(s, proposalGroups[s], true)).join('');
-
-      board.innerHTML = leadColumns +
-        '<div class="w-1 bg-warning/30 flex-shrink-0 self-stretch" title="Lead → Proposal handoff"></div>' +
-        proposalColumns;
+      board.innerHTML = leadColumns;
 
       // Hide pagination in pipeline view
       document.getElementById('leadPagination').innerHTML = '';
