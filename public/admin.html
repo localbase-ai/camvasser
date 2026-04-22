@@ -784,7 +784,7 @@
 
       <!-- Calls View -->
       <!-- Dashboard View -->
-      <div id="view-dashboard" class="view flex flex-col h-full">
+      <div id="view-dashboard" class="view hidden flex flex-col h-full">
         <h2 id="dashboardGreeting" class="text-xl font-semibold mt-4 mb-6">Welcome</h2>
         <div class="max-w-2xl">
           <div class="relative">
@@ -1969,11 +1969,14 @@
         switchView(hash, false);
       });
 
-      // Check initial hash, then localStorage, then default to 'calls'
+      // Check initial hash, then localStorage, then default to dashboard
       const initialHash = window.location.hash.slice(1);
       const validViews = ['dashboard', 'calls', 'addresses', 'contacts', 'leads', 'organizations', 'customers', 'map', 'calendar', 'integrations'];
-      if (initialHash && validViews.includes(initialHash)) {
-        switchView(initialHash, false);
+      const lastView = localStorage.getItem('lastView');
+      if (initialHash && (validViews.includes(initialHash) || initialHash.startsWith('lead/'))) {
+        switchView(initialHash.startsWith('lead/') ? 'leads' : initialHash, false);
+      } else if (lastView && validViews.includes(lastView)) {
+        switchView(lastView, false);
       } else {
         switchView('dashboard', false);
       }
