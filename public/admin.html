@@ -9019,11 +9019,14 @@
 
     async function handleLeadDrop(evt) {
       const leadId = evt.item.dataset.leadId;
-      const newStatus = evt.to.dataset.status;
-      const oldStatus = evt.from.dataset.status;
+      const dropStage = evt.to.dataset.status;
+      const fromStage = evt.from.dataset.status;
 
       // Same column - no update needed
-      if (newStatus === oldStatus) return;
+      if (dropStage === fromStage) return;
+
+      // Map display stage → canonical status (Closed Won column persists as `completed`)
+      const newStatus = dropStage === 'won' ? 'completed' : dropStage;
 
       // Update local data optimistically
       const lead = allLeads.find(l => l.id === leadId);
