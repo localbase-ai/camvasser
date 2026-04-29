@@ -93,9 +93,11 @@ body {
   grid-template-areas:
     "map controls"
     "map contact";
-  gap: 16px;
+  column-gap: 24px;
+  row-gap: 20px;
   align-items: start;
   margin-top: 0 !important;
+  padding-bottom: 8px;
 }
 .detail-pane-expanded .lead-hero > * {
   margin-top: 0 !important;
@@ -104,6 +106,28 @@ body {
 .detail-pane-expanded .lead-hero-controls { grid-area: controls; }
 .detail-pane-expanded .lead-hero-contact { grid-area: contact; }
 .detail-pane-expanded .lead-hero-controls .max-w-xs { max-width: none; }
+
+/* Tighten the controls column — vertical rhythm between Status / Owner / Tags */
+.detail-pane-expanded .lead-hero-controls > * + * {
+  margin-top: 12px !important;
+}
+
+/* Map a touch taller in the expanded view since it has full hero height to fill */
+.detail-pane-expanded #leadMapContainer iframe {
+  height: 280px !important;
+}
+
+/* Address card + CompanyCam button get a bit more breathing room from the map */
+.detail-pane-expanded .lead-hero-map > * + * {
+  margin-top: 10px !important;
+}
+
+/* Secondary section gets a clearer break from the hero */
+.detail-pane-expanded .lead-secondary {
+  border-top: 1px solid var(--fallback-bc, oklch(var(--bc) / 0.1));
+  padding-top: 20px;
+  margin-top: 8px !important;
+}
 
 /* Sidebar collapse */
 #sidebar.collapsed {
