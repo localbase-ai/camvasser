@@ -1984,8 +1984,11 @@
       if (initialHash.startsWith('lead/')) {
         const leadId = initialHash.substring(5);
         switchView('leads', false);
-        // Restore expanded state before slide-in (avoid the resize-after-open jank)
-        const wasExpanded = localStorage.getItem('leadDetailPaneExpanded') === '1';
+        // ?expand=1 in the URL forces expanded mode (overrides localStorage),
+        // so agents/voice-CRM can hand out canonical "open in full view" links.
+        // Otherwise, restore the user's last expand state from localStorage.
+        const urlExpand = new URLSearchParams(window.location.search).get('expand');
+        const wasExpanded = urlExpand === '1' || (urlExpand !== '0' && localStorage.getItem('leadDetailPaneExpanded') === '1');
         const pane = document.getElementById('leadDetailPane');
         if (wasExpanded && pane) {
           pane.classList.remove('detail-pane-width');
