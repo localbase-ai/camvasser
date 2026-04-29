@@ -3272,7 +3272,14 @@
       });
       // Status filter events are handled in populateLeadStatusFilter
       document.getElementById('leadOwnerFilter').addEventListener('change', () => { leadPage = 1; searchLeads(); });
-      document.getElementById('leadHasValueFilter').addEventListener('change', () => { leadPage = 1; searchLeads(); });
+      document.getElementById('leadHasValueFilter').addEventListener('change', () => {
+        leadPage = 1;
+        if (typeof leadsViewMode !== 'undefined' && leadsViewMode === 'kanban') {
+          renderPipelineFromCache();
+        } else {
+          searchLeads();
+        }
+      });
 
       // Organization search
       let orgSearchTimeout;
@@ -4495,6 +4502,7 @@
 
     function renderPipelineFromCache() {
       const searchTerm = (document.getElementById('leadSearch')?.value || '').toLowerCase().trim();
+      const hasValueFilter = document.getElementById('leadHasValueFilter')?.checked || false;
       let filteredLeads = _pipelineLeads || allLeads;
       let filteredProposals = _pipelineProposals || [];
       if (searchTerm) {
@@ -4510,6 +4518,9 @@
             (p.customer_email || '').toLowerCase().includes(searchTerm) ||
             (p._ownerName || '').toLowerCase().includes(searchTerm);
         });
+      }
+      if (hasValueFilter) {
+        filteredLeads = filteredLeads.filter(l => getLeadJobValue(l) !== null);
       }
       renderPipelineKanban(filteredLeads, filteredProposals);
     }
