@@ -1984,32 +1984,31 @@
       if (initialHash.startsWith('lead/')) {
         const leadId = initialHash.substring(5);
         switchView('leads', false);
-        // Wait for leads to load, then show detail
-        setTimeout(() => openLeadFromDeepLink(leadId), 500);
+        // Restore expanded state before slide-in (avoid the resize-after-open jank)
+        const wasExpanded = localStorage.getItem('leadDetailPaneExpanded') === '1';
+        const pane = document.getElementById('leadDetailPane');
+        if (wasExpanded && pane) {
+          pane.classList.remove('detail-pane-width');
+          pane.classList.add('detail-pane-expanded');
+          const btn = pane.querySelector('.detail-expand-btn');
+          if (btn) {
+            btn.title = 'Collapse';
+            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9L4 4m0 0v4m0-4h4m7 11l5 5m0 0v-4m0 4h-4M9 15l-5 5m0 0h4m-4 0v-4m11-7l5-5m0 0h-4m4 0v4" /></svg>';
+          }
+        }
+        // Suppress the slide-in animation on first paint so the panel appears instantly
+        if (pane) {
+          pane.classList.add('no-transition');
+          requestAnimationFrame(() => requestAnimationFrame(() => pane.classList.remove('no-transition')));
+        }
+        openLeadFromDeepLink(leadId);
       }
     }
 
     async function openLeadFromDeepLink(leadId) {
-      // If leads aren't loaded yet, wait and retry
-      if (allLeads.length === 0) {
-        await searchLeads();
-      }
-      // Try to find the lead
-      let lead = allLeads.find(l => l.id === leadId);
-      if (!lead) {
-        // Fetch all leads to find it
-        const response = await fetch(`/.netlify/functions/get-leads?limit=10000&tenant=${currentTenant || ''}`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          allLeads = data.leads || [];
-          lead = allLeads.find(l => l.id === leadId);
-        }
-      }
-      if (lead) {
-        showLeadDetail(leadId);
-      }
+      // Show the panel immediately — showLeadDetail will fetch the single lead
+      // directly via /get-lead without waiting for the full list to load.
+      showLeadDetail(leadId);
     }
 
     function copyLeadShareLink(leadId) {
@@ -3948,6 +3947,10 @@
         btn.title = 'Collapse';
         btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9L4 4m0 0v4m0-4h4m7 11l5 5m0 0v-4m0 4h-4M9 15l-5 5m0 0h4m-4 0v-4m11-7l5-5m0 0h-4m4 0v4" /></svg>';
       }
+      // Persist expansion state for the lead detail pane so refresh restores it
+      if (paneId === 'leadDetailPane') {
+        localStorage.setItem('leadDetailPaneExpanded', isExpanded ? '0' : '1');
+      }
     }
 
     function closeAddressDetail() {
@@ -4675,8 +4678,10 @@
     let _leadDetailRequestId = 0;
 
     async function showLeadDetail(leadId) {
-      let lead = allLeads.find(l => l.id === leadId);
-      if (!lead) return;
+      // Use cache if available for snappy UI; otherwise the fresh fetch below
+      // populates the lead. (Don't bail on cache miss — deep-links from page
+      // refresh land here before allLeads is populated.)
+      let lead = allLeads.find(l => l.id === leadId) || null;
 
       // Ensure tenant users are loaded for owner dropdown
       if (tenantUsers.length === 0) {
@@ -4722,6 +4727,8 @@
 
       // Race condition guard: if user clicked a different lead while fetching, bail
       if (_leadDetailRequestId !== requestId) return;
+      // If neither cache nor fetch produced a lead, bail
+      if (!lead) return;
       const pane = document.getElementById('leadDetailPane');
       const content = document.getElementById('leadDetailContent');
 

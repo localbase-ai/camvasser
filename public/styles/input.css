@@ -85,6 +85,12 @@ body {
 .detail-pane-expanded {
   width: 100%;
 }
+/* Suppress transitions on initial paint when restoring a deep-linked detail pane */
+.no-transition,
+.no-transition * {
+  transition: none !important;
+  animation: none !important;
+}
 
 /* Lead detail expanded layout: map left (full hero height), controls top-right, contact bottom-right */
 .detail-pane-expanded .lead-hero {
