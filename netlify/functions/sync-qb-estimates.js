@@ -181,8 +181,12 @@ export async function handler(event) {
       }
 
       if (existingProposal) {
-        // Preserve existing leadId if already set and we didn't find a new match
-        if (!matchedLeadId && existingProposal.leadId) {
+        // Always preserve manual lead linkages on existing proposals.
+        // The first/last-name matcher is unreliable for organizations with
+        // many leads under one QB customer (e.g. property managers), and
+        // would otherwise reshuffle a proposal between properties on every
+        // sync. Leadlink is only set when the proposal is first created.
+        if (existingProposal.leadId) {
           delete proposalData.leadId;
         }
         await prisma.proposal.update({

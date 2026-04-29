@@ -131,8 +131,9 @@ export async function handler(event) {
       });
 
       if (existing) {
-        // Preserve existing leadId if already set and we didn't find a new match
-        if (!matchedLeadId && existing.leadId) {
+        // Preserve manual lead linkages on existing proposals — see note in
+        // sync-qb-estimates.js. Same reshuffle hazard for property-mgmt orgs.
+        if (existing.leadId) {
           delete proposalData.leadId;
         }
         await prisma.proposal.update({
