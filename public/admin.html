@@ -9328,6 +9328,19 @@
         }
       });
 
+      // Sort each column: leads with a deal value first (highest → lowest),
+      // then leads without a deal value preserve their original order.
+      leadStages.forEach(s => {
+        leadGroups[s].sort((a, b) => {
+          const aVal = getLeadJobValue(a) || 0;
+          const bVal = getLeadJobValue(b) || 0;
+          if (aVal === bVal) return 0;
+          if (aVal === 0) return 1;
+          if (bVal === 0) return -1;
+          return bVal - aVal;
+        });
+      });
+
 
       const stageColors = {
         new: { bg: '#1e293b', text: '#94a3b8' },
