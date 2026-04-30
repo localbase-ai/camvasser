@@ -104,9 +104,10 @@ body {
 .detail-pane-expanded .lead-hero > * {
   margin-top: 0 !important;
 }
-.detail-pane-expanded .lead-hero-map { grid-column: 1; grid-row: 1 / span 2; }
+.detail-pane-expanded .lead-hero-map { grid-column: 1; grid-row: 1 / span 3; }
 .detail-pane-expanded .lead-hero-controls { grid-column: 2; grid-row: 1; align-self: start; }
-.detail-pane-expanded .lead-hero-contact { grid-column: 2; grid-row: 2; align-self: start; margin-top: 4px !important; }
+.detail-pane-expanded .lead-hero-proposals { grid-column: 2; grid-row: 2; align-self: start; margin-top: 12px !important; }
+.detail-pane-expanded .lead-hero-contact { grid-column: 2; grid-row: 3; align-self: start; margin-top: 12px !important; }
 .detail-pane-expanded .lead-hero-controls .max-w-xs { max-width: none; }
 
 /* Unify Address column label + spacing with Status column so map iframe top
