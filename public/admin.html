@@ -252,7 +252,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <span class="nav-text">Addresses</span>
+              <span class="nav-text">Properties</span>
               <span id="addressCount" class="badge badge-sm badge-ghost">-</span>
             </a>
           </li>
@@ -342,10 +342,10 @@
         <!-- Sticky Header -->
         <div class="sticky top-0 bg-base-100 z-30 py-2">
           <div class="flex justify-between items-center gap-4">
-            <h2 class="text-lg font-bold">Addresses</h2>
+            <h2 class="text-lg font-bold">Properties</h2>
             <span id="addressCountLabel" class="text-xs text-base-content/60"></span>
             <div class="flex flex-wrap gap-2 items-center flex-1">
-              <input type="text" id="addressSearch" placeholder="Search addresses..." class="input input-bordered input-sm flex-1 min-w-[200px]">
+              <input type="text" id="addressSearch" placeholder="Search properties..." class="input input-bordered input-sm flex-1 min-w-[200px]">
               <select id="addressTagFilter" class="select select-bordered select-sm" onchange="updateAddressTagFilter()">
                 <option value="">All Tags</option>
               </select>
@@ -686,7 +686,7 @@
           <!-- Row 1: Title + filters (no wrap — scrolls horizontally when zoomed) -->
           <div class="flex items-center gap-2 flex-nowrap min-w-max px-2">
             <h2 class="text-lg font-bold whitespace-nowrap">Map</h2>
-            <input type="text" id="mapAddressFilter" placeholder="Filter addresses..."
+            <input type="text" id="mapAddressFilter" placeholder="Filter properties..."
               class="input input-sm input-bordered w-40"
               oninput="clearTimeout(mapAddressFilterTimeout); mapAddressFilterTimeout = setTimeout(applyMapFilters, 300)">
             <select id="mapCallListFilter" class="select select-sm select-bordered w-40" onchange="applyMapFilters()">
@@ -1148,7 +1148,7 @@
                   </div>
                   <div>
                     <h3 class="font-semibold">CompanyCam</h3>
-                    <p class="text-sm text-base-content/60">Project photos and addresses</p>
+                    <p class="text-sm text-base-content/60">Project photos and properties</p>
                   </div>
                 </div>
                 <div id="companycamStatus" class="badge badge-ghost">Checking...</div>
@@ -3717,7 +3717,7 @@
       const tbody = document.getElementById('addressTableBody');
 
       if (addresses.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-base-content/60">No addresses found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-base-content/60">No properties found</td></tr>`;
       } else {
         tbody.innerHTML = addresses.map(addr => {
           const thumb = addr.featureImage?.find(img => img.type === 'thumbnail')?.url || addr.featureImage?.[0]?.url;
