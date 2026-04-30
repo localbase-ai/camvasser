@@ -92,15 +92,11 @@ body {
   animation: none !important;
 }
 
-/* Lead detail expanded layout: map left (full hero height), controls top-right, contact bottom-right */
+/* Lead detail expanded layout: map left (full column), controls + contact stacked tight on right */
 .detail-pane-expanded .lead-hero {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-areas:
-    "map controls"
-    "map contact";
   column-gap: 24px;
-  row-gap: 20px;
   align-items: start;
   margin-top: 0 !important;
   padding-bottom: 8px;
@@ -108,9 +104,9 @@ body {
 .detail-pane-expanded .lead-hero > * {
   margin-top: 0 !important;
 }
-.detail-pane-expanded .lead-hero-map { grid-area: map; }
-.detail-pane-expanded .lead-hero-controls { grid-area: controls; }
-.detail-pane-expanded .lead-hero-contact { grid-area: contact; }
+.detail-pane-expanded .lead-hero-map { grid-column: 1; grid-row: 1 / span 2; }
+.detail-pane-expanded .lead-hero-controls { grid-column: 2; grid-row: 1; align-self: start; }
+.detail-pane-expanded .lead-hero-contact { grid-column: 2; grid-row: 2; align-self: start; margin-top: 16px !important; }
 .detail-pane-expanded .lead-hero-controls .max-w-xs { max-width: none; }
 
 /* Secondary section: 2-col grid in expanded view (relationships left, activity right) */
