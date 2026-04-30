@@ -14,7 +14,12 @@ const prisma = new PrismaClient();
 export async function handler(event) {
   try {
     const id = event.queryStringParameters?.id;
-    const slug = event.queryStringParameters?.slug;
+    // Slug comes either from ?slug= or from the URL path /p/{slug}
+    let slug = event.queryStringParameters?.slug;
+    if (!slug && event.path) {
+      const match = event.path.match(/\/p\/([^/?#]+)/);
+      if (match) slug = match[1];
+    }
 
     if (!id && !slug) {
       return notFound();

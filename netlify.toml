@@ -61,9 +61,11 @@
   status = 200
   force = true
 
-# Public proposal viewer — short URL by Proposal.proposalId slug
+# Public proposal viewer — short URL by Proposal.proposalId slug.
+# Function reads slug from event.path since Netlify doesn't substitute
+# placeholders into query strings on the `to` field.
 [[redirects]]
   from = "/p/:slug"
-  to = "/.netlify/functions/serve-proposal?slug=:slug"
+  to = "/.netlify/functions/serve-proposal"
   status = 200
   force = true
