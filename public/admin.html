@@ -4764,81 +4764,105 @@
     let _leadDetailRequestId = 0;
 
     async function showLeadDetail(leadId) {
-      // Use cache if available for snappy UI; otherwise the fresh fetch below
-      // populates the lead. (Don't bail on cache miss — deep-links from page
-      // refresh land here before allLeads is populated.)
+      // OPTIMISTIC RENDER: paint the pane immediately from in-memory cache,
+      // slide it in, then fetch fresh data in the background and re-render
+      // only if the data actually changed. Click → panel-visible should be
+      // instant, not gated on a network round-trip.
+      const requestId = ++_leadDetailRequestId;
       let lead = allLeads.find(l => l.id === leadId) || null;
+      const pane = document.getElementById('leadDetailPane');
+      const content = document.getElementById('leadDetailContent');
 
-      // Ensure tenant users are loaded for owner dropdown
-      if (tenantUsers.length === 0) {
-        try {
-          const usersRes = await fetch(`/.netlify/functions/get-tenant-users?tenant=${currentTenant}`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
-          });
-          const usersData = await usersRes.json();
-          tenantUsers = usersData.users || [];
-        } catch (e) {
-          console.error('Failed to load tenant users:', e);
-        }
-      }
-
-      // Update row highlight immediately for snappy UI
+      // Update row highlight + URL immediately
       const prevSelected = document.querySelector('#leadTableBody tr.row-selected');
       if (prevSelected) prevSelected.classList.remove('row-selected');
       const newSelected = document.querySelector(`#leadTableBody tr[data-id="${leadId}"]`);
       if (newSelected) newSelected.classList.add('row-selected');
-
       selectedLeadId = leadId;
       history.replaceState(null, '', `#lead/${leadId}`);
 
-      // Fresh fetch from server to get latest data
-      const requestId = ++_leadDetailRequestId;
-      try {
-        const params = new URLSearchParams({ id: leadId, tenant: currentTenant });
-        const resp = await fetch(`/.netlify/functions/get-lead?${params}`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        if (resp.ok) {
-          const data = await resp.json();
-          if (data.lead) {
-            lead = data.lead;
-            // Update in-memory cache so list stays in sync
-            const idx = allLeads.findIndex(l => l.id === leadId);
-            if (idx !== -1) allLeads[idx] = lead;
-          }
+      // Phase 1: optimistic render from cache (instant)
+      if (lead) {
+        const html = buildLeadDetailHtml(lead);
+        content.innerHTML = html;
+        content.dataset.lastRenderedHash = html.length + ':' + (lead.updatedAt || '');
+        pane.style.transform = 'translateX(0)';
+        if (lead.address) loadLeadMap(lead);
+        loadLeadNotes(leadId);
+        loadLeadAppointments(leadId);
+        loadLeadProposals(lead);
+        if (lead.customer?.qbCustomerId || lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id) {
+          loadQBCustomerActivity(lead);
         }
-      } catch (e) {
-        console.warn('Fresh lead fetch failed, using cached data:', e);
       }
 
-      // Race condition guard: if user clicked a different lead while fetching, bail
+      // Phase 2: fresh data fetch in parallel (don't block pane visibility).
+      // Also fetch tenant users if not loaded yet so the owner dropdown
+      // gets populated. Both fire in parallel.
+      const tenantUsersPromise = (tenantUsers.length === 0)
+        ? fetch(`/.netlify/functions/get-tenant-users?tenant=${currentTenant}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          }).then(r => r.ok ? r.json() : null).then(d => { if (d?.users) tenantUsers = d.users; }).catch(() => {})
+        : Promise.resolve();
+
+      const freshLeadPromise = (async () => {
+        try {
+          const params = new URLSearchParams({ id: leadId, tenant: currentTenant });
+          const resp = await fetch(`/.netlify/functions/get-lead?${params}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.lead) {
+              const idx = allLeads.findIndex(l => l.id === leadId);
+              if (idx !== -1) allLeads[idx] = data.lead;
+              return data.lead;
+            }
+          }
+        } catch (e) {
+          console.warn('Fresh lead fetch failed:', e);
+        }
+        return null;
+      })();
+
+      // Wait for both, then re-render only if something changed
+      const [, freshLead] = await Promise.all([tenantUsersPromise, freshLeadPromise]);
+
+      // Race guard: if user clicked another lead while we waited, bail
       if (_leadDetailRequestId !== requestId) return;
-      // If neither cache nor fetch produced a lead, bail
-      if (!lead) return;
-      const pane = document.getElementById('leadDetailPane');
-      const content = document.getElementById('leadDetailContent');
 
-      // Render lead details
-      content.innerHTML = buildLeadDetailHtml(lead);
+      const finalLead = freshLead || lead;
+      if (!finalLead) return;
 
-      // Show pane (slide in from right)
-      pane.style.transform = 'translateX(0)';
-
-      // Load map for the address
-      if (lead.address) {
-        loadLeadMap(lead);
+      // If we never had a cached lead, this is the FIRST render (deep-link case)
+      const isFirstRender = !lead;
+      if (isFirstRender) {
+        const html = buildLeadDetailHtml(finalLead);
+        content.innerHTML = html;
+        content.dataset.lastRenderedHash = html.length + ':' + (finalLead.updatedAt || '');
+        pane.style.transform = 'translateX(0)';
+        if (finalLead.address) loadLeadMap(finalLead);
+        loadLeadNotes(leadId);
+        loadLeadAppointments(leadId);
+        loadLeadProposals(finalLead);
+        if (finalLead.customer?.qbCustomerId || finalLead.flowData?.quickbooks_customer_id || finalLead.flowData?.qb_customer_id) {
+          loadQBCustomerActivity(finalLead);
+        }
+      } else if (freshLead) {
+        // Re-render only if the fresh data is actually different from what we
+        // optimistically painted. Hash by length+updatedAt to skip identical
+        // re-renders.
+        const newHtml = buildLeadDetailHtml(freshLead);
+        const newHash = newHtml.length + ':' + (freshLead.updatedAt || '');
+        if (newHash !== content.dataset.lastRenderedHash) {
+          content.innerHTML = newHtml;
+          content.dataset.lastRenderedHash = newHash;
+          if (freshLead.address) loadLeadMap(freshLead);
+        }
       }
 
-      // Load notes for this lead
-      loadLeadNotes(leadId);
-
-      // Load appointments for this lead
-      loadLeadAppointments(leadId);
-
-      // Load proposals for this lead (by email or name)
-      loadLeadProposals(lead);
-
-      // Populate organization dropdown
+      // Update final lead reference for the rest of this function
+      lead = finalLead;
 
       // Show sibling property count if customer is linked
       if (lead.customer?.id) {
@@ -4847,11 +4871,6 @@
         if (el && siblingCount > 0) {
           el.textContent = `${siblingCount} other propert${siblingCount === 1 ? 'y' : 'ies'}`;
         }
-      }
-
-      // Load QB activity if customer is linked
-      if (lead.customer?.qbCustomerId || lead.flowData?.quickbooks_customer_id || lead.flowData?.qb_customer_id) {
-        loadQBCustomerActivity(lead);
       }
 
       // Re-render to update selected state - respect current view mode
