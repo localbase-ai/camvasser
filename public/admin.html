@@ -2042,6 +2042,37 @@
       } else {
         switchView('dashboard', false);
       }
+
+      // SYNCHRONOUS pipeline pre-render from localStorage cache so the page
+      // refresh paints the kanban INSTANTLY, before any network fetch. The
+      // fresh data load then happens in the background and updates if the
+      // server returned anything new.
+      try {
+        const goingToLeads = (initialHash === 'leads' || initialHash.startsWith('lead/') || lastView === 'leads');
+        if (goingToLeads && leadsViewMode === 'kanban') {
+          const cached = JSON.parse(localStorage.getItem('_pipelineCache') || 'null');
+          // Only use cache if tenant matches and it's < 1 hour old
+          if (cached && cached.tenant === currentTenant && (Date.now() - cached.savedAt) < 3600000) {
+            allLeads = cached.leads || [];
+            _pipelineLeads = allLeads;
+            _pipelineProposals = cached.proposals || [];
+            // Show kanban view + render
+            const listView = document.getElementById('leadsListView');
+            const kanbanView = document.getElementById('leadsKanbanView');
+            if (listView) listView.classList.add('hidden');
+            if (kanbanView) kanbanView.classList.remove('hidden');
+            const listBtn = document.getElementById('leadsListBtn');
+            const kanbanBtn = document.getElementById('leadsKanbanBtn');
+            if (listBtn) listBtn.classList.remove('btn-active');
+            if (kanbanBtn) kanbanBtn.classList.add('btn-active');
+            if (typeof renderPipelineFromCache === 'function') {
+              renderPipelineFromCache();
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Pipeline cache pre-render failed:', e);
+      }
       // Handle deep link to specific lead: #lead/{leadId}
       if (initialHash.startsWith('lead/')) {
         const leadId = initialHash.substring(5);
@@ -9439,6 +9470,33 @@
         // Cache for re-renders (search, collapse, filter)
         _pipelineLeads = allLeads;
         _pipelineProposals = allProposals;
+
+        // Persist to localStorage so the next page-refresh can render the
+        // pipeline synchronously before the network fetch returns.
+        try {
+          const trimmedLeads = allLeads.map(l => ({
+            id: l.id, firstName: l.firstName, lastName: l.lastName,
+            address: l.address, city: l.city, state: l.state, postalCode: l.postalCode,
+            status: l.status, ownerName: l.ownerName, organizationId: l.organizationId,
+            customerId: l.customerId, tags: l.tags, flowData: l.flowData,
+            email: l.email, phone: l.phone, projectId: l.projectId,
+            customer: l.customer ? { id: l.customer.id, qbDisplayName: l.customer.qbDisplayName, qbCustomerId: l.customer.qbCustomerId } : null,
+            organization: l.organization ? { id: l.organization.id, name: l.organization.name, type: l.organization.type } : null
+          }));
+          const trimmedProposals = allProposals.map(p => ({
+            id: p.id, customer_name: p.customer_name, customer_email: p.customer_email,
+            proposal_amount: p.proposal_amount, status: p.status, sent_date: p.sent_date,
+            qb_estimate_id: p.qb_estimate_id, lead_id: p.lead_id,
+            _ownerName: p._ownerName, _leadId: p._leadId
+          }));
+          localStorage.setItem('_pipelineCache', JSON.stringify({
+            leads: trimmedLeads, proposals: trimmedProposals,
+            tenant: currentTenant, savedAt: Date.now()
+          }));
+        } catch (e) {
+          // Quota exceeded, etc — non-fatal
+          console.warn('Pipeline cache save failed:', e);
+        }
 
         renderPipelineFromCache();
       } catch (error) {
