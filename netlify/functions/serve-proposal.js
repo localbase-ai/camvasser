@@ -49,8 +49,9 @@ export async function handler(event) {
       statusCode: 200,
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
-        // Allow caching by client/CDN but let us bust on update
-        'Cache-Control': 'public, max-age=300',
+        // No-cache while we iterate — proposals can be edited frequently and
+        // a 5-min CDN cache made every change feel broken to the user.
+        'Cache-Control': 'no-cache, must-revalidate',
         'X-Robots-Tag': 'noindex, nofollow',
       },
       body: proposal.html,
