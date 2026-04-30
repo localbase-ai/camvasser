@@ -1969,6 +1969,42 @@
         switchView(hash, false);
       });
 
+      // Refresh data when the tab regains focus (voice-CRM workflow:
+      // changes happen while you're in another tab, you come back, see them).
+      // Throttled to once every 3s so rapid focus cycling doesn't hammer the API.
+      let _lastRefocusRefresh = 0;
+      const refreshOnFocus = () => {
+        if (document.hidden) return;
+        const now = Date.now();
+        if (now - _lastRefocusRefresh < 3000) return;
+        _lastRefocusRefresh = now;
+        try {
+          if (currentView === 'leads') {
+            if (leadsViewMode === 'kanban') {
+              searchLeadsForKanban();
+            } else {
+              searchLeads();
+            }
+            // If a lead detail panel is open, refresh that lead too
+            if (selectedLeadId) {
+              showLeadDetail(selectedLeadId);
+            }
+          } else if (currentView === 'organizations' && typeof loadOrganizations === 'function') {
+            loadOrganizations();
+          } else if (currentView === 'addresses' && typeof searchAddresses === 'function') {
+            searchAddresses();
+          } else if (currentView === 'customers' && typeof searchCustomers === 'function') {
+            searchCustomers();
+          } else if (currentView === 'calls' && typeof searchCalls === 'function') {
+            searchCalls();
+          }
+        } catch (e) {
+          console.warn('Refocus refresh failed:', e);
+        }
+      };
+      document.addEventListener('visibilitychange', refreshOnFocus);
+      window.addEventListener('focus', refreshOnFocus);
+
       // Check initial hash, then localStorage, then default to dashboard
       const initialHash = window.location.hash.slice(1);
       const validViews = ['dashboard', 'calls', 'addresses', 'contacts', 'leads', 'organizations', 'customers', 'map', 'calendar', 'integrations'];
