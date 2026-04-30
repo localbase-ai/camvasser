@@ -4992,7 +4992,7 @@
             </div>
             <div id="leadAddressDisplay">
               ${lead.address ? `
-                <div class="-mx-4" id="leadMapContainer"></div>
+                <div id="leadMapContainer" class="my-2"></div>
                 <div class="p-3 bg-base-200 rounded cursor-pointer hover:bg-base-300 transition-colors" onclick="navigateToAddress('${lead.address.replace(/'/g, "\\'")}', '${lead.projectId || ''}')">
                   <div class="flex items-center justify-between">
                     <div>
@@ -5020,15 +5020,6 @@
                 </div>
               </form>
             </div>
-            ${lead.project?.publicUrl ? `
-              <a href="${lead.project.publicUrl}" target="_blank" class="flex items-center gap-2 mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm text-blue-600 dark:text-blue-400">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                View in CompanyCam
-              </a>
-            ` : ''}
           </div>
 
           <!-- Contact Info -->
@@ -9092,7 +9083,7 @@
             || thumb;
           if (!thumb) return '';
           return `<a href="${full}" target="_blank" class="flex-shrink-0 block">
-            <img src="${thumb}" loading="lazy" class="w-20 h-20 object-cover rounded border border-base-300 hover:border-primary transition-colors" alt="Project photo">
+            <img src="${thumb}" loading="lazy" class="w-32 h-32 object-cover rounded border border-base-300 hover:border-primary transition-colors" alt="Project photo">
           </a>`;
         }).join('');
       } catch (e) {
@@ -9113,7 +9104,7 @@
       container.innerHTML = `
         <iframe
           src="${mapUrl}"
-          class="w-full h-[260px] border-0"
+          class="w-full h-[240px] border-0 rounded-md shadow-sm"
           loading="eager"
           referrerpolicy="no-referrer-when-downgrade"
         ></iframe>
