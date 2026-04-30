@@ -2,6 +2,8 @@
 
 ## BUGS
 - [x] switch urls in the appointment object from camvasser.netlify.com to camvasser.com
+- [ ] Lead detail deep-link (`#lead/X`) on page refresh — the leads list still renders briefly before the detail panel paints over it ("hop"). Fix: render panel + skeleton synchronously before kicking off list fetch. ~20-30 min.
+- [ ] Pipeline kanban: empty columns won't collapse via the chevron button. Diagnostic logging is in place — next time it happens, devtools console will show whether the click is firing. Low priority.
 
 ## Dashboard
 - [ ] Universal search across all tables (leads, projects, prospects, customers)

@@ -30,3 +30,9 @@ test-results/
 *.swp
 *.swo
 *~
+
+# Claude Code session artifacts
+.claude/
+
+# Local scratch dir
+tmp/
