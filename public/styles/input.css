@@ -113,6 +113,16 @@ body {
 .detail-pane-expanded .lead-hero-contact { grid-area: contact; }
 .detail-pane-expanded .lead-hero-controls .max-w-xs { max-width: none; }
 
+/* Secondary section: 2-col grid in expanded view (relationships left, activity right) */
+.lead-secondary-grid > .lead-secondary-col + .lead-secondary-col { margin-top: 1rem; }
+.detail-pane-expanded .lead-secondary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.detail-pane-expanded .lead-secondary-grid > .lead-secondary-col + .lead-secondary-col { margin-top: 0; }
+
 /* Tighten the controls column — vertical rhythm between Status / Owner / Tags */
 .detail-pane-expanded .lead-hero-controls > * + * {
   margin-top: 12px !important;

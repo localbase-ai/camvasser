@@ -5070,12 +5070,12 @@
 
           </div><!-- /.lead-hero -->
 
-          <!-- Secondary info (always single column below the hero) -->
+          <!-- Secondary info: full-width sections + a 2-col grid (when expanded) -->
           <div class="lead-secondary space-y-4">
 
           ${lead.project?.publicUrl ? `
-          <!-- CompanyCam photos preview -->
-          <div class="space-y-2 lead-photos">
+          <!-- CompanyCam photos preview (full width) -->
+          <div class="space-y-2 lead-photos lead-secondary-full">
             <div class="flex items-center justify-between">
               <h5 class="text-xs font-semibold text-base-content/60 uppercase">Photos${lead.project?.photoCount ? ` <span class="text-base-content/40 font-normal">(${lead.project.photoCount})</span>` : ''}</h5>
               <a href="${lead.project.publicUrl}" target="_blank" class="btn btn-xs btn-outline gap-1">
@@ -5091,6 +5091,12 @@
             </div>
           </div>
           ` : ''}
+
+          <!-- 2-col grid (expanded) / stacked (small): relationships+integrations | activity -->
+          <div class="lead-secondary-grid">
+
+          <!-- LEFT COLUMN: relationships & integrations -->
+          <div class="lead-secondary-col space-y-4">
 
           <!-- Customer Link -->
           ${lead.customer ? `
@@ -5164,6 +5170,27 @@
           ` : ''}
           `; })()}
 
+          <!-- Measurement (kept on left col with the property-data) -->
+          <div class="space-y-2">
+            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Measurement</h5>
+            ${lead.measurementUrl
+              ? `<a href="${lead.measurementUrl}" target="_blank" class="text-sm text-primary hover:underline flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  View Measurement
+                </a>
+                <button onclick="setMeasurementUrl('${lead.id}')" class="text-xs text-base-content/40 hover:text-primary">Change link</button>`
+              : `<button onclick="setMeasurementUrl('${lead.id}')" class="text-sm text-base-content/40 hover:text-primary flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                  Attach measurement
+                </button>`
+            }
+          </div>
+
+          </div><!-- /.lead-secondary-col (LEFT) -->
+
+          <!-- RIGHT COLUMN: activity, calendar, notes, history -->
+          <div class="lead-secondary-col space-y-4">
+
           <!-- Schedule Appointment -->
           <div class="space-y-2">
             <h5 class="text-xs font-semibold text-base-content/60 uppercase">Calendar</h5>
@@ -5214,7 +5241,7 @@
 
             <!-- Add Note Form -->
             <div class="flex gap-2">
-              <textarea id="leadNoteInput" class="textarea textarea-bordered textarea-sm flex-1" placeholder="Add a note... (Enter to submit, Shift+Enter for new line)" rows="2" onkeydown="handleNoteKeydown(event, '${lead.id}')"></textarea>
+              <textarea id="leadNoteInput" class="textarea textarea-bordered textarea-sm flex-1" placeholder="Add a note (Enter to save, Shift+Enter for new line)" rows="1" onkeydown="handleNoteKeydown(event, '${lead.id}')"></textarea>
               <button onclick="addLeadNote('${lead.id}')" class="btn btn-sm btn-primary self-end">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -5264,22 +5291,6 @@
             </div>
           </div>
 
-          <!-- Measurement -->
-          <div class="space-y-2">
-            <h5 class="text-xs font-semibold text-base-content/60 uppercase">Measurement</h5>
-            ${lead.measurementUrl
-              ? `<a href="${lead.measurementUrl}" target="_blank" class="text-sm text-primary hover:underline flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                  View Measurement
-                </a>
-                <button onclick="setMeasurementUrl('${lead.id}')" class="text-xs text-base-content/40 hover:text-primary">Change link</button>`
-              : `<button onclick="setMeasurementUrl('${lead.id}')" class="text-sm text-base-content/40 hover:text-primary flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                  Attach measurement
-                </button>`
-            }
-          </div>
-
           <!-- UTM Data -->
           ${(lead.utmSource || lead.utmMedium || lead.utmCampaign) ? `
             <div class="space-y-2">
@@ -5292,21 +5303,16 @@
             </div>
           ` : ''}
 
-          <!-- Actions -->
-          <div class="pt-4 border-t border-base-300 space-y-2">
-            ${lead.address ? `
-              <button onclick="revertLeadToProject('${lead.id}')" class="btn btn-secondary btn-sm w-full">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                Revert to Address
-              </button>
-            ` : ''}
-            <button onclick="deleteLead('${lead.id}')" class="btn btn-sm btn-error btn-outline w-full">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          </div><!-- /.lead-secondary-col (RIGHT) -->
+          </div><!-- /.lead-secondary-grid -->
+
+          <!-- Actions: small inline at the bottom-right -->
+          <div class="flex justify-end pt-3 border-t border-base-300">
+            <button onclick="deleteLead('${lead.id}')" class="btn btn-xs btn-ghost text-error/70 hover:bg-error hover:text-white gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-              Delete Lead
+              Delete
             </button>
           </div>
 
