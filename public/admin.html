@@ -9510,17 +9510,17 @@
       // Divider
       // Proposal stages: pending, sent, signed, won, lost
 
-      const leadStages = ['new', 'contacted', 'appointment_scheduled', 'pending', 'proposal_sent', 'job_scheduled', 'won', 'lost'];
+      const leadStages = ['new', 'contacted', 'appointment_scheduled', 'pending', 'proposal_sent', 'job_scheduled', 'won', 'rehash', 'lost', 'killed'];
       const proposalStages = [];
 
       // Group leads by status
       const leadGroups = {};
       leadStages.forEach(s => leadGroups[s] = []);
       leads.forEach(lead => {
-        // Map completed → won, killed → lost
+        // Map completed → won (display column). killed and lost are now
+        // separate columns, no remap.
         let status = lead.status;
         if (status === 'completed') status = 'won';
-        if (status === 'killed') status = 'lost';
         if (status && leadGroups[status] !== undefined) {
           leadGroups[status].push(lead);
         }
@@ -9549,13 +9549,15 @@
         sent: { bg: '#1e3a5f', text: '#93c5fd' },
         job_scheduled: { bg: '#1a3345', text: '#67e8f9' },
         won: { bg: '#14532d', text: '#4ade80' },
-        lost: { bg: '#3b1c1c', text: '#fca5a5' }
+        rehash: { bg: '#3b2e1c', text: '#fbbf24' },
+        lost: { bg: '#3b1c1c', text: '#fca5a5' },
+        killed: { bg: '#1f1f1f', text: '#a3a3a3' }
       };
 
       const stageLabels = {
         new: 'New', contacted: 'Contacted', appointment_scheduled: 'Appt Scheduled',
         pending: 'Pending', proposal_sent: 'Proposal Sent', sent: 'Sent', job_scheduled: 'Job Scheduled',
-        won: 'Closed Won', lost: 'Closed Lost'
+        won: 'Closed Won', rehash: 'Rehash', lost: 'Closed Lost', killed: 'Killed'
       };
 
       const board = document.getElementById('kanbanBoard');
