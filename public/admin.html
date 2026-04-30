@@ -4924,6 +4924,13 @@
           content.dataset.lastRenderedHash = newHash;
           if (freshLead.address) loadLeadMap(freshLead);
           if (freshLead.project?.publicUrl) loadLeadPhotos(freshLead);
+          // innerHTML wipe killed the previously-loaded sections — reload them
+          loadLeadNotes(leadId);
+          loadLeadAppointments(leadId);
+          loadLeadProposals(freshLead);
+          if (freshLead.customer?.qbCustomerId || freshLead.flowData?.quickbooks_customer_id || freshLead.flowData?.qb_customer_id) {
+            loadQBCustomerActivity(freshLead);
+          }
         }
       }
 
