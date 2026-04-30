@@ -1665,6 +1665,31 @@
       return role === 'manager' && !!(lead.organization || lead.organizationId);
     }
 
+    // Fingerprint of all user-visible fields rendered in buildLeadDetailHtml.
+    // Used to decide whether a fresh /get-lead response is worth a full re-render.
+    // If two leads produce the same fingerprint, the rendered HTML is identical
+    // and we can skip the innerHTML wipe (which causes a visible flash and
+    // forces every section — notes/proposals/photos — to reload).
+    function leadVisibleFingerprint(l) {
+      if (!l) return '';
+      return [
+        l.firstName, l.lastName, l.email, l.phone,
+        l.address, l.city, l.state, l.postalCode,
+        l.status, l.ownerName,
+        Array.isArray(l.tags) ? l.tags.join(',') : '',
+        l.measurementUrl || '',
+        l.primaryContactRole || 'owner',
+        l.customerId || '', l.customer?.firstName || '', l.customer?.lastName || '',
+        l.customer?.qbCustomerId || '',
+        l.organizationId || '', l.organization?.name || '',
+        l.organization?.OrganizationContact?.[0]?.name || '',
+        l.projectId || '', l.project?.publicUrl || '',
+        l.notes || '',
+        l.flowData?.job_type || '',
+        l.utmSource || '', l.utmMedium || '', l.utmCampaign || ''
+      ].join('|');
+    }
+
     // Get owner initials (e.g., "Ryan Riggin" -> "RR")
     function getOwnerInitials(ownerName) {
       if (!ownerName) return '';
@@ -1992,14 +2017,14 @@
 
       // Refresh data when the tab regains focus (voice-CRM workflow:
       // changes happen while you're in another tab, you come back, see them).
-      // Throttled to once every 2s so rapid focus cycling doesn't hammer the API.
-      // Initial value is "now" so we skip the first 2s of page-load events
-      // (pageshow/focus fire on initial paint and would cause redundant fetches).
+      // Throttled to once every 30s so toggling between tabs doesn't hammer the
+      // API or cause repeated re-renders. Most tab-switching happens within
+      // seconds — at 2s the throttle barely helped.
       let _lastRefocusRefresh = Date.now();
       const refreshOnFocus = (evt) => {
         if (document.hidden) return;
         const now = Date.now();
-        if (now - _lastRefocusRefresh < 2000) return;
+        if (now - _lastRefocusRefresh < 30000) return;
         _lastRefocusRefresh = now;
         console.log('[refresh-on-focus]', evt?.type || 'manual', 'view=', currentView, 'mode=', typeof leadsViewMode !== 'undefined' ? leadsViewMode : 'n/a');
         // Brief visual confirmation so the user can see it fire
@@ -4848,7 +4873,7 @@
       if (lead) {
         const html = buildLeadDetailHtml(lead);
         content.innerHTML = html;
-        content.dataset.lastRenderedHash = html.length + ':' + (lead.updatedAt || '');
+        content.dataset.lastRenderedHash = leadVisibleFingerprint(lead);
         pane.style.transform = 'translateX(0)';
         if (lead.address) loadLeadMap(lead);
         if (lead.project?.publicUrl) loadLeadPhotos(lead);
@@ -4903,7 +4928,7 @@
       if (isFirstRender) {
         const html = buildLeadDetailHtml(finalLead);
         content.innerHTML = html;
-        content.dataset.lastRenderedHash = html.length + ':' + (finalLead.updatedAt || '');
+        content.dataset.lastRenderedHash = leadVisibleFingerprint(finalLead);
         pane.style.transform = 'translateX(0)';
         if (finalLead.address) loadLeadMap(finalLead);
         if (finalLead.project?.publicUrl) loadLeadPhotos(finalLead);
@@ -4914,17 +4939,17 @@
           loadQBCustomerActivity(finalLead);
         }
       } else if (freshLead) {
-        // Re-render only if the fresh data is actually different from what we
-        // optimistically painted. Hash by length+updatedAt to skip identical
-        // re-renders.
-        const newHtml = buildLeadDetailHtml(freshLead);
-        const newHash = newHtml.length + ':' + (freshLead.updatedAt || '');
+        // Only re-render if a user-visible field actually changed. Server-side
+        // updatedAt bumps for invisible reasons (e.g. backfill migrations) used
+        // to trigger full re-renders + flash; the fingerprint compares only
+        // fields rendered in buildLeadDetailHtml.
+        const newHash = leadVisibleFingerprint(freshLead);
         if (newHash !== content.dataset.lastRenderedHash) {
+          const newHtml = buildLeadDetailHtml(freshLead);
           content.innerHTML = newHtml;
           content.dataset.lastRenderedHash = newHash;
           if (freshLead.address) loadLeadMap(freshLead);
           if (freshLead.project?.publicUrl) loadLeadPhotos(freshLead);
-          // innerHTML wipe killed the previously-loaded sections — reload them
           loadLeadNotes(leadId);
           loadLeadAppointments(leadId);
           loadLeadProposals(freshLead);
