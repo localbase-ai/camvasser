@@ -60,3 +60,10 @@
   to = "/.netlify/functions/tenant-router/kcroofrestoration"
   status = 200
   force = true
+
+# Public proposal viewer — short URL by Proposal.proposalId slug
+[[redirects]]
+  from = "/p/:slug"
+  to = "/.netlify/functions/serve-proposal?slug=:slug"
+  status = 200
+  force = true

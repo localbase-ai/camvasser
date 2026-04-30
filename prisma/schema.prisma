@@ -409,6 +409,7 @@ model Proposal {
   qbDocNumber    String?
   qbEstimateId   String?   @unique
   pdfUrl         String?
+  html           String?
   qbSyncedAt     DateTime?
   customerId     String?
   leadId         String?
