@@ -14,11 +14,21 @@ const prisma = new PrismaClient();
 export async function handler(event) {
   try {
     const id = event.queryStringParameters?.id;
-    // Slug comes either from ?slug= or from the URL path /p/{slug}
+    // Slug comes from ?slug= or from the URL path /p/{slug}. When Netlify
+    // rewrites /p/{slug} to this function, event.path becomes the resolved
+    // function path, so check rawUrl + the original-path header too.
     let slug = event.queryStringParameters?.slug;
-    if (!slug && event.path) {
-      const match = event.path.match(/\/p\/([^/?#]+)/);
-      if (match) slug = match[1];
+    if (!slug) {
+      const candidates = [
+        event.rawUrl,
+        event.headers?.['x-nf-original-path'],
+        event.headers?.['x-original-path'],
+        event.path,
+      ].filter(Boolean);
+      for (const c of candidates) {
+        const m = c.match(/\/p\/([A-Za-z0-9_-]+)/);
+        if (m) { slug = m[1]; break; }
+      }
     }
 
     if (!id && !slug) {
