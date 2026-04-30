@@ -4838,6 +4838,7 @@
         content.dataset.lastRenderedHash = html.length + ':' + (lead.updatedAt || '');
         pane.style.transform = 'translateX(0)';
         if (lead.address) loadLeadMap(lead);
+        if (lead.project?.publicUrl) loadLeadPhotos(lead);
         loadLeadNotes(leadId);
         loadLeadAppointments(leadId);
         loadLeadProposals(lead);
@@ -4892,6 +4893,7 @@
         content.dataset.lastRenderedHash = html.length + ':' + (finalLead.updatedAt || '');
         pane.style.transform = 'translateX(0)';
         if (finalLead.address) loadLeadMap(finalLead);
+        if (finalLead.project?.publicUrl) loadLeadPhotos(finalLead);
         loadLeadNotes(leadId);
         loadLeadAppointments(leadId);
         loadLeadProposals(finalLead);
@@ -5069,6 +5071,25 @@
 
           <!-- Secondary info (always single column below the hero) -->
           <div class="lead-secondary space-y-4">
+
+          ${lead.project?.publicUrl ? `
+          <!-- CompanyCam photos preview -->
+          <div class="space-y-2 lead-photos">
+            <div class="flex items-center justify-between">
+              <h5 class="text-xs font-semibold text-base-content/60 uppercase">Photos${lead.project?.photoCount ? ` <span class="text-base-content/40 font-normal">(${lead.project.photoCount})</span>` : ''}</h5>
+              <a href="${lead.project.publicUrl}" target="_blank" class="btn btn-xs btn-outline gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                View in CompanyCam
+              </a>
+            </div>
+            <div id="leadPhotosStrip" class="flex gap-2 overflow-x-auto pb-1">
+              <div class="text-xs text-base-content/40 italic py-2">Loading photos…</div>
+            </div>
+          </div>
+          ` : ''}
 
           <!-- Customer Link -->
           ${lead.customer ? `
@@ -9032,6 +9053,44 @@
       document.getElementById('selectAllAddresses').checked = false;
       document.querySelectorAll('.address-checkbox').forEach(cb => cb.checked = false);
       updateAddressSelectionUI();
+    }
+
+    async function loadLeadPhotos(lead) {
+      const strip = document.getElementById('leadPhotosStrip');
+      if (!strip) return;
+      const projectId = lead.projectId || lead.project?.id;
+      if (!projectId) { strip.innerHTML = ''; return; }
+      try {
+        const params = new URLSearchParams({ tenant: lead.tenant || currentTenant, projectId });
+        const resp = await fetch(`/.netlify/functions/photos?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!resp.ok) {
+          strip.innerHTML = '<div class="text-xs text-base-content/40 italic py-2">No photos available</div>';
+          return;
+        }
+        const data = await resp.json();
+        const media = (data.media || data.photos || []).slice(0, 12);
+        if (!media.length) {
+          strip.innerHTML = '<div class="text-xs text-base-content/40 italic py-2">No photos yet</div>';
+          return;
+        }
+        strip.innerHTML = media.map(m => {
+          const thumb = (m.uris || []).find(u => u.type === 'thumbnail')?.uri
+            || (m.uris || []).find(u => u.type === 'web')?.uri
+            || (m.uris || [])[0]?.uri
+            || m.thumbnail || '';
+          const full = (m.uris || []).find(u => u.type === 'original')?.uri
+            || (m.uris || []).find(u => u.type === 'web')?.uri
+            || thumb;
+          if (!thumb) return '';
+          return `<a href="${full}" target="_blank" class="flex-shrink-0 block">
+            <img src="${thumb}" loading="lazy" class="w-20 h-20 object-cover rounded border border-base-300 hover:border-primary transition-colors" alt="Project photo">
+          </a>`;
+        }).join('');
+      } catch (e) {
+        strip.innerHTML = '<div class="text-xs text-base-content/40 italic py-2">Failed to load photos</div>';
+      }
     }
 
     function loadLeadMap(lead) {
