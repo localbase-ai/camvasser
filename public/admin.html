@@ -9043,6 +9043,9 @@
       updateAddressSelectionUI();
     }
 
+    let _leadPhotos = [];
+    let _leadPhotoIdx = 0;
+
     async function loadLeadPhotos(lead) {
       const strip = document.getElementById('leadPhotosStrip');
       if (!strip) return;
@@ -9058,12 +9061,13 @@
           return;
         }
         const data = await resp.json();
-        const media = (data.media || data.photos || []).slice(0, 12);
+        const media = (data.media || data.photos || []).slice(0, 50);
         if (!media.length) {
           strip.innerHTML = '<div class="text-xs text-base-content/40 italic py-2">No photos yet</div>';
           return;
         }
-        strip.innerHTML = media.map(m => {
+        // Cache normalized photo records for the lightbox
+        _leadPhotos = media.map(m => {
           const thumb = (m.uris || []).find(u => u.type === 'thumbnail')?.uri
             || (m.uris || []).find(u => u.type === 'web')?.uri
             || (m.uris || [])[0]?.uri
@@ -9071,14 +9075,68 @@
           const full = (m.uris || []).find(u => u.type === 'original')?.uri
             || (m.uris || []).find(u => u.type === 'web')?.uri
             || thumb;
-          if (!thumb) return '';
-          return `<a href="${full}" target="_blank" class="flex-shrink-0 block">
-            <img src="${thumb}" loading="lazy" class="w-32 h-32 object-cover rounded border border-base-300 hover:border-primary transition-colors" alt="Project photo">
-          </a>`;
-        }).join('');
+          return { thumb, full, captured_at: m.captured_at, id: m.id };
+        }).filter(p => p.thumb);
+        strip.innerHTML = _leadPhotos.map((p, i) =>
+          `<button type="button" onclick="openLeadPhotoModal(${i})" class="flex-shrink-0 block p-0 border-0 bg-transparent">
+            <img src="${p.thumb}" loading="lazy" class="w-32 h-32 object-cover rounded border border-base-300 hover:border-primary transition-colors cursor-pointer" alt="Project photo">
+          </button>`
+        ).join('');
       } catch (e) {
         strip.innerHTML = '<div class="text-xs text-base-content/40 italic py-2">Failed to load photos</div>';
       }
+    }
+
+    function openLeadPhotoModal(idx) {
+      _leadPhotoIdx = idx;
+      let modal = document.getElementById('leadPhotoModal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'leadPhotoModal';
+        modal.className = 'fixed inset-0 z-[200] hidden';
+        modal.innerHTML = `
+          <div class="absolute inset-0 bg-black/85" onclick="closeLeadPhotoModal()"></div>
+          <button onclick="closeLeadPhotoModal()" class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-xl">×</button>
+          <button onclick="leadPhotoStep(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-2xl">‹</button>
+          <button onclick="leadPhotoStep(1)" class="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-2xl">›</button>
+          <div class="absolute inset-0 flex items-center justify-center p-12 pointer-events-none">
+            <img id="leadPhotoModalImg" class="max-h-full max-w-full object-contain rounded shadow-2xl" alt="">
+          </div>
+          <div id="leadPhotoModalCounter" class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 text-sm bg-black/40 px-3 py-1 rounded-full"></div>
+        `;
+        document.body.appendChild(modal);
+        document.addEventListener('keydown', leadPhotoModalKeydown);
+      }
+      modal.classList.remove('hidden');
+      renderLeadPhotoModal();
+    }
+
+    function renderLeadPhotoModal() {
+      const img = document.getElementById('leadPhotoModalImg');
+      const counter = document.getElementById('leadPhotoModalCounter');
+      if (!img || !_leadPhotos.length) return;
+      const p = _leadPhotos[_leadPhotoIdx];
+      img.src = p.full;
+      counter.textContent = `${_leadPhotoIdx + 1} / ${_leadPhotos.length}`;
+    }
+
+    function leadPhotoStep(delta) {
+      if (!_leadPhotos.length) return;
+      _leadPhotoIdx = (_leadPhotoIdx + delta + _leadPhotos.length) % _leadPhotos.length;
+      renderLeadPhotoModal();
+    }
+
+    function closeLeadPhotoModal() {
+      const modal = document.getElementById('leadPhotoModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function leadPhotoModalKeydown(e) {
+      const modal = document.getElementById('leadPhotoModal');
+      if (!modal || modal.classList.contains('hidden')) return;
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); leadPhotoStep(-1); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); leadPhotoStep(1); }
+      if (e.key === 'Escape')     { e.preventDefault(); closeLeadPhotoModal(); }
     }
 
     function loadLeadMap(lead) {
