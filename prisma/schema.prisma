@@ -94,6 +94,7 @@ model Lead {
   customer       Customer? @relation(fields: [customerId], references: [id])
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
+  primaryContactRole String @default("owner")
   proposals      Proposal[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

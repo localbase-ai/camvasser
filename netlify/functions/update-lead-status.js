@@ -43,7 +43,7 @@ export async function handler(event) {
   }
 
   try {
-    const { leadId, status, ownerName, firstName, lastName, tags, measurementUrl, email, phone, address, city, state, postalCode, projectId, organizationId } = JSON.parse(event.body);
+    const { leadId, status, ownerName, firstName, lastName, tags, measurementUrl, email, phone, address, city, state, postalCode, projectId, organizationId, primaryContactRole } = JSON.parse(event.body);
 
     if (!leadId) {
       return {
@@ -138,6 +138,17 @@ export async function handler(event) {
     }
     if (organizationId !== undefined) {
       updateData.organizationId = organizationId || null;
+    }
+    if (primaryContactRole !== undefined) {
+      const validRoles = ['owner', 'manager', 'tenant'];
+      if (!validRoles.includes(primaryContactRole)) {
+        return {
+          statusCode: 400,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Invalid primaryContactRole', validRoles })
+        };
+      }
+      updateData.primaryContactRole = primaryContactRole;
     }
 
     // Update the lead
