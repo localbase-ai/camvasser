@@ -1975,7 +1975,9 @@
       // Refresh data when the tab regains focus (voice-CRM workflow:
       // changes happen while you're in another tab, you come back, see them).
       // Throttled to once every 2s so rapid focus cycling doesn't hammer the API.
-      let _lastRefocusRefresh = 0;
+      // Initial value is "now" so we skip the first 2s of page-load events
+      // (pageshow/focus fire on initial paint and would cause redundant fetches).
+      let _lastRefocusRefresh = Date.now();
       const refreshOnFocus = (evt) => {
         if (document.hidden) return;
         const now = Date.now();
@@ -2322,6 +2324,15 @@
       try {
         // Initialize group-by-customer checkbox from persisted state
         document.getElementById('leadGroupByCustomer').checked = groupByCustomer;
+
+        // If kanban is the active view, skip the paginated small-page fetch —
+        // setLeadsView('kanban') will fetch the full set (limit 10000) and
+        // populate filters / counts from that response. One fetch instead of
+        // two on initial page load.
+        if (leadsViewMode === 'kanban') {
+          await setLeadsView(leadsViewMode);
+          return;
+        }
 
         const params = new URLSearchParams({
           limit: groupByCustomer ? '10000' : String(PAGE_SIZE),
@@ -9334,6 +9345,20 @@
 
         const leadsData = await leadsResponse.json();
         allLeads = leadsData.leads || [];
+
+        // Populate filters and sidebar counts from this response so the
+        // initial loadLeads() small-fetch isn't needed for kanban mode.
+        leadTotal = leadsData.total || allLeads.length;
+        const leadCountEl = document.getElementById('leadCount');
+        if (leadCountEl) leadCountEl.textContent = leadTotal;
+        const leadCountLabelEl = document.getElementById('leadCountLabel');
+        if (leadCountLabelEl) leadCountLabelEl.textContent = `${leadTotal.toLocaleString()} records`;
+        if (leadsData.distinctStatuses && typeof populateLeadStatusFilter === 'function') {
+          populateLeadStatusFilter(leadsData.distinctStatuses);
+        }
+        if (leadsData.distinctOwners && typeof populateLeadOwnerFilter === 'function') {
+          populateLeadOwnerFilter(leadsData.distinctOwners);
+        }
 
         // Apply owner filter client-side
         const ownerFilter = document.getElementById('leadOwnerFilter').value;
