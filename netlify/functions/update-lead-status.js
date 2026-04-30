@@ -140,7 +140,7 @@ export async function handler(event) {
       updateData.organizationId = organizationId || null;
     }
     if (primaryContactRole !== undefined) {
-      const validRoles = ['owner', 'manager', 'tenant'];
+      const validRoles = ['owner', 'manager'];
       if (!validRoles.includes(primaryContactRole)) {
         return {
           statusCode: 400,

@@ -1630,7 +1630,6 @@
 
     // Get display name for a lead based on primaryContactRole.
     //   manager → org's primary contact (e.g. property manager)
-    //   tenant  → lead's firstName/lastName (the tenant living at the address)
     //   owner   → customer's name (default; falls back to lead name)
     function getLeadDisplayName(lead) {
       const role = lead.primaryContactRole || 'owner';
@@ -4983,24 +4982,15 @@
       const role = lead.primaryContactRole || 'owner';
       const hasOrg = !!(lead.organization || lead.organizationId);
       const hasCustomer = !!lead.customer;
-      // Subtitle: show the "other side" of the relationship
+      // Subtitle: show the "other side" of the relationship.
       // owner role → mention the PMC if attached
       // manager role → mention the owner if attached
-      // tenant role → mention the owner+PMC if attached
       let primarySubtitle = '';
       if (role === 'owner' && hasOrg && lead.organization?.name) {
         primarySubtitle = `managed by <span class="font-medium">${escapeHtml(lead.organization.name)}</span>`;
       } else if (role === 'manager' && hasCustomer) {
         const own = `${lead.customer.firstName || ''} ${lead.customer.lastName || ''}`.trim();
         if (own) primarySubtitle = `owner: <span class="font-medium">${escapeHtml(own)}</span>`;
-      } else if (role === 'tenant') {
-        const parts = [];
-        if (hasCustomer) {
-          const own = `${lead.customer.firstName || ''} ${lead.customer.lastName || ''}`.trim();
-          if (own) parts.push(`owner: <span class="font-medium">${escapeHtml(own)}</span>`);
-        }
-        if (hasOrg && lead.organization?.name) parts.push(`managed by <span class="font-medium">${escapeHtml(lead.organization.name)}</span>`);
-        primarySubtitle = parts.join(' · ');
       }
 
       return `
@@ -5013,7 +5003,6 @@
               <div class="join mt-1" role="group" aria-label="Primary contact role">
                 <button class="btn btn-xs join-item ${role === 'owner' ? 'btn-primary' : 'btn-ghost'}" onclick="updatePrimaryContactRole('${lead.id}', 'owner')" title="Owner is the deal contact">Owner</button>
                 <button class="btn btn-xs join-item ${role === 'manager' ? 'btn-primary' : 'btn-ghost'}" onclick="updatePrimaryContactRole('${lead.id}', 'manager')" title="Property manager is the deal contact" ${hasOrg ? '' : 'disabled'}>Manager</button>
-                <button class="btn btn-xs join-item ${role === 'tenant' ? 'btn-primary' : 'btn-ghost'}" onclick="updatePrimaryContactRole('${lead.id}', 'tenant')" title="Tenant is the deal contact">Tenant</button>
               </div>
             </div>
             <button id="copyLinkBtn" onclick="copyLeadShareLink('${lead.id}')" class="btn btn-xs btn-ghost gap-1" title="Copy shareable link">
