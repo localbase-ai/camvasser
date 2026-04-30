@@ -1815,8 +1815,11 @@
         collapsedColumns.push(status);
       }
       localStorage.setItem('collapsedColumns', JSON.stringify(collapsedColumns));
+      // Re-render from cached data — no network call needed for a CSS-only
+      // visibility toggle. (Was previously calling searchLeadsForKanban
+      // which round-tripped the API for every collapse click.)
       if (leadsViewMode === 'kanban') {
-        searchLeadsForKanban();
+        renderPipelineFromCache();
       } else {
         renderLeads();
       }
