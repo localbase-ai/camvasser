@@ -2013,6 +2013,19 @@
       window.addEventListener('focus', refreshOnFocus);
       window.addEventListener('pageshow', refreshOnFocus);
 
+      // Esc closes the lead detail pane (universal "dismiss" affordance).
+      // Skips firing if the user is mid-edit in an input/textarea so we
+      // don't blow away unsaved field edits.
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const tag = (e.target && e.target.tagName) || '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        const leadPane = document.getElementById('leadDetailPane');
+        if (leadPane && leadPane.style.transform !== 'translateX(100%)' && selectedLeadId) {
+          closeLeadDetail();
+        }
+      });
+
       // Check initial hash, then localStorage, then default to dashboard
       const initialHash = window.location.hash.slice(1);
       const validViews = ['dashboard', 'calls', 'addresses', 'contacts', 'leads', 'organizations', 'customers', 'map', 'calendar', 'integrations'];
@@ -9104,6 +9117,13 @@
           dragClass: 'shadow-lg',
           chosenClass: 'bg-base-300',
           filter: '.empty-column-message',
+          // Require a tiny hold before drag initiates. Without this, any
+          // mousedown was getting interpreted as drag-start and eating the
+          // click event — so cards needed multiple hard clicks. Now: short
+          // press + release = click, longer press + move = drag.
+          delay: 100,
+          delayOnTouchOnly: false,
+          touchStartThreshold: 5,
           onEnd: handleLeadDrop
         });
       });
@@ -9532,7 +9552,22 @@
 
       // Build the combined board: lead stages | divider | proposal stages
       const leadColumns = leadStages.map(s => renderColumn(s, leadGroups[s], false)).join('');
+
+      // Preserve scroll positions across re-renders (refresh-on-focus shouldn't
+      // jump every column back to the top).
+      const scrollPositions = {};
+      board.querySelectorAll('.kanban-column').forEach(col => {
+        const stage = col.dataset.status;
+        if (stage) scrollPositions[stage] = col.scrollTop;
+      });
+
       board.innerHTML = leadColumns;
+
+      // Restore scroll positions
+      board.querySelectorAll('.kanban-column').forEach(col => {
+        const stage = col.dataset.status;
+        if (stage && scrollPositions[stage]) col.scrollTop = scrollPositions[stage];
+      });
 
       // Hide pagination in pipeline view
       document.getElementById('leadPagination').innerHTML = '';
