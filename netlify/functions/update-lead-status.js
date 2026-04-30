@@ -15,7 +15,7 @@ const VALID_STATUSES = [
   'follow_up',
   'proposal_signed',
   'job_scheduled',
-  'on_hold',
+  'rehash',
   'completed',
   'lost',
   'killed',

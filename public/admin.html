@@ -3167,7 +3167,7 @@
     let selectedStatuses = [];
 
     function populateLeadStatusFilter(distinctStatuses) {
-      const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
+      const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'rehash', 'completed', 'lost', 'killed', 'unqualified'];
       // Use distinctStatuses from API if provided, otherwise fall back to allLeads
       const allStatuses = distinctStatuses || [...new Set(allLeads.map(l => l.status).filter(Boolean))];
 
@@ -4789,7 +4789,7 @@
     }
 
     function buildLeadDetailHtml(lead) {
-      const leadStatuses = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
+      const leadStatuses = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'rehash', 'completed', 'lost', 'killed', 'unqualified'];
 
       return `
         <div class="space-y-4 lead-detail-content">
@@ -8927,7 +8927,7 @@
 
     function renderLeadsKanban(leads) {
       // Get all unique statuses from the data, with a preferred order for common ones
-      const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
+      const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'rehash', 'completed', 'lost', 'killed', 'unqualified'];
       const allStatuses = [...new Set(leads.map(l => l.status).filter(Boolean))];
 
       // Sort: preferred order first, then alphabetically for any others
@@ -9657,7 +9657,7 @@
             mapAvailableTags.map(t => `<option value="${t.name}">${t.name} (${t.count})</option>`).join('');
 
           // Extract unique lead statuses for filter dropdown
-          const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
+          const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'rehash', 'completed', 'lost', 'killed', 'unqualified'];
           const statusCounts = {};
           leads.forEach(lead => {
             if (lead.status) {

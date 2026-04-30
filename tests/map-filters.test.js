@@ -94,7 +94,7 @@ describe('Map Lead Status Filter', () => {
   });
 
   describe('Status sorting (preferred order)', () => {
-    const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'on_hold', 'completed', 'lost', 'killed', 'unqualified'];
+    const preferredOrder = ['new', 'contacted', 'appointment_scheduled', 'insurance_claim', 'proposal_sent', 'follow_up', 'proposal_signed', 'job_scheduled', 'rehash', 'completed', 'lost', 'killed', 'unqualified'];
 
     function sortStatuses(statuses) {
       return statuses.sort((a, b) => {
