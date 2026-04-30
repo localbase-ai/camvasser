@@ -123,9 +123,17 @@ body {
 }
 .detail-pane-expanded .lead-secondary-grid > .lead-secondary-col + .lead-secondary-col { margin-top: 0; }
 
-/* Tighten the controls column — vertical rhythm between Status / Owner / Tags */
+/* Tighten the controls column — vertical rhythm between Status / Owner / Tags.
+   Top-align with the map so the Status dropdown sits flush with the map's top
+   edge instead of floating in a sea of whitespace. */
+.detail-pane-expanded .lead-hero-controls {
+  margin-top: 0 !important;
+}
 .detail-pane-expanded .lead-hero-controls > * + * {
-  margin-top: 12px !important;
+  margin-top: 8px !important;
+}
+.detail-pane-expanded .lead-hero-controls label {
+  margin-bottom: 2px !important;
 }
 
 /* Map a touch taller in the expanded view since it has full hero height to fill */
